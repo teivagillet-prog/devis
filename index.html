@@ -53,13 +53,14 @@
             </button>
             <p id="etat" class="mt-3 text-sm font-semibold text-gold-400">Touchez le micro et répondez à la question</p>
             <p id="question-courante" class="mt-1 text-white text-base"></p>
+            <p class="mt-1 text-[11px] text-slate-500">Dites « passer » pour sauter, ou « question précédente » pour revenir.</p>
         </section>
 
         <div id="aide-navigateur" class="mt-4"></div>
         <div id="cartes" class="mt-4 space-y-3"></div>
         <div id="fin-zone" class="mt-4"></div>
 
-        <p class="mt-10 text-center text-[11px] text-slate-600">Vos informations restent sur votre téléphone.</p>
+        <p class="mt-10 text-center text-[11px] text-slate-600">Vos informations restent sur votre téléphone. · v4</p>
     </main>
 
     <script>
@@ -338,8 +339,43 @@
         }
 
         /* Interprète une réponse selon le type de question. Renvoie { ok, valeur, erreur } */
+        /* Commandes : « question précédente », « reviens en arrière », « retour »… */
+        function estRetour(t) {
+            var s = propre(t).toLowerCase().replace(/[.,!?]/g, '');
+            return /^(reviens|revenir|retourne|retour|recule|reculer|annule|annuler|précédent|précédente|precedent|precedente|on revient|attends? reviens|non reviens|oups?)\b/.test(s) ||
+                   /(en arri[èe]re|question pr[ée]c[ée]dente|la pr[ée]c[ée]dente|d'avant|je me suis tromp[ée])/.test(s);
+        }
+
+        var PETITS_MOTS = { de: 1, du: 1, des: 1, la: 1, le: 1, les: 1, et: 1, 'd\'': 1, 'l\'': 1 };
+        function enTitre(t) {
+            return propre(t).split(' ').map(function (m, i) {
+                if (i > 0 && PETITS_MOTS[m.toLowerCase()]) return m.toLowerCase();
+                if (/^[A-Z0-9]{2,}$/.test(m)) return m;
+                return m.charAt(0).toUpperCase() + m.slice(1).toLowerCase();
+            }).join(' ');
+        }
+
+        /* Enlève les hésitations, les phrases d'introduction et les mots répétés */
+        function nettoyer(brut, q) {
+            var t = ' ' + propre(brut) + ' ';
+            t = t.replace(/\s(euh+|heu+|hum+|hmm+|bah|ben|beh)\s/gi, ' ').replace(/\s(euh+|heu+|hum+|bah|ben)\s/gi, ' ');
+            t = propre(t);
+            for (var k = 0; k < 3; k++) {
+                t = t.replace(/^(alors|donc|ok|okay|oui alors|bon alors|ouais alors)\s+/i, '');
+                t = t.replace(/^(c'est|ce sera|ça sera|ça s'appelle|il s'appelle|elle s'appelle|on s'appelle|je m'appelle|mon nom c'est|mon nom est|le nom c'est|le nom est|le nom de (mon|l'|la) ?entreprise (c'est|est)|mon entreprise (s'appelle|c'est)|l'entreprise (s'appelle|c'est)|la société (s'appelle|c'est)|le client (c'est|s'appelle)|la cliente (c'est|s'appelle)|son nom c'est|son nom est|l'adresse (c'est|est)|son adresse (c'est|est)|mon adresse (c'est|est)|(il|elle) habite( au| à)?|j'habite( au| à)?|il y a|on a|j'ai mis|je mets|je dirais|disons|en gros)\s+/i, '');
+            }
+            t = t.replace(/[\s,]+(voilà|c'est tout|c'est bon|merci|hein|quoi|voila)[.!]?$/i, '');
+            if (!q || !q.type) {
+                t = t.replace(/(^|\s)([^\s]+)(\s+\2)+(?=\s|$)/gi, '$1$2');
+                t = t.replace(/\b(\d{2}) (\d{3})\b/g, function (x, a, b) { return /^(0[1-9]|[1-8]\d|9[0-8])$/.test(a) ? a + b : x; });
+            }
+            t = propre(t.replace(/^[,.;:\s]+|[,;:\s]+$/g, ''));
+            if (q && q.titre) t = enTitre(t);
+            return t;
+        }
+
         function interpreter(q, brut) {
-            var t = propre(brut);
+            var t = nettoyer(brut, q);
             if (!t || estPasser(t)) {
                 if (q.requis) return { ok: false, erreur: 'Cette information est obligatoire.' };
                 return { ok: true, valeur: q.defaut != null ? q.defaut : '', passe: true };
@@ -359,9 +395,9 @@
 
         /* ===================== LES QUESTIONS ===================== */
         var QUESTIONS_FICHE = [
-            { cle: 'nom', texte: 'Quel est le nom de votre entreprise ?', aide: 'Ex. : Plomberie Martin', requis: true },
+            { cle: 'nom', texte: 'Quel est le nom de votre entreprise ?', aide: 'Ex. : Plomberie Martin', requis: true, titre: true },
             { cle: 'forme', texte: 'Quelle est sa forme juridique ?', aide: 'Micro-entreprise, EI, EURL, SARL, SASU ou SAS', type: 'forme', requis: true },
-            { cle: 'dirigeant', texte: 'Quel est votre nom ?', aide: 'Ex. : Jean Martin' },
+            { cle: 'dirigeant', texte: 'Quel est votre nom ?', aide: 'Ex. : Jean Martin', titre: true },
             { cle: 'adresse', texte: "Quelle est l'adresse de votre entreprise ?", aide: 'Ex. : 12 rue des Lilas, 69003 Lyon', requis: true },
             { cle: 'tel', texte: 'Votre numéro de téléphone ?', aide: 'Ex. : 06 12 34 56 78', type: 'tel', requis: true },
             { cle: 'email', texte: 'Votre adresse e-mail ?', aide: 'Dites « arobase » pour @ et « point » pour le point', type: 'email' },
@@ -383,7 +419,7 @@
         ];
 
         var QUESTIONS_CLIENT = [
-            { cle: 'clientNom', texte: 'Quel est le nom du client ?', aide: 'Ex. : Madame Claire Durand', requis: true },
+            { cle: 'clientNom', texte: 'Quel est le nom du client ?', aide: 'Ex. : Madame Claire Durand', requis: true, titre: true },
             { cle: 'clientAdresse', texte: "Quelle est l'adresse du client ?", aide: 'Ex. : 8 avenue Jean Jaurès, 69007 Lyon', requis: true },
             { cle: 'clientContact', texte: 'Son téléphone ou son e-mail ?', aide: 'Ou « passer »' },
             { cle: 'chantier', texte: "L'adresse du chantier, si elle est différente ?", aide: 'Sinon dites « même adresse »' },
@@ -550,6 +586,7 @@
         function repondre(brut) {
             var q = APP.courante;
             if (!q) return;
+            if (estRetour(brut)) { allerPrecedente(); return; }
             var res = interpreter(q, brut);
             if (!res.ok) {
                 APP.erreur = res.erreur;
@@ -562,6 +599,23 @@
             if (APP.reinserer != null) { APP.ordre.splice(APP.reinserer, 0, q.cle); APP.reinserer = null; }
             else APP.ordre.push(q.cle);
             avancer(true);
+        }
+
+        function allerPrecedente() {
+            if (APP.mode === 'recap') APP.mode = 'devis';
+            if (APP.mode === 'fiche-ok') APP.mode = 'fiche';
+            if (!APP.ordre.length) {
+                APP.erreur = "C'est déjà la première question.";
+                dessiner(); defilerVersCourante();
+                if (ECOUTE.session) setTimeout(function () { ecouter(true); }, 900);
+                return;
+            }
+            var cle = APP.ordre.pop();
+            delete APP.rep[cle];
+            if (/^f\d+_|^heures$/.test(cle)) APP.lignes = null;
+            APP.pdf = null;
+            avancer(true);
+            etat('Retour à la question précédente.');
         }
 
         function corriger(cle, brut) {
@@ -669,7 +723,7 @@
             rec.lang = 'fr-FR';
             rec.continuous = false;
             rec.interimResults = true;
-            rec.maxAlternatives = 1;
+            rec.maxAlternatives = 5;
             ECOUTE.rec = rec;
             ECOUTE.resultat = false;
             rec.onstart = function () {
@@ -683,7 +737,7 @@
                 for (var i = ev.resultIndex || 0; i < ev.results.length; i++) { txt += ev.results[i][0].transcript; if (ev.results[i].isFinal) fin = true; }
                 var champ = document.getElementById('saisie');
                 if (champ) champ.value = txt;
-                if (fin) { ECOUTE.resultat = true; ECOUTE.essais = 0; boutonMicroActif(false); repondre(txt); }
+                if (fin) { ECOUTE.resultat = true; ECOUTE.essais = 0; boutonMicroActif(false); repondre(meilleureProposition(ev, txt)); }
             };
             rec.onerror = function (ev) {
                 ECOUTE.dernierCode = ev.error;
@@ -706,6 +760,22 @@
             };
             try { rec.start(); }
             catch (e) { arreterEcoute(); etat('Touchez le micro pour continuer.'); }
+        }
+
+        /* Pour les gens qui articulent mal : la reconnaissance propose plusieurs phrases, on prend la première qui a du sens */
+        function meilleureProposition(ev, defaut) {
+            var props = [];
+            var n = 0;
+            for (var i = 0; i < ev.results.length; i++) n = Math.max(n, ev.results[i].length || 1);
+            for (var k = 0; k < n; k++) {
+                var s = '';
+                for (var j = 0; j < ev.results.length; j++) { var r = ev.results[j]; s += (r[k] || r[0]).transcript; }
+                props.push(s);
+            }
+            if (!props.length) return defaut;
+            for (var a = 0; a < props.length; a++) if (estRetour(props[a])) return props[a];
+            if (APP.courante) for (var b = 0; b < props.length; b++) { var res = interpreter(APP.courante, props[b]); if (res.ok && !res.passe) return props[b]; }
+            return props[0];
         }
 
         function arreterEcoute() {
@@ -815,6 +885,7 @@
                         '<textarea id="saisie" rows="2" placeholder="Votre réponse s\'écrit ici…" class="' + CHAMP + ' mt-3"></textarea>' +
                         (APP.erreur ? '<p class="text-red-300 text-sm mt-2">' + esc(APP.erreur) + '</p>' : '') +
                         '<div class="flex gap-2 mt-3">' +
+                            (APP.ordre.length ? '<button type="button" onclick="arreterEcoute(); allerPrecedente()" aria-label="Question précédente" class="px-4 py-3 rounded-full text-sm text-slate-200 border border-white/20">←</button>' : '') +
                             '<button type="button" onclick="validerSaisie()" class="flex-1 px-4 py-3 rounded-full text-sm font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">Valider</button>' +
                             (!c.requis ? '<button type="button" onclick="repondre(\'passer\')" class="px-4 py-3 rounded-full text-sm text-slate-200 border border-white/20">Passer</button>' : '') +
                         '</div>' +
@@ -881,9 +952,10 @@
             h += '<p id="manque" class="mt-3 text-xs text-red-300">' + (m.length ? 'Pour créer le PDF, il manque : ' + esc(m.join(', ')) + '.' : '') + '</p>' +
                  '<button type="button" id="creer" onclick="creerPdf()" ' + (m.length ? 'disabled ' : '') + 'class="mt-2 w-full px-6 py-4 rounded-full text-base font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600 ' + (m.length ? 'opacity-40 cursor-not-allowed' : '') + '">Créer le PDF</button>' +
                  '<div id="resultat" class="' + (APP.pdf ? '' : 'hidden ') + 'mt-3 space-y-2">' +
-                    '<p class="text-emerald-300 text-sm">Devis prêt. Relisez-le avant de l\'envoyer.</p>' +
-                    '<button type="button" onclick="telechargerPdf()" class="w-full px-6 py-3 rounded-full text-sm font-bold text-black bg-emerald-400">Télécharger le PDF</button>' +
-                    '<button type="button" onclick="ouvrirPdf()" class="w-full px-6 py-3 rounded-full text-sm font-semibold text-emerald-300 border border-emerald-400/50">Ouvrir le PDF (si le téléchargement ne démarre pas)</button>' +
+                    '<p class="text-emerald-300 text-sm">Devis prêt en PDF. Relisez-le avant de l\'envoyer.</p>' +
+                    '<button type="button" onclick="partagerPdf()" class="w-full px-6 py-4 rounded-full text-base font-bold text-black bg-emerald-400">Partager le devis (WhatsApp, Mail, SMS…)</button>' +
+                    '<button type="button" onclick="telechargerPdf()" class="w-full px-6 py-3 rounded-full text-sm font-semibold text-emerald-300 border border-emerald-400/50">Enregistrer le PDF</button>' +
+                    '<button type="button" onclick="ouvrirPdf()" class="w-full px-6 py-3 rounded-full text-sm text-slate-300 border border-white/15">Voir le PDF</button>' +
                  '</div>' +
                  '<button type="button" onclick="nouveauDevis()" class="mt-4 w-full text-sm text-slate-400 underline">Commencer un nouveau devis</button></div>';
             z.innerHTML = h;
@@ -919,7 +991,21 @@
             if (manques().length) return;
             if (!window.jspdf || !window.jspdf.jsPDF) { document.getElementById('manque').textContent = "L'outil PDF ne s'est pas chargé : vérifiez votre connexion internet et rechargez la page."; return; }
             APP.pdf = genererPdfDevis(window.jspdf.jsPDF, APP.fiche, devisPourPdf(), new Date());
-            document.getElementById('resultat').classList.remove('hidden');
+            APP.pdfFichier = null;
+            try { APP.pdfFichier = new File([APP.pdf.doc.output('blob')], 'Devis_' + APP.pdf.numero + '.pdf', { type: 'application/pdf' }); } catch (e) {}
+            var r = document.getElementById('resultat');
+            r.classList.remove('hidden');
+            if (r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        function partagerPdf() {
+            if (!APP.pdf) return;
+            var f = APP.pdfFichier;
+            try {
+                if (f && navigator.canShare && navigator.canShare({ files: [f] })) {
+                    navigator.share({ files: [f], title: 'Devis ' + APP.pdf.numero, text: 'Bonjour, voici votre devis.' }).catch(function () {});
+                    return;
+                }
+            } catch (e) {}
             telechargerPdf();
         }
         function telechargerPdf() { if (APP.pdf) APP.pdf.doc.save('Devis_' + APP.pdf.numero + '.pdf'); }
