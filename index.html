@@ -60,7 +60,15 @@
         <div id="cartes" class="mt-4 space-y-3"></div>
         <div id="fin-zone" class="mt-4"></div>
 
-        <p class="mt-10 text-center text-[11px] text-slate-600">Vos informations restent sur votre téléphone. · v4</p>
+        <p class="mt-10 text-center text-[11px] text-slate-600">Vos informations restent sur votre téléphone. · v5</p>
+    </main>
+    <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-gold-500/30 px-4 pt-3 pb-5">
+        <div class="max-w-xl mx-auto">
+            <p id="barre-pdf-info" class="text-xs text-center mb-2"></p>
+            <button type="button" id="barre-pdf-bouton" onclick="actionBarrePdf()" class="w-full px-6 py-4 rounded-full text-base font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600 transition"></button>
+        </div>
+    </div>
+    <main class="hidden">
     </main>
 
     <script>
@@ -572,12 +580,13 @@
                 }
             } else if (APP.mode === 'devis') {
                 APP.courante = questionDevis(APP.rep, APP.fiche);
-                if (!APP.courante) { APP.mode = 'recap'; APP.lignes = APP.lignes || construireLignes(); arreterEcoute(); }
+                if (!APP.courante) { APP.mode = 'recap'; APP.lignes = APP.lignes || construireLignes(); arreterEcoute(); APP.creerAuto = true; }
             } else {
                 APP.courante = null;
             }
             if (!APP.courante) arreterEcoute();
             dessiner();
+            if (APP.creerAuto) { APP.creerAuto = false; if (!manques().length) creerPdf(); }
             sauverBrouillon();
             if (defiler) defilerVersCourante();
             if (APP.courante && ECOUTE.session) setTimeout(function () { ecouter(true); }, 350);
@@ -627,7 +636,7 @@
             APP.rep[cle] = res.valeur;
             APP.pdf = null;
             sauverBrouillon();
-            if (APP.mode === 'recap') dessinerRecap();
+            if (APP.mode === 'recap') { dessinerRecap(); majBarrePdf(); }
         }
 
         function enregistrerFicheModifiee() {
@@ -910,8 +919,10 @@
             } else if (APP.mode === 'recap') {
                 fin.innerHTML = '<div id="fin"></div>';
                 dessinerRecap();
+                majBarrePdf();
                 return;
             } else fin.innerHTML = '';
+            majBarrePdf();
             if (window.lucide) lucide.createIcons();
         }
 
@@ -929,6 +940,26 @@
             if (!ok && navigator.clipboard) navigator.clipboard.writeText(el.value).then(function () { msg.textContent = 'Lien copié.'; }, function () {});
             msg.textContent = ok ? 'Lien copié.' : 'Le lien est sélectionné : faites « Copier ».';
         }
+
+        /* Barre « PDF » toujours visible en bas pendant le récapitulatif */
+        function majBarrePdf() {
+            var barre = document.getElementById('barre-pdf');
+            if (!barre) return;
+            if (APP.mode !== 'recap') { barre.classList.add('hidden'); return; }
+            barre.classList.remove('hidden');
+            var m = manques(), b = document.getElementById('barre-pdf-bouton'), info = document.getElementById('barre-pdf-info');
+            if (m.length) {
+                b.textContent = 'Créer le devis PDF'; b.disabled = true; b.className = b.className.replace(' opacity-40', '') + ' opacity-40';
+                info.textContent = 'Il manque : ' + m.join(', ') + '.'; info.className = 'text-xs text-center mb-2 text-red-300';
+            } else if (!APP.pdf) {
+                b.textContent = 'Créer le devis PDF'; b.disabled = false; b.className = b.className.replace(' opacity-40', '');
+                info.textContent = 'Tout est prêt.'; info.className = 'text-xs text-center mb-2 text-emerald-300';
+            } else {
+                b.textContent = 'Partager le devis PDF'; b.disabled = false; b.className = b.className.replace(' opacity-40', '');
+                info.textContent = 'Devis ' + APP.pdf.numero + ' prêt en PDF.'; info.className = 'text-xs text-center mb-2 text-emerald-300';
+            }
+        }
+        function actionBarrePdf() { if (APP.pdf) partagerPdf(); else creerPdf(); }
 
         function dessinerRecap() {
             var z = document.getElementById('fin');
@@ -981,11 +1012,12 @@
             b.classList.toggle('cursor-not-allowed', m.length > 0);
             document.getElementById('manque').textContent = m.length ? 'Pour créer le PDF, il manque : ' + m.join(', ') + '.' : '';
             document.getElementById('resultat').classList.add('hidden');
+            majBarrePdf();
             sauverBrouillon();
         }
 
-        function ajouterLigne() { APP.lignes.push({ designation: '', qte: '1', unite: 'u', pu: '' }); APP.pdf = null; sauverBrouillon(); dessinerRecap(); }
-        function supprimerLigne(i) { APP.lignes.splice(i, 1); APP.pdf = null; sauverBrouillon(); dessinerRecap(); }
+        function ajouterLigne() { APP.lignes.push({ designation: '', qte: '1', unite: 'u', pu: '' }); APP.pdf = null; sauverBrouillon(); dessinerRecap(); majBarrePdf(); }
+        function supprimerLigne(i) { APP.lignes.splice(i, 1); APP.pdf = null; sauverBrouillon(); dessinerRecap(); majBarrePdf(); }
 
         function creerPdf() {
             if (manques().length) return;
@@ -995,6 +1027,7 @@
             try { APP.pdfFichier = new File([APP.pdf.doc.output('blob')], 'Devis_' + APP.pdf.numero + '.pdf', { type: 'application/pdf' }); } catch (e) {}
             var r = document.getElementById('resultat');
             r.classList.remove('hidden');
+            majBarrePdf();
             if (r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
         function partagerPdf() {
