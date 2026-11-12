@@ -53,14 +53,14 @@
             </button>
             <p id="etat" class="mt-3 text-sm font-semibold text-gold-400">Touchez le micro et répondez à la question</p>
             <p id="question-courante" class="mt-1 text-white text-base"></p>
-            <p class="mt-1 text-[11px] text-slate-500">Dites « passer » pour sauter, ou « question précédente » pour revenir.</p>
+            <p class="mt-1 text-[11px] text-slate-500">Dites « passer » pour sauter, « question précédente » pour revenir. Trompé ? Dites « pardon » puis la bonne réponse.</p>
         </section>
 
         <div id="aide-navigateur" class="mt-4"></div>
         <div id="cartes" class="mt-4 space-y-3"></div>
         <div id="fin-zone" class="mt-4"></div>
 
-        <p class="mt-10 text-center text-[11px] text-slate-600">Vos informations restent sur votre téléphone. · v5</p>
+        <p class="mt-10 text-center text-[11px] text-slate-600">Vos informations restent sur votre téléphone. · v6</p>
     </main>
     <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-gold-500/30 px-4 pt-3 pb-5">
         <div class="max-w-xl mx-auto">
@@ -250,13 +250,27 @@
 
         function propre(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
         function majuscule(t) { t = propre(t); return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; }
+        /* sans accents ni ligatures, pour comparer */
+        function plat(t) { return String(t == null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/œ/g, 'oe').replace(/æ/g, 'ae'); }
+        function bas(t) { return plat(t).toLowerCase(); }
+        function sansPonct(m) { return String(m).replace(/[.,;:!?]+$/, ''); }
 
         function estPasser(t) {
-            return /^(passer|passe|suivant|suivante|aucun|aucune|rien|non merci|je n'en ai pas|je l'ai pas|pas de|je ne sais pas|je sais pas|même adresse|la même|pareil)\b/i.test(propre(t));
+            var s = propre(t);
+            return /^non[.!]?$/i.test(s) ||
+                   /^(passer|passe|on passe|suivant|suivante|aucun|aucune|rien|non merci|pas besoin|je n'en ai pas|j'en ai pas|je l'ai pas|je ne l'ai pas|pas de|je ne sais pas|je sais pas|aucune idée|même adresse|la même|pareil|idem)\b/i.test(s);
         }
 
+        function estMotNombre(m) {
+            var s = bas(sansPonct(m));
+            if (!s) return false;
+            if (/^\d+([.,]\d+)?$/.test(s)) return true;
+            return s.split('-').every(function (p) { return p in MOTS_NOMBRES || p === 'cent' || p === 'cents' || p === 'mille' || p === 'et'; }) && s !== 'et';
+        }
+        function estMotNombreLettres(m) { return estMotNombre(m) && !/\d/.test(m); }
+
         function motsVersNombre(t) {
-            var mots = String(t).toLowerCase().replace(/-/g, ' ').split(/\s+/).filter(function (m) { return m && m !== 'et'; });
+            var mots = bas(t).replace(/-/g, ' ').split(/\s+/).filter(function (m) { return m && m !== 'et'; });
             var total = 0, courant = 0, trouve = false;
             for (var i = 0; i < mots.length; i++) {
                 var m = mots[i];
@@ -269,28 +283,74 @@
             return trouve ? total + courant : null;
         }
 
-        /* « 450 euros », « 55,50 », « quatre cent cinquante », « deux heures et demie » -> nombre (ou null) */
+        /* Mots que le micro entend à la place d'un nombre (« cette » pour sept, « sans » pour cent…) */
+        var HOMOPHONES_NOMBRES = {
+            'sans': 'cent', 'sang': 'cent', "s'en": 'cent', 'sent': 'cent', 'san': 'cent',
+            'vin': 'vingt', 'vins': 'vingt', 'vain': 'vingt', 'vint': 'vingt',
+            'cette': 'sept', 'set': 'sept', 'sets': 'sept', 'cet': 'sept', 'sete': 'sept',
+            'dis': 'dix', 'dit': 'dix', 'dits': 'dix',
+            'saint': 'cinq', 'sein': 'cinq', 'seins': 'cinq', 'cinque': 'cinq',
+            'scie': 'six', 'cis': 'six',
+            'cat': 'quatre', 'catre': 'quatre', 'quatres': 'quatre', 'katre': 'quatre',
+            'mil': 'mille', 'mile': 'mille', 'milles': 'mille', 'miles': 'mille',
+            'trante': 'trente', 'carante': 'quarante', 'soissante': 'soixante',
+            'neufs': 'neuf', 'huits': 'huit', "d'eux": 'deux', 'deu': 'deux', 'troie': 'trois', 'troi': 'trois', 'hein': 'un', 'zeros': 'zero'
+        };
+        var LIANTS_NOMBRES = { 'et': 1, 'virgule': 1, 'zero': 1 };
+
+        function homophonesNombres(s) {
+            var mots = s.split(' ').filter(Boolean), conv = [], autres = 0, nb = 0;
+            for (var i = 0; i < mots.length; i++) {
+                var m = bas(mots[i]), h = HOMOPHONES_NOMBRES[m];
+                if (estMotNombreLettres(m) || LIANTS_NOMBRES[m]) { conv.push(m); if (!LIANTS_NOMBRES[m]) nb++; }
+                else if (h) { conv.push(h); if (h !== 'cent') nb++; else conv[conv.length - 1] = '#cent'; }
+                else autres++;
+            }
+            if (autres) return s;
+            /* « sans » ne vaut cent que s'il est collé à un autre nombre */
+            for (var k = 0; k < conv.length; k++) if (conv[k] === '#cent') conv[k] = nb ? 'cent' : 'sans';
+            return conv.join(' ');
+        }
+
+        /* « 450 euros », « 55,50 », « quatre cent cinquante », « 2h30 », « douze euros cinquante » -> nombre (ou null) */
         function nombreFr(t) {
-            var s = propre(t).toLowerCase().replace(/€|euros?|heures?|h\b|jours?|pour ?cent|%/g, ' ');
-            var demi = /et demie?\b/.test(s) ? 0.5 : 0;
-            s = s.replace(/et demie?\b/g, ' ');
+            var s = ' ' + bas(propre(t).replace(/[’‘]/g, "'")) + ' ';
+            s = s.replace(/(\d)\.(\d{3})(?!\d)/g, '$1$2').replace(/(\d)\s*virgule\s*(\d)/g, '$1,$2');
+            var m = s.match(/(\d+)\s*(?:h|heures?)\s*(\d{1,2})(?!\d)/);
+            if (m) return Math.round((parseInt(m[1], 10) + parseInt(m[2], 10) / 60) * 100) / 100;
+            m = s.match(/(\d+)\s*(?:€|euros?)\s*(\d{1,2})(?!\d)/);
+            if (m) return parseInt(m[1], 10) + parseInt(m[2], 10) / 100;
+            var frac = 0;
+            if (/\bet quart\b/.test(s)) { frac += 0.25; s = s.replace(/\bet quart\b/g, ' '); }
+            if (/\bet demie?\b/.test(s)) { frac += 0.5; s = s.replace(/\bet demie?\b/g, ' '); }
+            if (/\btrois quarts?\b/.test(s)) { frac += 0.75; s = s.replace(/\btrois quarts?\b/g, ' '); }
+            if (/\b(une )?demi[- ]?heure\b/.test(s)) { frac += 0.5; s = s.replace(/\b(une )?demi[- ]?heure\b/g, ' '); }
+            if (/\b(un )?quart d'heure\b/.test(s)) { frac += 0.25; s = s.replace(/\b(un )?quart d'heure\b/g, ' '); }
+            s = s.replace(/€|euros?|balles|heures?|\bh\b|jours?|pour ?cent|%|\bht\b|\bttc\b|d'heure/g, ' ');
             var chiffres = s.replace(/(\d)\s+(?=\d{3}\b)/g, '$1').match(/\d+(?:[.,]\d+)?/);
-            if (chiffres) return parseFloat(chiffres[0].replace(',', '.')) + demi;
+            if (chiffres) return parseFloat(chiffres[0].replace(',', '.')) + frac;
+            s = homophonesNombres(propre(s));
             var parts = s.split(/\bvirgule\b/);
             var entier = motsVersNombre(parts[0]);
-            if (entier === null) return null;
+            if (entier === null) return frac ? frac : null;
             var n = entier;
             if (parts[1]) {
                 var dec = motsVersNombre(parts[1]);
-                if (dec !== null) n = parseFloat(entier + '.' + (dec < 10 && /\bz[ée]ro\b/.test(parts[1]) ? '0' + dec : String(dec)));
+                if (dec !== null) n = parseFloat(entier + '.' + (dec < 10 && /\bzero\b/.test(parts[1]) ? '0' + dec : String(dec)));
             }
-            return n + demi;
+            return n + frac;
+        }
+
+        function estZero(t) {
+            return /^(gratuit|gratuite|offert|offerte|inclus|incluse|compris|comprise|sans|aucun|aucune|rien|nul|nulle|neant|pas d|pas de|zero)\b/.test(bas(propre(t)));
         }
 
         function ouiNon(t) {
-            var s = propre(t).toLowerCase();
-            if (/\b(non|nan|pas de tva|pas la tva|aucune|franchise|micro)\b/.test(s)) return 'non';
-            if (/\b(oui|ouais|ouai|yes|bien sûr|exact|exactement|d'accord|ok|je facture|une autre|encore)\b/.test(s)) return 'oui';
+            var s = ' ' + bas(propre(t)).replace(/[.,!?]/g, ' ').replace(/\s+/g, ' ') + ' ';
+            if (/\s(non|nan|nope|non merci|pas de tva|pas la tva|franchise|micro|micro-entreprise|negatif|pas du tout|jamais)\s/.test(s)) return 'non';
+            if (/\s(c'est tout|ca sera tout|ce sera tout|c'est fini|fini|termine|ca suffit|plus rien|rien d'autre|pas d'autres?|pas besoin|ca ira)\s/.test(s)) return 'non';
+            if (/\s(oui|ouais|ouai|ouaip|ouep|voui|oue|we|wesh oui|yes|yep|si|bien sur|bien entendu|exact|exactement|effectivement|en effet|d'accord|dac|ok|okay|je facture|une autre|un autre|encore|absolument|evidemment|carrement|tout a fait|affirmatif|volontiers|je veux bien|c'est ca|il en faut)\s/.test(s)) return 'oui';
+            if (/\s(aucune?|rien)\s/.test(s)) return 'non';
             return null;
         }
 
@@ -339,59 +399,443 @@
             return d.length >= 8 ? d : null;
         }
 
+        var DOMAINES_MAIL = 'gmail|hotmail|yahoo|outlook|orange|free|sfr|wanadoo|laposte|icloud|live|bbox|neuf|aol|protonmail|proton';
         function email(t) {
-            var s = ' ' + propre(t).toLowerCase() + ' ';
-            s = s.replace(/\s(arobase|arrobase|at)\s/g, '@').replace(/\s(point|dot)\s/g, '.').replace(/\stiret bas\s|\sunderscore\s/g, '_').replace(/\stiret\s/g, '-');
-            s = s.replace(/\s+/g, '').replace(/\.+$/, '');
+            var s = ' ' + bas(propre(t).replace(/[’‘]/g, "'")) + ' ';
+            /* nombres dits en lettres -> chiffres (« martin trente-trois » -> martin33) */
+            s = ' ' + s.split(' ').filter(Boolean).map(function (m) { return (estMotNombreLettres(m) && m !== 'un' && m !== 'une') ? String(motsVersNombre(m)) : m; }).join(' ') + ' ';
+            s = s.replace(/\s(arobase|arrobase|arobas|arrobas|arobaz|arrobaz|arobe|arrobe|a robase|a robe|a rose|at)\s/g, ' @ ')
+                 .replace(/\s(point|dot)\s/g, ' . ')
+                 .replace(/\s(tiret du huit|tiret du 8|tiret bas|sous tiret|underscore)\s/g, ' _ ')
+                 .replace(/\s(tiret du six|tiret du 6|tiret|trait d'union)\s/g, ' - ');
+            s = s.replace(/\s+/g, '').replace(/^[.@]+|\.+$/g, '');
+            /* domaines mal entendus */
+            s = s.replace(/@(gemail|jmail|jemail|gmaille|gmails|geemail|gimail|jaimail|gmal)\./, '@gmail.')
+                 .replace(/@(hotmaille|hautmail|otmail|hotmal)\./, '@hotmail.')
+                 .replace(/@(yahou|yaou|yaho|yahoou)\./, '@yahoo.')
+                 .replace(/@(outlouk|aoutlook|outluk|aoutlouk)\./, '@outlook.')
+                 .replace(/@(wanadou|wanado)\./, '@wanadoo.')
+                 .replace(/@(aillecloud|icloude|iclou)\./, '@icloud.')
+                 .replace(/\.(comme|come|comm|kom|con)$/, '.com')
+                 .replace(/\.(effeerre|efferre|efr|fre)$/, '.fr');
+            /* « arobase » oublié : « jean martin gmail point com » */
+            if (s.indexOf('@') < 0) s = s.replace(new RegExp('([a-z0-9._-])(' + DOMAINES_MAIL + ')\\.(com|fr|net)$'), '$1@$2.$3');
             return /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(s) ? s : null;
         }
 
-        /* Interprète une réponse selon le type de question. Renvoie { ok, valeur, erreur } */
         /* Commandes : « question précédente », « reviens en arrière », « retour »… */
         function estRetour(t) {
-            var s = propre(t).toLowerCase().replace(/[.,!?]/g, '');
-            return /^(reviens|revenir|retourne|retour|recule|reculer|annule|annuler|précédent|précédente|precedent|precedente|on revient|attends? reviens|non reviens|oups?)\b/.test(s) ||
-                   /(en arri[èe]re|question pr[ée]c[ée]dente|la pr[ée]c[ée]dente|d'avant|je me suis tromp[ée])/.test(s);
+            var s = propre(t).toLowerCase().replace(/[.,!?]/g, '').replace(/\s+/g, ' ').trim();
+            return /^(reviens|revenir|retourne|retour|recule|reculer|annule|annuler|précédent|précédente|precedent|precedente|on revient|attends? reviens|attendez reviens|non reviens|reviens en arrière)\b/.test(s) ||
+                   /^(oups?|oups? reviens|non je me suis tromp[ée]e?|je me suis tromp[ée]e?|je me suis tromp[ée]e? de (question|réponse))$/.test(s) ||
+                   /(en arri[èe]re|question pr[ée]c[ée]dente|la pr[ée]c[ée]dente|d'avant)/.test(s);
         }
 
-        var PETITS_MOTS = { de: 1, du: 1, des: 1, la: 1, le: 1, les: 1, et: 1, 'd\'': 1, 'l\'': 1 };
-        function enTitre(t) {
-            return propre(t).split(' ').map(function (m, i) {
-                if (i > 0 && PETITS_MOTS[m.toLowerCase()]) return m.toLowerCase();
-                if (/^[A-Z0-9]{2,}$/.test(m)) return m;
-                return m.charAt(0).toUpperCase() + m.slice(1).toLowerCase();
-            }).join(' ');
+        /* ===================== CORRIGER CE QUE LE MICRO A MAL ENTENDU ===================== */
+
+        /* 1) Les gens se reprennent : « 150 litres… non pardon, 200 litres » -> « 200 litres » */
+        var RE_REPRISE = /\s(non pardon|pardon|non non|enfin non|non enfin|je veux dire|ou plut[oô]t|non plut[oô]t|correction|je me suis tromp[ée]e?|non attends|non attendez|attends non|attendez non|je recommence|on recommence|non)[,.!]?\s+(?=\S)/gi;
+        var RE_DEBUT_NOMBRE = /^(\d|z[ée]ro\b|une?\b|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|vingt|trente|quarante|cinquante|soixante|cent|mille)/i;
+
+        function chercherReprise(s, depuis) {
+            RE_REPRISE.lastIndex = depuis || 0;
+            var m;
+            while ((m = RE_REPRISE.exec(s))) {
+                if (m[1].toLowerCase() === 'non' && !RE_DEBUT_NOMBRE.test(s.slice(m.index + m[0].length))) { RE_REPRISE.lastIndex = m.index + 1; continue; }
+                return m;
+            }
+            return null;
         }
 
-        /* Enlève les hésitations, les phrases d'introduction et les mots répétés */
-        function nettoyer(brut, q) {
-            var t = ' ' + propre(brut) + ' ';
-            t = t.replace(/\s(euh+|heu+|hum+|hmm+|bah|ben|beh)\s/gi, ' ').replace(/\s(euh+|heu+|hum+|bah|ben)\s/gi, ' ');
-            t = propre(t);
-            for (var k = 0; k < 3; k++) {
-                t = t.replace(/^(alors|donc|ok|okay|oui alors|bon alors|ouais alors)\s+/i, '');
-                t = t.replace(/^(c'est|ce sera|ça sera|ça s'appelle|il s'appelle|elle s'appelle|on s'appelle|je m'appelle|mon nom c'est|mon nom est|le nom c'est|le nom est|le nom de (mon|l'|la) ?entreprise (c'est|est)|mon entreprise (s'appelle|c'est)|l'entreprise (s'appelle|c'est)|la société (s'appelle|c'est)|le client (c'est|s'appelle)|la cliente (c'est|s'appelle)|son nom c'est|son nom est|l'adresse (c'est|est)|son adresse (c'est|est)|mon adresse (c'est|est)|(il|elle) habite( au| à)?|j'habite( au| à)?|il y a|on a|j'ai mis|je mets|je dirais|disons|en gros)\s+/i, '');
+        function fusionner(x, y) {
+            if (!x) return y;
+            var xs = x.split(' '), ys = y.split(' ');
+            var n = function (w) { return bas(sansPonct(w)); };
+            var dernier = n(xs[xs.length - 1]), dy = y.replace(/\D/g, '');
+            /* numéro collé : « 0612345678 non 79 » -> « 0612345679 » */
+            if (/^\d{6,}$/.test(dernier) && /^[\d\s]+$/.test(y) && dy.length < dernier.length) {
+                xs[xs.length - 1] = dernier.slice(0, dernier.length - dy.length) + dy;
+                return xs.join(' ');
             }
-            t = t.replace(/[\s,]+(voilà|c'est tout|c'est bon|merci|hein|quoi|voila)[.!]?$/i, '');
-            if (!q || !q.type) {
-                t = t.replace(/(^|\s)([^\s]+)(\s+\2)+(?=\s|$)/gi, '$1$2');
-                t = t.replace(/\b(\d{2}) (\d{3})\b/g, function (x, a, b) { return /^(0[1-9]|[1-8]\d|9[0-8])$/.test(a) ? a + b : x; });
+            /* un mot repris existe déjà : on aligne la reprise dessus et on garde la suite
+               « 12 rue des lilas 33000 bordeaux pardon des roses » -> « 12 rue des roses 33000 bordeaux » */
+            for (var iy = 0; iy < ys.length; iy++) {
+                var w = n(ys[iy]);
+                if (iy > 0 && (estMotNombre(w) || PETITS_LIENS[w])) continue;
+                for (var ix = xs.length - 1; ix >= 0; ix--) if (n(xs[ix]) === w) {
+                    var deb = Math.max(0, ix - iy);
+                    return xs.slice(0, deb).concat(ys, xs.slice(deb + ys.length)).join(' ');
+                }
             }
-            t = propre(t.replace(/^[,.;:\s]+|[,;:\s]+$/g, ''));
-            if (q && q.titre) t = enTitre(t);
+            /* un nombre remplace le dernier nombre dit : « 2 heures non 3 » -> « 3 heures » */
+            if (estMotNombre(ys[0]) && ys.every(estMotNombre)) {
+                for (var j = xs.length - 1; j >= 0; j--) if (estMotNombre(xs[j]) && n(xs[j]) !== 'et') {
+                    var a = j; while (a > 0 && estMotNombre(xs[a - 1])) a--;
+                    var chiffres = /\d/.test(xs[j]) && /\d/.test(ys[0]);
+                    var debut = chiffres ? Math.max(a, j - ys.length + 1) : a;
+                    return xs.slice(0, debut).concat(ys, xs.slice(j + 1)).join(' ');
+                }
+            }
+            if (ys.length < xs.length) return xs.slice(0, xs.length - ys.length).concat(ys).join(' ');
+            return y;
+        }
+
+        function autocorriger(t) {
+            for (var tour = 0; tour < 5; tour++) {
+                var s = ' ' + t + ' ', m = chercherReprise(s, 0);
+                if (!m) return t;
+                var x = propre(s.slice(0, m.index)), apres = s.slice(m.index + m[0].length);
+                if (/recommence/i.test(m[1])) { t = propre(apres); continue; }
+                var suivante = chercherReprise(' ' + apres, 0);
+                var y = propre(suivante ? (' ' + apres).slice(0, suivante.index) : apres);
+                var reste = suivante ? (' ' + apres).slice(suivante.index) : '';
+                if (!y) { t = propre(x + ' ' + reste); continue; }
+                t = propre(fusionner(x, y) + ' ' + reste);
+            }
             return t;
         }
 
+        /* 2) Les mots répétés et les bégaiements : « du du », « rem remplacement » */
+        var PAS_BEGAIEMENT = { mon: 1, ton: 1, son: 1, des: 1, les: 1, une: 1, par: 1, pour: 1, sur: 1, sous: 1, avec: 1, ces: 1, cet: 1, est: 1, pas: 1, non: 1, mes: 1, tes: 1, ses: 1, nos: 1, vos: 1, leur: 1, aux: 1, dans: 1, tout: 1, bien: 1, plus: 1, tres: 1, mai: 1, sept: 1 };
+        function sansRepetitions(t, sansBegaiement) {
+            var m = propre(t).split(' ');
+            var n = function (x) { return bas(sansPonct(x)); };
+            for (var L = Math.floor(m.length / 2); L >= 1; L--) {
+                for (var i = 0; i + 2 * L <= m.length; i++) {
+                    var pareil = true;
+                    for (var j = 0; j < L; j++) if (n(m[i + j]) !== n(m[i + L + j])) { pareil = false; break; }
+                    if (pareil && !(L === 1 && /\d/.test(m[i]))) { m.splice(i + L, L); i--; }
+                }
+            }
+            var out = [];
+            for (var k = 0; k < m.length; k++) {
+                var a = n(m[k]), b = k + 1 < m.length ? n(m[k + 1]) : '';
+                if (!sansBegaiement && a.length >= 3 && !PAS_BEGAIEMENT[a] && !/\d/.test(a) && b.length >= a.length + 2 && b.indexOf(a) === 0) continue;
+                out.push(m[k]);
+            }
+            return out.join(' ');
+        }
+
+        /* 3) Vocabulaire du métier : le micro écrit ce qu'il croit entendre, on remet le bon mot.
+              Clé = le bon mot ; valeur = ce que le micro écrit souvent à la place. */
+        var VOCAB = {
+            plomberie: {
+                'chauffe-eau': 'chauffe eau|chauffeau|chauffe o|chauffe-o|chauffe haut|chauffe-haut|chauffe au|chauffe-au|chauffo',
+                "ballon d'eau chaude": "ballon eau chaude|ballon d'eau chaud|ballon d'au chaude|ballon dos chaude",
+                'cumulus': 'cumulu|cumulusse|cumulüs|cumul us',
+                'mitigeur': 'mitigé|mitiger|mitigueur|mitijeur|mi tigeur|mitigeure|mie tigeur',
+                'thermostatique': 'thermo statique|termostatique|thermostatic',
+                'robinet': 'robinait|robiné',
+                'siphon': 'si fond|si fon|si font|siffon|sifon|six fonds|six fond|ci-fond|cifon',
+                'groupe de sécurité': 'groupe sécurité|groupe de sécu|groupe sécu|groupe de securite',
+                'réducteur de pression': 'réducteur pression|reducteur de pression|réduction de pression',
+                "vase d'expansion": "vase expansion|vas d'expansion|va d'expansion|vase d'extension|vase de expansion|vase d expansion|vaste expansion",
+                'bâti-support': 'bâti support|bati support|bâtit support|battit support|bâtis support|bâti supports|bati-support|batit support',
+                'WC': 'w c|w.c.|w.c|wc|vécé|vé cé|wécé|double v c|double vé cé|doublevé cé|w-c',
+                'PVC': 'p v c|pvc|pé vé cé|pévécé|p.v.c.|p.v.c',
+                'PER': 'per|p e r|pé e r|pé eu erre',
+                'VMC': 'v m c|vmc|vé ème cé|vé m c|v.m.c.',
+                'PAC': 'p a c|pac|pé a cé',
+                'multicouche': 'multi couche|multi-couche|multi couches|multicouches',
+                'polyéthylène': 'poly éthylène|polyethylene|poly-éthylène|poly ethylene',
+                'adoucisseur': 'a doucisseur|adousisseur|adoussisseur|à doucisseur',
+                'sanibroyeur': 'sani broyeur|sanie broyeur|sani-broyeur|sanit broyeur|sanis broyeur',
+                'disconnecteur': 'dis connecteur|déconnecteur|dis-connecteur',
+                'clapet anti-retour': 'clapet anti retour|clapet antiretour|clapet anti-retours|clapet non-retour|clapet non retour|clapet anti retours',
+                'anti-bélier': 'anti bélier|antibélier|anti-belier|anti belier',
+                'anti-calcaire': 'anti calcaire|anticalcaire',
+                "vanne d'arrêt": "van d'arrêt|vanne d'arret|vent d'arrêt|vanne d arrêt",
+                'désembouage': 'désemboue âge|des embouage|dés embouage|désenbouage|des enbouage|dé embouage',
+                'détartrage': 'dé tartrage|des tartrage|dé-tartrage',
+                'débouchage': 'dé bouchage|dé-bouchage',
+                "main-d'œuvre": "main d'oeuvre|main d'œuvre|main-d'oeuvre|main d oeuvre|main doeuvre|main d'euvre|main-d'euvre|maindoeuvre",
+                'pare-douche': 'pare douche|par douche',
+                'lave-mains': 'lave main|lave mains|lave-main|lave mince',
+                'lave-linge': 'lave linge',
+                'lave-vaisselle': 'lave vaisselle',
+                'sèche-serviettes': 'sèche serviette|sèche serviettes|sèche-serviette|seiche serviette|sèches serviettes|seiche serviettes',
+                'abattant': 'abat-tant|a battant|abatant|abat tant|abat temps',
+                'bonde': 'bond',
+                'vasque': 'vas que',
+                'thermostat': 'thermo stat|termostat',
+                'thermodynamique': 'thermo dynamique|termodynamique',
+                'surpresseur': 'sur presseur',
+                'calorifuge': 'calori fuge',
+                'laiton': 'lait ton|lai ton',
+                'inox': 'inoxe|i nox',
+                'raccord': 'racord',
+                'flexible': 'flexibe',
+                'chaudière': 'chaud hier|chaux dière|chaudiere',
+                'radiateur': '',
+                'circulateur': '',
+                'collecteur': '',
+                'nourrice': '',
+                'purgeur': 'pur jeu|purge heure',
+                'manchon': '',
+                'colonne de douche': 'colonne douche',
+                'receveur de douche': 'receveur douche|récepteur de douche',
+                'pompe de relevage': 'pompe relevage|pompe de re levage',
+                'baignoire': 'beignoire',
+                'lavabo': 'la vabo',
+                'évier': 'et vier',
+                'canalisation': '',
+                'évacuation': '',
+                'Atlantic': 'atlantique|atlantic|atlantik',
+                'Thermor': 'thermos|termor|thermore|thermort|thermor|termos',
+                'Ariston': 'ariston|aristone',
+                'Grohe': 'grohe|grohé|groé|grohee|gro é',
+                'Hansgrohe': 'hans grohe|hans gro|hansgroe|hans grow|anse grohe|hans grohé|hansgrohe|hans groé|hans groe',
+                'Geberit': 'gébérit|gébérite|guébérit|gueberit|geberite|géberit|gé bé rit|geberit|gué bé rit|guébérite|géberite',
+                'Jacob Delafon': 'jacob de la fond|jacob de la font|jacob delafond|jacob de lafon|jacob de la fon|jacob delafon|jacob de la fonds|jacob de la fonte|jacob de la fonte',
+                'Saunier Duval': 'saunier du val|sonnier duval|saulnier duval|saunier duval|saunier duvall|sonier duval|saunier du valle|saunier du vale',
+                'Frisquet': 'frisket|frisquette|frisquet|fri squet|frisquais|frisquée|frisqué',
+                'Viessmann': 'viessman|vissman|vis man|viesmann|viessmanne|viessmann|vièsman|viesman|vis mann',
+                'De Dietrich': 'de dietrich|dédietrich|de ditrich|de dittrich|de diétrich|de dietrick',
+                'Chaffoteaux': 'chaffoteau|chafoteaux|chaffotaux|chaffoteaux|chafoteau|chaffotteaux',
+                'Vaillant': 'vaillant|vayant',
+                'Elm Leblanc': 'elm le blanc|elme leblanc|elm leblanc|helm leblanc|elme le blanc|aile m leblanc|elm leblan',
+                'Daikin': 'dai kin|daï kin|daikine|daïkine|daikin|daïkin|dé kine',
+                'Bosch': 'bosch|bosh',
+                'Ideal Standard': 'idéal standard|ideal standard',
+                'Roca': 'roca|rocca',
+                'Villeroy & Boch': 'villeroy et boch|villeroy et bosch|villeroy boch|villeroy and boch|villeroy & boch|villeroi et boch',
+                'Wirquin': 'wirquin|virquin|wirkin|ouirquin|virkin|wirquain',
+                'Siamp': 'siamp|si amp|siampe',
+                'Comap': 'comap|co map|comappe|comape',
+                'Caleffi': 'caleffi|calefi|calé fi|calèfi',
+                'Kinedo': 'kinédo|kiné do|kinedo|kiné dos',
+                'Delabie': 'delabie|de la bie|de labie|delabi',
+                'Ferroli': 'ferroli|ferolli|ferrolli',
+                'Riello': 'riello|rielo',
+                'Buderus': 'buderus|boudérus|budérus',
+                'Junkers': 'junkers|junker|yunkers',
+                'Somatherm': 'somatherm|soma therm|somatherme'
+            },
+            assurance: {
+                'AXA': 'axa|aksa|ax a|a x a|akza',
+                'MAAF': 'maaf|ma af|maf|m a a f|maafe',
+                'MMA': 'mma|m m a|èm èm a|aime aime a',
+                'MACIF': 'macif|ma cif|macife',
+                'MAIF': 'maif|ma if|maïf',
+                'SMABTP': 'smabtp|s m a b t p|sma btp|sma bétépé|smab tp|sma b t p',
+                'SMA': 'sma|s m a',
+                'Allianz': 'allianz|alliance|allianse',
+                'Groupama': 'groupama|groupe ama|groupe à ma',
+                'Generali': 'generali|générali|général i|generalli',
+                'GAN': 'gan',
+                'Hiscox': 'hiscox|his cox|hiscoxe|hisscox|hiscock',
+                'BTP': 'btp|b t p|bétépé|bé té pé',
+                'RC Pro': 'rc pro|r c pro|air c pro|erre cé pro|rcpro|r.c. pro|rc-pro',
+                'Covéa': 'covéa|covea|co véa',
+                'Médicys': 'medicys|médicis|médicys|medicis',
+                'CNPM': 'cnpm|c n p m',
+                'CM2C': 'cm2c|c m 2 c|cm 2 c|c m deux c|cm deux c',
+                'décennale': 'décénale|decennale|décennal|decenale'
+            },
+            duree: {}
+        };
+        /* Mots courants qu'on ne « corrige » jamais au son */
+        var PROTEGES = { recevoir: 1, robin: 1, sifflet: 1, sifflets: 1, thermo: 1, nourrissait: 1, nourrissaient: 1 };
+        var INDEX_VOCAB = {};
+        var PETITS_LIENS = { et: 1, de: 1, du: 1, des: 1, la: 1, le: 1, les: 1, en: 1, 'à': 1, a: 1, au: 1, aux: 1, un: 1, une: 1, d: 1, l: 1, y: 1, ou: 1, sur: 1, pour: 1, avec: 1, par: 1, est: 1, e: 1 };
+
+        function formeCle(t) { return bas(t).replace(/[-'’.]/g, ' ').replace(/\s+/g, ' ').trim(); }
+
+        /* Clé « au son » : deux écritures qui se prononcent pareil donnent la même clé */
+        function clePhon(m) {
+            var s = bas(m).replace(/[^a-z]/g, '');
+            s = s.replace(/^h/, '').replace(/ph/g, 'f').replace(/sch|sh/g, 'ch').replace(/ch/g, 'X')
+                 .replace(/qu|ck|q/g, 'k').replace(/gu(?=[eiy])/g, 'G').replace(/c(?=[eiy])/g, 's').replace(/c/g, 'k')
+                 .replace(/g(?=[eiy])/g, 'j').replace(/G/g, 'g').replace(/h/g, '')
+                 .replace(/eaux?|aux?/g, 'o')
+                 .replace(/(ain|ein|aim|eim)(?![aeiouy])/g, 'I').replace(/ai|ei|ay|ey/g, 'e')
+                 .replace(/(in|im|un|um|yn|ym)(?![aeiouyn])/g, 'I').replace(/(an|am|en|em)(?![aeiouyn])/g, 'A').replace(/(on|om)(?![aeiouyn])/g, 'O')
+                 .replace(/y/g, 'i').replace(/w/g, 'v').replace(/z/g, 's').replace(/x$/, '').replace(/x/g, 'ks')
+                 .replace(/(.)\1+/g, '$1').replace(/(er|ez|et)$/, 'e').replace(/[stdp]$/, '').replace(/e$/, '');
+            return s;
+        }
+
+        function indexVocab(nom) {
+            if (INDEX_VOCAB[nom]) return INDEX_VOCAB[nom];
+            var d = VOCAB[nom] || {}, ix = { exact: {}, phon: {}, max: 1 };
+            Object.keys(d).forEach(function (canon) {
+                [canon].concat(d[canon] ? d[canon].split('|') : []).forEach(function (f) {
+                    var k = formeCle(f);
+                    if (!(k in ix.exact)) ix.exact[k] = canon;
+                    ix.max = Math.max(ix.max, k.split(' ').length);
+                    if (!/\d/.test(f)) { var p = clePhon(f); if (p.length >= 5 && !(p in ix.phon)) ix.phon[p] = canon; }
+                });
+            });
+            INDEX_VOCAB[nom] = ix;
+            return ix;
+        }
+
+        function accorder(canon, pluriel) {
+            if (pluriel && canon === canon.toLowerCase() && canon.indexOf(' ') < 0 && !/[sxz]$/.test(canon)) return canon + (/(au|eu)$/.test(canon) ? 'x' : 's');
+            return canon;
+        }
+
+        var RE_UNITE = /^(litres?|l|mm|millimetres?|cm|centimetres?|m|metres?|ml|bars?|kw|kilowatts?|kilo|watts?|w|degres?|pouces?|jours?|journees?|heures?|h|semaines?|mois|ans?|annees?|minutes?|min|kg|kilos?)$/;
+
+        /* « deux cents litres » -> « 200 litres », « trois jours » -> « 3 jours » */
+        function nombresAvantUnites(t) {
+            var mots = t.split(' '), out = [];
+            for (var i = 0; i < mots.length; i++) {
+                if (estMotNombreLettres(mots[i])) {
+                    var j = i;
+                    while (j < mots.length && (estMotNombreLettres(mots[j]) || (bas(mots[j]) === 'et' && j + 1 < mots.length && estMotNombreLettres(mots[j + 1])))) j++;
+                    if (j < mots.length && RE_UNITE.test(bas(sansPonct(mots[j])))) {
+                        var v = motsVersNombre(mots.slice(i, j).join(' '));
+                        if (v !== null) { out.push(String(v)); i = j - 1; continue; }
+                    }
+                }
+                out.push(mots[i]);
+            }
+            return out.join(' ');
+        }
+
+        var DIAMETRES = { '8': '13', '10': '14', '12': '17', '15': '21', '20': '27', '26': '34', '33': '42', '40': '49', '50': '60' };
+        function mesuresPlomberie(t) {
+            t = t.replace(/\bquinze (?:par |sur )?vingt[- ]et[- ]un\b/gi, '15x21').replace(/\bvingt (?:par |sur )?vingt[- ]sept\b/gi, '20x27')
+                 .replace(/\bdouze (?:par |sur )?dix[- ]sept\b/gi, '12x17').replace(/\bvingt[- ]six (?:par |sur )?trente[- ]quatre\b/gi, '26x34')
+                 .replace(/\btrente[- ]trois (?:par |sur )?quarante[- ]deux\b/gi, '33x42');
+            t = t.replace(/\b(\d{1,2})\s*(?:par|sur|x|fois|\/|-)?\s*(\d{2})\b/g, function (x, a, b) { return DIAMETRES[a] === b ? a + 'x' + b : x; });
+            t = t.replace(/\btrois[- ]quarts?\b/gi, '3/4').replace(/\b(?:un )?demi[- ]pouces?\b/gi, '1/2"');
+            t = t.replace(/(\d)\s*millim[eè]tres?(?=\s|$|[.,;])/gi, '$1 mm').replace(/(\d)\s*centim[eè]tres?(?=\s|$|[.,;])/gi, '$1 cm')
+                 .replace(/(\d)\s*(?:kilo ?watts?|kw)(?=\s|$|[.,;])/gi, '$1 kW').replace(/(\d)\s*degr[ée]s?(?=\s|$|[.,;])/gi, '$1 °C');
+            return t;
+        }
+
+        function corrigerVocab(t, nom) {
+            t = propre(t);
+            if (nom === 'plomberie' || nom === 'duree') t = nombresAvantUnites(t);
+            if (nom === 'plomberie') t = mesuresPlomberie(t);
+            if (nom === 'assurance') {
+                t = t.replace(/\b(?:w ?w ?w|trois w|3 ?w|double v double v double v)\s*(?:point|\.)\s*/gi, 'www.')
+                     .replace(/(\S+)\s+(?:point|\.)\s+(fr|com|org|net|eu|info)\b/gi, function (x, a, b) { return a.toLowerCase() + '.' + b.toLowerCase(); });
+            }
+            var ix = indexVocab(nom), mots = t ? t.split(' ') : [], out = [], n = 0;
+            for (var i = 0; i < mots.length;) {
+                var fait = false;
+                for (var L = Math.min(ix.max, mots.length - i); L >= 1 && !fait; L--) {
+                    var fen = mots.slice(i, i + L), suf = (fen[L - 1].match(/[.,;:!?]+$/) || [''])[0];
+                    var brut = fen.join(' '); brut = brut.slice(0, brut.length - suf.length);
+                    var k = formeCle(brut), canon = ix.exact[k], pluriel = false;
+                    if (!canon && /s$/.test(k) && ix.exact[k.slice(0, -1)]) { canon = ix.exact[k.slice(0, -1)]; pluriel = true; }
+                    if (!canon && L <= 2 && !/\d/.test(brut) && !PROTEGES[k]) {
+                        var p = clePhon(brut);
+                        /* à deux mots, chaque mot doit compter (sinon « alliance et » avalerait « et ») */
+                        if (L === 2 && (clePhon(fen[0]) === p || clePhon(sansPonct(fen[1])) === p || ix.exact[formeCle(fen[0])] || PETITS_LIENS[bas(fen[0])] || PETITS_LIENS[bas(sansPonct(fen[1]))])) p = '';
+                        if (p.length >= 5 && ix.phon[p]) { canon = ix.phon[p]; pluriel = /[sx]$/.test(k); }
+                    }
+                    if (canon) { out.push(accorder(canon, pluriel) + suf); i += L; n++; fait = true; }
+                }
+                if (!fait) { out.push(mots[i]); i++; }
+            }
+            t = out.join(' ');
+            if (nom === 'plomberie') t = t.replace(/^(?:(?:un|une|des|le|la|les|du|de la)\s+|l')(?=\S)/i, '');
+            return { texte: t, n: n };
+        }
+
+        /* 4) Les adresses : « 12 rue des lilas 69003 lyon » -> « 12 rue des Lilas, 69003 Lyon » */
+        var RE_VOIE = /^(rue|ruelle|avenue|av|boulevard|bd|impasse|allee|chemin|place|route|quai|cours|square|passage|voie|sentier|lotissement|residence|hameau|lieu-dit|lieudit|chaussee|esplanade|parvis|promenade|rond-point|faubourg|montee|cite|villa|domaine|zone|parc|carrefour|traverse|venelle|clos|batiment|bat|appartement|appt|apt|etage|escalier|esc|porte|bis|ter|quater)$/;
+        var SIGLES_ADRESSE = { cedex: 'CEDEX', bp: 'BP', cs: 'CS', za: 'ZA', zi: 'ZI', zac: 'ZAC', zae: 'ZAE' };
+        var PETITS_ADRESSE = { de: 1, du: 1, des: 1, la: 1, le: 1, les: 1, et: 1, au: 1, aux: 1, en: 1, sur: 1, sous: 1, 'lès': 1, lez: 1, 'à': 1 };
+        var PETITS_MOTS = { de: 1, du: 1, des: 1, la: 1, le: 1, les: 1, et: 1, 'd\'': 1, 'l\'': 1 };
+
+        /* Met une majuscule où il faut, y compris « Jean-Pierre », « d'Arsonval », « Saint-Médard-en-Jalles » */
+        function capitaliser(m, petits, forcer) {
+            if (!m || /^\d/.test(m)) return m;
+            if (/^[A-Z0-9&]{2,}$/.test(m)) return m;
+            if (/[a-zà-ÿ][A-ZÀ-Þ]/.test(m)) return m;
+            return m.split('-').map(function (p, i) {
+                var a = /^([dl])['’](.+)$/i.exec(p);
+                if (a) return ((forcer && i === 0) ? a[1].toUpperCase() : a[1].toLowerCase()) + "'" + capitaliser(a[2], petits, true);
+                if (!(forcer && i === 0) && petits[p.toLowerCase()]) return p.toLowerCase();
+                return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
+            }).join('-');
+        }
+
+        function formaterAdresse(t) {
+            var s = ' ' + propre(t) + ' ';
+            s = s.replace(/\s+virgule\s+/gi, ', ').replace(/^\s*(au|num[ée]ro|n°)\s+(?=\d)/i, ' ');
+            var mots = propre(s).split(' ');
+            /* numéro dit en lettres : « douze rue… » -> « 12 rue… » */
+            var j = 0; while (j < mots.length && estMotNombreLettres(mots[j])) j++;
+            if (j > 0 && j < mots.length && RE_VOIE.test(bas(sansPonct(mots[j])))) { var v = motsVersNombre(mots.slice(0, j).join(' ')); if (v !== null) mots = [String(v)].concat(mots.slice(j)); }
+            var apresCP = false, prec = '';
+            mots = mots.map(function (m, i) {
+                var nu = sansPonct(m), suf = m.slice(nu.length), low = bas(nu), r;
+                if (/^\d{5}$/.test(nu)) { apresCP = true; prec = low; return m; }
+                if (SIGLES_ADRESSE[low]) r = SIGLES_ADRESSE[low];
+                else if (nu.length === 1 && /^(batiment|bat|escalier|esc|porte)$/.test(prec)) r = nu.toUpperCase();
+                else if (!apresCP && RE_VOIE.test(low)) r = nu.toLowerCase();
+                else r = capitaliser(nu, PETITS_ADRESSE, i === 0 || /^\d{5}$/.test(prec));
+                prec = low;
+                return r + suf;
+            });
+            return mots.join(' ').replace(/([^,\s])\s+(\d{5})(?=\s|$)/, '$1, $2');
+        }
+
+        var SIGLES_NOMS = { sarl: 'SARL', sas: 'SAS', sasu: 'SASU', eurl: 'EURL', ei: 'EI', eirl: 'EIRL', sci: 'SCI', snc: 'SNC', sa: 'SA', btp: 'BTP', rge: 'RGE', cvc: 'CVC', mme: 'Mme', mlle: 'Mlle', mr: 'M.' };
+        function enTitre(t) {
+            return propre(t).split(' ').map(function (m, i) {
+                var nu = sansPonct(m), suf = m.slice(nu.length);
+                var low = nu.toLowerCase();
+                if (SIGLES_NOMS[low] && !(i === 0 && (low === 'sa' || low === 'ei'))) return SIGLES_NOMS[low] + (low === 'mr' ? '' : suf);
+                if (i > 0 && PETITS_MOTS[nu.toLowerCase()]) return nu.toLowerCase() + suf;
+                return capitaliser(nu, PETITS_MOTS, i === 0) + suf;
+            }).join(' ');
+        }
+
+        /* Quantité dite avec la fourniture : « 2 robinets » -> quantité 2, « Robinets » */
+        function extraireQuantite(des) {
+            var m = /^(\d{1,3}|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|quinze|vingt)\s+(\S.*)$/i.exec(propre(des));
+            if (!m) return null;
+            var premier = bas(sansPonct(m[2].split(' ')[0]));
+            if (RE_UNITE.test(premier) || /^(x|par|fois|sur|a|%|°c?|euros?|€|pour|et|ou|de|virgule)$/.test(premier) || /^\d/.test(premier)) return null;
+            var q = /^\d+$/.test(m[1]) ? parseInt(m[1], 10) : motsVersNombre(m[1]);
+            if (!q || q < 1 || q > 500) return null;
+            return { qte: String(q), des: majuscule(m[2]) };
+        }
+
+        /* Enlève les hésitations, les reprises, les phrases d'introduction et les mots répétés, puis corrige */
+        function nettoyer(brut, q) {
+            q = q || {};
+            var t = ' ' + propre(String(brut == null ? '' : brut).replace(/[’‘]/g, "'")) + ' ', avant;
+            do { avant = t; t = t.replace(/\s(euh+|heu+|hum+|hm+|mmh+|bah|ben|beh|bref|en fait|du coup|tu vois|vous voyez)[,.]?\s/gi, ' '); } while (t !== avant);
+            t = propre(t);
+            if (q.type !== 'ouinon') t = autocorriger(t);
+            for (var k = 0; k < 3; k++) {
+                t = t.replace(/^(alors|donc|ok|okay|oui alors|bon alors|ouais alors|bon)[,]?\s+/i, '');
+                t = t.replace(/^(c'est|c'était|ce sera|ce serait|ça sera|ça serait|ça s'appelle|il s'appelle|elle s'appelle|on s'appelle|je m'appelle|mon nom c'est|mon nom est|le nom c'est|le nom est|le nom de (mon|l'|la) ?entreprise (c'est|est)|mon entreprise (s'appelle|c'est)|l'entreprise (s'appelle|c'est)|la société (s'appelle|c'est)|le client (c'est|s'appelle)|la cliente (c'est|s'appelle)|son nom c'est|son nom est|l'adresse (c'est|est)|son adresse (c'est|est)|mon adresse (c'est|est)|(il|elle) habite( au| à)?|j'habite( au| à)?|mon (adresse )?(e-?mail|mail|courriel) (c'est|est)|l'e-?mail (c'est|est)|son (adresse )?(e-?mail|mail) (c'est|est)|(mon|son|le) (numéro|téléphone|portable|tel|tél)( de téléphone)? (c'est|est)|(mon|le) siret (c'est|est)|le prix (c'est|est)|ça coûte|ça fait|ça fera|on va dire|je pense|il faut|il me faut|il faudrait|il faudra|on met|on va mettre|je vais mettre|il y a|on a|j'ai mis|je mets|je dirais|disons|en gros)[,]?\s+/i, '');
+                t = t.replace(/^j'ai besoin d(e\s+|')/i, '');
+            }
+            t = t.replace(/[\s,]+(voilà|voila|c'est tout|c'est bon|merci|hein|quoi)[.!]?$/i, '');
+            if (!q.type) {
+                t = sansRepetitions(t, q.titre);
+                t = t.replace(/\b(\d{2}) (\d{3})\b/g, function (x, a, b) { return /^(0[1-9]|[1-8]\d|9[0-8])$/.test(a) ? a + b : x; });
+            }
+            t = propre(t.replace(/^[,.;:\s]+|[,;:.!?\s]+$/g, ''));
+            if (q.vocab) t = corrigerVocab(t, q.vocab).texte;
+            if (q.adresse) t = formaterAdresse(t);
+            if (q.titre) t = enTitre(t);
+            return t;
+        }
+
+        /* Interprète une réponse selon le type de question. Renvoie { ok, valeur, erreur } */
         function interpreter(q, brut) {
             var t = nettoyer(brut, q);
+            var v = null;
+            if (q.type === 'ouinon') { v = ouiNon(t) || ouiNon(brut); if (v) return { ok: true, valeur: v }; }
+            if (q.type === 'nombre' && q.defaut == null && t && nombreFr(t) === null && estZero(t)) return { ok: true, valeur: '0' };
             if (!t || estPasser(t)) {
                 if (q.requis) return { ok: false, erreur: 'Cette information est obligatoire.' };
                 return { ok: true, valeur: q.defaut != null ? q.defaut : '', passe: true };
             }
-            var v = null;
             switch (q.type) {
                 case 'nombre': v = nombreFr(t); if (v === null) return { ok: false, erreur: "Je n'ai pas compris le nombre. Dites par exemple « 55 »." }; return { ok: true, valeur: String(Math.round(v * 100) / 100) };
-                case 'ouinon': v = ouiNon(t); if (!v) return { ok: false, erreur: 'Répondez par oui ou par non.' }; return { ok: true, valeur: v };
+                case 'ouinon': return { ok: false, erreur: 'Répondez par oui ou par non.' };
                 case 'forme': v = formeJuridique(t); if (!v) return { ok: false, erreur: 'Dites : micro-entreprise, EI, EURL, SARL, SASU ou SAS.' }; return { ok: true, valeur: v };
                 case 'taux': v = tauxTva(t); if (!v) return { ok: false, erreur: 'Dites : 10, 20 ou 5,5.' }; return { ok: true, valeur: v };
                 case 'siret': v = siret(t); if (!v) return { ok: false, erreur: 'Le SIRET doit faire 14 chiffres. Redites-le lentement.' }; return { ok: true, valeur: v };
@@ -401,12 +845,23 @@
             }
         }
 
+        /* Parmi ce que le micro a cru entendre, garde la version la plus plausible */
+        function scoreProposition(q, brut) {
+            var res = interpreter(q, brut);
+            if (!res.ok) return -1;
+            if (res.passe) return 0;
+            var sc = 1;
+            if (q.vocab) sc += 2 * corrigerVocab(nettoyer(brut, { type: q.type }), q.vocab).n;
+            if (q.adresse) { if (/\b\d{5}\b/.test(res.valeur)) sc += 2; if (res.valeur.split(' ').some(function (m) { return RE_VOIE.test(bas(sansPonct(m))); })) sc += 1; }
+            return sc;
+        }
+
         /* ===================== LES QUESTIONS ===================== */
         var QUESTIONS_FICHE = [
             { cle: 'nom', texte: 'Quel est le nom de votre entreprise ?', aide: 'Ex. : Plomberie Martin', requis: true, titre: true },
             { cle: 'forme', texte: 'Quelle est sa forme juridique ?', aide: 'Micro-entreprise, EI, EURL, SARL, SASU ou SAS', type: 'forme', requis: true },
             { cle: 'dirigeant', texte: 'Quel est votre nom ?', aide: 'Ex. : Jean Martin', titre: true },
-            { cle: 'adresse', texte: "Quelle est l'adresse de votre entreprise ?", aide: 'Ex. : 12 rue des Lilas, 69003 Lyon', requis: true },
+            { cle: 'adresse', texte: "Quelle est l'adresse de votre entreprise ?", aide: 'Ex. : 12 rue des Lilas, 69003 Lyon', requis: true, adresse: true },
             { cle: 'tel', texte: 'Votre numéro de téléphone ?', aide: 'Ex. : 06 12 34 56 78', type: 'tel', requis: true },
             { cle: 'email', texte: 'Votre adresse e-mail ?', aide: 'Dites « arobase » pour @ et « point » pour le point', type: 'email' },
             { cle: 'siret', texte: 'Votre numéro SIRET ?', aide: 'Les 14 chiffres, lentement', type: 'siret', requis: true },
@@ -414,9 +869,9 @@
             { cle: 'regime', texte: 'Facturez-vous la TVA ?', aide: 'Oui ou non (non = micro-entreprise sans TVA)', type: 'ouinon', requis: true },
             { cle: 'tvaNum', texte: 'Votre numéro de TVA intracommunautaire ?', aide: 'Dites « passer » si vous ne l\'avez pas', si: function (r) { return r.regime === 'oui'; } },
             { cle: 'tauxDefaut', texte: 'Votre taux de TVA habituel ?', aide: '10, 20 ou 5,5', type: 'taux', requis: true, si: function (r) { return r.regime === 'oui'; } },
-            { cle: 'decennale', texte: 'Votre assurance décennale ?', aide: "Le nom de l'assureur, le numéro de contrat et la zone couverte", requis: true },
-            { cle: 'rcpro', texte: 'Votre assurance responsabilité civile pro ?', aide: 'Assureur et numéro, ou « passer »' },
-            { cle: 'mediateur', texte: 'Votre médiateur de la consommation ?', aide: 'Nom et site internet, ou « passer »' },
+            { cle: 'decennale', texte: 'Votre assurance décennale ?', aide: "Le nom de l'assureur, le numéro de contrat et la zone couverte", requis: true, vocab: 'assurance' },
+            { cle: 'rcpro', texte: 'Votre assurance responsabilité civile pro ?', aide: 'Assureur et numéro, ou « passer »', vocab: 'assurance' },
+            { cle: 'mediateur', texte: 'Votre médiateur de la consommation ?', aide: 'Nom et site internet, ou « passer »', vocab: 'assurance' },
             { cle: 'tauxHoraire', texte: "Votre prix de l'heure, hors taxes ?", aide: 'Ex. : 55', type: 'nombre', requis: true },
             { cle: 'deplacement', texte: 'Votre prix de déplacement, hors taxes ?', aide: 'Ex. : 35 (dites « zéro » si offert)', type: 'nombre', requis: true },
             { cle: 'dechetsPrix', texte: "Le prix de l'évacuation des déchets ?", aide: 'Dites « zéro » si c\'est inclus', type: 'nombre', defaut: '0' },
@@ -428,10 +883,10 @@
 
         var QUESTIONS_CLIENT = [
             { cle: 'clientNom', texte: 'Quel est le nom du client ?', aide: 'Ex. : Madame Claire Durand', requis: true, titre: true },
-            { cle: 'clientAdresse', texte: "Quelle est l'adresse du client ?", aide: 'Ex. : 8 avenue Jean Jaurès, 69007 Lyon', requis: true },
+            { cle: 'clientAdresse', texte: "Quelle est l'adresse du client ?", aide: 'Ex. : 8 avenue Jean Jaurès, 69007 Lyon', requis: true, adresse: true },
             { cle: 'clientContact', texte: 'Son téléphone ou son e-mail ?', aide: 'Ou « passer »' },
-            { cle: 'chantier', texte: "L'adresse du chantier, si elle est différente ?", aide: 'Sinon dites « même adresse »' },
-            { cle: 'objet', texte: 'En une phrase, quels sont les travaux ?', aide: 'Ex. : remplacement du chauffe-eau' }
+            { cle: 'chantier', texte: "L'adresse du chantier, si elle est différente ?", aide: 'Sinon dites « même adresse »', adresse: true },
+            { cle: 'objet', texte: 'En une phrase, quels sont les travaux ?', aide: 'Ex. : remplacement du chauffe-eau', vocab: 'plomberie' }
         ];
 
         /* Devis : client, puis une boucle de fournitures, puis main-d'œuvre, TVA, durée */
@@ -440,7 +895,7 @@
             var n = 0;
             while (true) {
                 var p = 'f' + n + '_';
-                if (!((p + 'des') in r)) return { cle: p + 'des', texte: n === 0 ? 'Première fourniture : qu\'est-ce que c\'est ?' : 'Fourniture ' + (n + 1) + " : qu'est-ce que c'est ?", aide: n === 0 ? 'Ex. : chauffe-eau 200 litres Atlantic, ou « aucune »' : 'Ex. : groupe de sécurité', fourniture: true };
+                if (!((p + 'des') in r)) return { cle: p + 'des', texte: n === 0 ? 'Première fourniture : qu\'est-ce que c\'est ?' : 'Fourniture ' + (n + 1) + " : qu'est-ce que c'est ?", aide: n === 0 ? 'Ex. : chauffe-eau 200 litres Atlantic, ou « aucune »' : 'Ex. : 2 flexibles inox, ou « non »', fourniture: true, vocab: 'plomberie' };
                 if (r[p + 'des'] === '') break;
                 if (!((p + 'pu') in r)) return { cle: p + 'pu', texte: 'Son prix hors taxes ?', aide: 'Ex. : 450', type: 'nombre', requis: true };
                 if (!((p + 'qte') in r)) return { cle: p + 'qte', texte: 'Quelle quantité ?', aide: 'Ex. : 1 (ou « passer » pour 1)', type: 'nombre', defaut: '1' };
@@ -450,7 +905,7 @@
             }
             if (!('heures' in r)) return { cle: 'heures', texte: "Combien d'heures de main-d'œuvre ?", aide: 'Ex. : 3 (ou « zéro »)', type: 'nombre', requis: true };
             if (f.regime !== 'franchise' && !('tauxTva' in r)) return { cle: 'tauxTva', texte: 'Quel taux de TVA pour ce devis ?', aide: '10 % (logement de plus de 2 ans), 20 % ou 5,5 %. « Passer » = ' + String(f.tauxDefaut || '10').replace('.', ',') + ' %', type: 'taux', defaut: f.tauxDefaut || '10' };
-            if (!('duree' in r)) return { cle: 'duree', texte: 'Durée estimée des travaux ?', aide: 'Ex. : une demi-journée, ou « passer »' };
+            if (!('duree' in r)) return { cle: 'duree', texte: 'Durée estimée des travaux ?', aide: 'Ex. : une demi-journée, ou « passer »', vocab: 'duree' };
             return null;
         }
 
@@ -466,13 +921,13 @@
         function trouverQuestion(cle) {
             var tout = QUESTIONS_FICHE.concat(QUESTIONS_CLIENT);
             for (var i = 0; i < tout.length; i++) if (tout[i].cle === cle) return tout[i];
-            if (/^f\d+_des$/.test(cle)) return { cle: cle, texte: 'Fourniture', fourniture: true };
+            if (/^f\d+_des$/.test(cle)) return { cle: cle, texte: 'Fourniture', fourniture: true, vocab: 'plomberie' };
             if (/_pu$/.test(cle)) return { cle: cle, texte: 'Prix HT', type: 'nombre', requis: true };
             if (/_qte$/.test(cle)) return { cle: cle, texte: 'Quantité', type: 'nombre', defaut: '1' };
             if (/_autre$/.test(cle)) return { cle: cle, texte: 'Une autre fourniture ?', type: 'ouinon', requis: true };
             if (cle === 'heures') return { cle: cle, texte: "Heures de main-d'œuvre", type: 'nombre', requis: true };
             if (cle === 'tauxTva') return { cle: cle, texte: 'Taux de TVA', type: 'taux' };
-            if (cle === 'duree') return { cle: cle, texte: 'Durée estimée' };
+            if (cle === 'duree') return { cle: cle, texte: 'Durée estimée', vocab: 'duree' };
             return { cle: cle, texte: cle };
         }
 
@@ -537,7 +992,7 @@
             if (deLien) stock('va_fiche', deLien);
             if (ficheValide(APP.fiche)) {
                 var b = stock('va_devis');
-                if (b && b.rep) { APP.mode = b.mode || 'devis'; APP.rep = b.rep; APP.ordre = b.ordre || []; APP.lignes = b.lignes || null; }
+                if (b && b.rep) { APP.mode = b.mode || 'devis'; APP.rep = b.rep; APP.ordre = b.ordre || []; APP.lignes = b.lignes || null; APP.autoQte = b.autoQte || {}; }
                 else nouveauDevis(true);
             } else {
                 APP.mode = 'fiche'; APP.rep = {}; APP.ordre = [];
@@ -548,11 +1003,11 @@
 
         function sauverBrouillon() {
             if (APP.mode === 'fiche') return;
-            stock('va_devis', { mode: APP.mode, rep: APP.rep, ordre: APP.ordre, lignes: APP.lignes });
+            stock('va_devis', { mode: APP.mode, rep: APP.rep, ordre: APP.ordre, lignes: APP.lignes, autoQte: APP.autoQte || {} });
         }
 
         function nouveauDevis(silencieux) {
-            APP.mode = 'devis'; APP.rep = {}; APP.ordre = []; APP.lignes = null; APP.pdf = null; APP.erreur = '';
+            APP.mode = 'devis'; APP.rep = {}; APP.ordre = []; APP.lignes = null; APP.pdf = null; APP.erreur = ''; APP.autoQte = {};
             stock('va_devis', null);
             if (!silencieux) { avancer(true); }
         }
@@ -604,9 +1059,12 @@
                 if (ECOUTE.session) setTimeout(function () { ecouter(true); }, 900);
                 return;
             }
-            APP.rep[q.cle] = res.valeur;
+            var valeur = res.valeur, qteDite = null;
+            if (q.fourniture && APP.reinserer == null && valeur) { var xq = extraireQuantite(valeur); if (xq) { valeur = xq.des; qteDite = xq.qte; } }
+            APP.rep[q.cle] = valeur;
             if (APP.reinserer != null) { APP.ordre.splice(APP.reinserer, 0, q.cle); APP.reinserer = null; }
             else APP.ordre.push(q.cle);
+            if (qteDite) { var kq = q.cle.replace(/des$/, 'qte'); APP.rep[kq] = qteDite; APP.ordre.push(kq); APP.autoQte = APP.autoQte || {}; APP.autoQte[kq] = true; }
             avancer(true);
         }
 
@@ -621,6 +1079,8 @@
             }
             var cle = APP.ordre.pop();
             delete APP.rep[cle];
+            /* quantité comprise avec la fourniture : on revient directement à la fourniture */
+            if (APP.autoQte && APP.autoQte[cle] && APP.ordre.length) { delete APP.autoQte[cle]; var des = APP.ordre.pop(); delete APP.rep[des]; }
             if (/^f\d+_|^heures$/.test(cle)) APP.lignes = null;
             APP.pdf = null;
             avancer(true);
@@ -655,6 +1115,7 @@
             var i = APP.ordre.indexOf(cle);
             if (i < 0) return;
             delete APP.rep[cle];
+            if (APP.autoQte) delete APP.autoQte[cle];
             APP.ordre.splice(i, 1);
             APP.reinserer = i;
             if (APP.mode === 'recap') APP.mode = 'devis';
@@ -783,8 +1244,10 @@
             }
             if (!props.length) return defaut;
             for (var a = 0; a < props.length; a++) if (estRetour(props[a])) return props[a];
-            if (APP.courante) for (var b = 0; b < props.length; b++) { var res = interpreter(APP.courante, props[b]); if (res.ok && !res.passe) return props[b]; }
-            return props[0];
+            if (!APP.courante) return props[0];
+            var meilleur = props[0], max = -2;
+            for (var b = 0; b < props.length; b++) { var sc = scoreProposition(APP.courante, props[b]); if (sc > max) { max = sc; meilleur = props[b]; } }
+            return meilleur;
         }
 
         function arreterEcoute() {
