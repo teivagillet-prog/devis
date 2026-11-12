@@ -690,7 +690,7 @@
                 if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed' || ev.error === 'audio-capture') {
                     arreterEcoute();
                     if (ECOUTE.aMarche && !ECOUTE.parGeste) etat('Touchez le micro pour répondre à la question suivante.');
-                    else afficherAideMicro();
+                    else demanderPermissions(ev.error);
                 } else if (ev.error === 'no-speech') {
                     etat("Je n'ai rien entendu…", 'text-slate-300');
                 } else if (ev.error === 'network') {
@@ -733,17 +733,34 @@
             z.innerHTML = msg ? '<div class="p-3 rounded-xl border border-gold-500/40 bg-gold-500/10 text-gold-400 text-xs">' + msg + '</div>' : '';
         }
 
-        function afficherAideMicro() {
+        /* Le micro a été refusé : on fait apparaître la demande d'autorisation du téléphone */
+        function demanderPermissions(code) {
+            ECOUTE.essaisPermission = (ECOUTE.essaisPermission || 0) + 1;
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { afficherAideMicro(code); return; }
+            etat('Votre téléphone demande l\'accès au micro : touchez « Autoriser ».');
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(function (flux) {
+                try { flux.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+                if (code === 'service-not-allowed' && ECOUTE.essaisPermission > 1) { afficherAideMicro(code); return; }
+                stock('va_micro_ok', true);
+                var z = document.getElementById('aide-navigateur'); if (z) z.innerHTML = '';
+                etat('Micro autorisé ✓ Touchez le micro pour parler.', 'text-emerald-300');
+            }, function () {
+                afficherAideMicro(code);
+            });
+        }
+
+        /* Seulement si le téléphone refuse encore : une ligne courte, l'aide détaillée reste repliée */
+        function afficherAideMicro(code) {
             var z = document.getElementById('aide-navigateur');
             var ios = estIOS();
-            var html = '<div class="p-4 rounded-xl border border-red-500/40 bg-red-500/10 text-sm text-slate-200 space-y-2"><p class="font-semibold text-red-300">Le micro est bloqué.</p>' +
-                (ios ? '<p>Sur iPhone / iPad : <strong>Réglages → Safari → Microphone → Autoriser</strong>, et <strong>Réglages → Général → Clavier → Activer la dictée</strong> (Siri doit aussi être activé). Puis rechargez la page.</p>'
-                     : '<p>Touchez le <strong>cadenas</strong> à côté de l\'adresse, puis <strong>Autorisations → Micro → Autoriser</strong>. Puis rechargez la page.</p>') +
-                '<p>En attendant, vous pouvez utiliser le micro de votre clavier.</p>' +
-                '<p class="text-[11px] text-slate-500">Code : ' + esc(ECOUTE.dernierCode || '?') + '</p></div>';
-            if (z) z.innerHTML = html;
-            etat('Micro bloqué : voir ci-dessous.', 'text-red-300');
+            var aide = code === 'service-not-allowed'
+                ? (ios ? 'Activez la dictée : Réglages → Général → Clavier → Activer la dictée. Puis rechargez la page.' : 'La reconnaissance vocale est désactivée sur cet appareil.')
+                : (ios ? 'Dans Safari, touchez « aA » à gauche de l\'adresse → Réglages du site web → Microphone → Autoriser. Puis rechargez la page.'
+                       : 'Touchez le cadenas à côté de l\'adresse → Autorisations → Micro → Autoriser. Puis rechargez la page.');
+            if (z) z.innerHTML = '<details class="text-xs text-slate-400"><summary class="cursor-pointer text-gold-400">Le micro ne démarre pas ? Voir comment l\'autoriser</summary><p class="mt-2">' + esc(aide) + '</p><p class="mt-1 text-slate-600">Code : ' + esc(code || ECOUTE.dernierCode || '?') + '</p></details>';
+            etat('Touchez la case de réponse, puis le micro 🎤 du clavier.', 'text-slate-200');
             stock('va_micro_ok', null);
+            var champ = document.getElementById('saisie'); if (champ) champ.focus();
         }
 
         function defilerVersCourante() {
