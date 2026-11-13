@@ -62,7 +62,7 @@
         <div id="cartes" class="mt-4 space-y-3"></div>
         <div id="fin-zone" class="mt-4"></div>
 
-        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v13</p>
+        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v14</p>
     </main>
     <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-gold-500/30 px-4 pt-3 pb-5">
         <div class="max-w-xl mx-auto">
@@ -177,7 +177,15 @@
                      moHt: Math.round(moHt * 100) / 100, majPct: majPct, majoration: majoration };
         }
 
+        function sansPointFinal(o) {
+            var r = {};
+            for (var k in o) r[k] = typeof o[k] === 'string' && !/^(data:|email)/.test(k === 'email' ? 'email' : o[k]) ? o[k].replace(/[\s.…]+$/, '') : o[k];
+            return r;
+        }
         function genererPdfDevis(JsPDF, fiche, devis, aujourdhui) {
+            fiche = sansPointFinal(fiche);
+            var lignesBrutes = devis.lignes, photosBrutes = devis.photos, sigBrute = devis.signature;
+            devis = sansPointFinal(devis); devis.lignes = lignesBrutes; devis.photos = photosBrutes; devis.signature = sigBrute;
             var c = calculerDevis(fiche, devis);
             var doc = new JsPDF({ unit: 'mm', format: 'a4' });
             var MARINE = [31, 58, 95], GRIS = [90, 98, 112], CLAIR = [201, 211, 224];
@@ -1078,6 +1086,7 @@
             if (q.prixConnu && /^(pareil|pareille|le meme|la meme|meme prix|le meme prix|idem|comme d'hab|comme d'habitude|comme la derniere fois|comme avant|oui|ok|d'accord)\b/.test(bas(propre(brut)).replace(/[.,!]/g, ''))) return { ok: true, valeur: String(q.prixConnu) };
             var t = nettoyer(brut, q);
             var v = null;
+            if (q.adresse && /(^|\D)\d{6,}(\D|$)/.test(t)) return { ok: false, erreur: 'Le code postal doit avoir 5 chiffres. Redites l\'adresse, par exemple « 12 rue des Lilas 69003 Lyon ».' };
             if (q.type === 'ouinon') { v = ouiNon(t) || ouiNon(brut); if (v) return { ok: true, valeur: v }; }
             if (q.type === 'nombre' && q.defaut == null && t && nombreFr(t) === null && estZero(t)) return { ok: true, valeur: '0' };
             if (q.cle === 'prixDevis' && /gratui|offert|rien|zero|aucun|pas payant|^oui|^non\b.*pay/.test(bas(propre(brut)))) return { ok: true, valeur: '0' };
@@ -1086,7 +1095,9 @@
                 return { ok: true, valeur: q.defaut != null ? q.defaut : '', passe: true };
             }
             switch (q.type) {
-                case 'nombre': v = nombreFr(t); if (v === null) return { ok: false, erreur: "Je n'ai pas compris le nombre. Dites par exemple « 55 »." }; return { ok: true, valeur: String(Math.round(v * 100) / 100) };
+                case 'nombre': v = nombreFr(t); if (v === null) return { ok: false, erreur: "Je n'ai pas compris le nombre. Dites par exemple « 55 »." };
+                    if (q.max != null && v > q.max) return { ok: false, erreur: 'J\'ai compris ' + String(Math.round(v * 100) / 100).replace('.', ',') + ' : ça semble faux. ' + (q.maxAide || 'Redites le nombre.') };
+                    return { ok: true, valeur: String(Math.round(v * 100) / 100) };
                 case 'ouinon': return { ok: false, erreur: 'Répondez par oui ou par non.' };
                 case 'decompte': v = decompte(t); if (!v) return { ok: false, erreur: 'Dites : au quart d\'heure, à la demi-heure, à l\'heure, ou au temps réel.' }; return { ok: true, valeur: v };
                 case 'forme': v = formeJuridique(t); if (!v) return { ok: false, erreur: 'Dites : micro-entreprise, EI, EURL, SARL, SASU ou SAS.' }; return { ok: true, valeur: v };
@@ -1136,14 +1147,14 @@
             { cle: 'decZone', texte: 'La zone couverte par votre décennale ?', aide: 'Sur votre attestation. Ex. : France métropolitaine', requis: true, vocab: 'assurance' },
             { cle: 'rcpro', texte: 'Votre assurance responsabilité civile pro ?', aide: 'Assureur et numéro, ou « passer »', vocab: 'assurance' },
             { cle: 'mediateur', texte: 'Votre médiateur de la consommation ?', aide: 'Obligatoire pour les particuliers. Nom et site internet, ex. : Médicys, medicys.fr', vocab: 'assurance', requis: true, site: true },
-            { cle: 'tauxHoraire', texte: "Votre prix de l'heure, hors taxes ?", aide: 'Ex. : 55', type: 'nombre', requis: true },
+            { cle: 'tauxHoraire', texte: "Votre prix de l'heure, hors taxes ?", aide: 'Ex. : 55', type: 'nombre', requis: true, max: 300, maxAide: 'Redites votre prix de l\'heure, par exemple « cinquante-cinq ».' },
             { cle: 'decompte', texte: 'Comment comptez-vous le temps de main-d\'œuvre ?', aide: 'Au quart d\'heure, à la demi-heure, à l\'heure, ou au temps réel', type: 'decompte', requis: true },
-            { cle: 'deplacement', texte: 'Votre prix de déplacement, hors taxes ?', aide: 'Ex. : 35 (dites « zéro » si offert)', type: 'nombre', requis: true },
-            { cle: 'dechetsPrix', texte: "Le prix de l'évacuation des déchets ?", aide: 'Dites « zéro » si c\'est inclus', type: 'nombre', defaut: '0' },
+            { cle: 'deplacement', max: 500, maxAide: 'Redites le prix du déplacement, par exemple « trente-cinq ».', texte: 'Votre prix de déplacement, hors taxes ?', aide: 'Ex. : 35 (dites « zéro » si offert)', type: 'nombre', requis: true },
+            { cle: 'dechetsPrix', max: 1000, texte: "Le prix de l'évacuation des déchets ?", aide: 'Dites « zéro » si c\'est inclus', type: 'nombre', defaut: '0' },
             { cle: 'dechetterie', texte: 'Où déposez-vous les déchets ?', aide: 'Ex. : déchetterie professionnelle de Lyon', requis: true, casse: true },
-            { cle: 'acompte', texte: 'Quel acompte demandez-vous à la signature, en pourcentage ?', aide: 'Ex. : 30 (dites « zéro » si aucun)', type: 'nombre', requis: true },
-            { cle: 'validite', texte: 'Vos devis sont valables combien de jours ?', aide: 'Dites « passer » pour 30 jours', type: 'nombre', defaut: '30' },
-            { cle: 'prixDevis', texte: 'Combien coûtent vos devis ?', aide: 'Dites « gratuit », ou le prix TTC si vous les faites payer', type: 'nombre', defaut: '0' },
+            { cle: 'acompte', max: 100, maxAide: 'Un pourcentage entre 0 et 100, par exemple « trente ».', texte: 'Quel acompte demandez-vous à la signature, en pourcentage ?', aide: 'Ex. : 30 (dites « zéro » si aucun)', type: 'nombre', requis: true },
+            { cle: 'validite', max: 365, texte: 'Vos devis sont valables combien de jours ?', aide: 'Dites « passer » pour 30 jours', type: 'nombre', defaut: '30' },
+            { cle: 'prixDevis', max: 500, texte: 'Combien coûtent vos devis ?', aide: 'Dites « gratuit », ou le prix TTC si vous les faites payer', type: 'nombre', defaut: '0' },
             { cle: 'paiement', texte: 'Quels moyens de paiement acceptez-vous ?', aide: 'Ex. : virement ou chèque', requis: true, casse: true }
         ];
 
@@ -1166,16 +1177,17 @@
                 if (!((p + 'des') in r)) return { cle: p + 'des', texte: n === 0 ? 'Première fourniture : qu\'est-ce que c\'est ?' : 'Fourniture ' + (n + 1) + " : qu'est-ce que c'est ?", aide: n === 0 ? 'Ex. : chauffe-eau 200 litres Atlantic, ou « aucune »' : 'Ex. : 2 flexibles inox, ou « non »', fourniture: true, vocab: 'plomberie' };
                 if (r[p + 'des'] === '') break;
                 if (!((p + 'pu') in r)) {
-                    var pc = APP.demo ? null : prixConnu(r[p + 'des']);
-                    return { cle: p + 'pu', texte: 'Son prix hors taxes' + (r[p + 'unite'] === 'm' ? ', au mètre' : (r[p + 'unite'] === 'm²' ? ', au m²' : '')) + ' ?',
+                    var nouveau = APP.nouveauPrix && APP.nouveauPrix[p + 'pu'];
+                    var pc = APP.demo || nouveau ? null : prixConnu(r[p + 'des']);
+                    return { cle: p + 'pu', texte: (nouveau ? 'Quel est le nouveau prix hors taxes' : 'Son prix hors taxes') + (r[p + 'unite'] === 'm' ? ', au mètre' : (r[p + 'unite'] === 'm²' ? ', au m²' : '')) + ' ?',
                              aide: pc ? 'Dernière fois : ' + euros(nombre(pc.pu)) + '. Dites « pareil » ou un autre prix.' : 'Ex. : 450', type: 'nombre', requis: true, prixConnu: pc ? pc.pu : null };
                 }
-                if (!((p + 'qte') in r)) return { cle: p + 'qte', texte: 'Quelle quantité ?', aide: 'Ex. : 1 (ou « passer » pour 1)', type: 'nombre', defaut: '1' };
+                if (!((p + 'qte') in r)) return { cle: p + 'qte', max: 10000, texte: 'Quelle quantité ?', aide: 'Ex. : 1 (ou « passer » pour 1)', type: 'nombre', defaut: '1' };
                 if (!((p + 'autre') in r)) return { cle: p + 'autre', texte: 'Une autre fourniture ?', aide: 'Oui ou non', type: 'ouinon', requis: true };
                 if (r[p + 'autre'] !== 'oui') break;
                 n++;
             }
-            if (!('heures' in r)) return { cle: 'heures', texte: "Combien d'heures de main-d'œuvre ?", aide: 'Ex. : 3 (ou « zéro »)', type: 'nombre', requis: true };
+            if (!('heures' in r)) return { cle: 'heures', max: 500, maxAide: 'Redites le nombre d\'heures, par exemple « trois heures ».', texte: "Combien d'heures de main-d'œuvre ?", aide: 'Ex. : 3 (ou « zéro »)', type: 'nombre', requis: true };
             if (f.regime !== 'franchise' && !('tauxTva' in r)) return { cle: 'tauxTva', texte: 'Quel taux de TVA pour ce devis ?', aide: '10 % (logement de plus de 2 ans), 5,5 % (économies d\'énergie), 20 % (neuf, local pro, chaudière gaz ou fioul). « Passer » = ' + String(f.tauxDefaut || '10').replace('.', ',') + ' %', type: 'taux', defaut: f.tauxDefaut || '10' };
             if (!('duree' in r)) return { cle: 'duree', texte: 'Durée estimée des travaux ?', aide: 'Ex. : une demi-journée, ou « passer »', vocab: 'duree' };
             if (!('debut' in r)) return { cle: 'debut', texte: 'Quand pouvez-vous commencer les travaux ?', aide: 'Ex. : « sous 15 jours », « lundi prochain », « le 2 décembre »', vocab: 'duree', date: true, requis: true };
@@ -1289,10 +1301,23 @@
 
         function clesManquantes(f) {
             var r = reponsesDepuisFiche(f), m = [];
-            for (var i = 0; i < QUESTIONS_FICHE.length; i++) { var q = QUESTIONS_FICHE[i]; if (q.requis && (!q.si || q.si(r)) && !propre(r[q.cle])) m.push(q.cle); }
+            for (var i = 0; i < QUESTIONS_FICHE.length; i++) {
+                var q = QUESTIONS_FICHE[i];
+                if (q.si && !q.si(r)) continue;
+                if (q.requis && !propre(r[q.cle])) m.push(q.cle);
+                else if (valeurImpossible(q, r[q.cle])) m.push(q.cle);
+            }
             return m;
         }
 
+        /* valeur mal comprise par le micro (ex. prix de l'heure 10 015 €, code postal 469003) : on la redemande */
+        function valeurImpossible(q, v) {
+            v = propre(v == null ? '' : String(v));
+            if (!v) return false;
+            if (q.max != null && q.type === 'nombre' && nombre(v) > q.max) return true;
+            if (q.adresse && /(^|\D)\d{6,}(\D|$)/.test(v)) return true;
+            return false;
+        }
         function ficheValide(f) {
             return !!(f && f.nom && f.forme && f.adresse && f.tel && f.siret && f.decennale && f.dechetterie && f.paiement);
         }
@@ -1354,11 +1379,14 @@
             /* ancien lien en favori mais fiche déjà complétée sur ce téléphone : on garde la fiche complète */
             if (deLien && ficheValide(stocke) && stocke.siret === deLien.siret && clesManquantes(deLien).length && !clesManquantes(stocke).length) deLien = stocke;
             APP.fiche = deLien || stocke;
-            if (deLien) stock('va_fiche', deLien);
+            /* « Plomberie Martin. », « Chèque. » : le point ajouté par la dictée est retiré */
+            if (APP.fiche && typeof APP.fiche === 'object') { APP.fiche = sansPointFinal(APP.fiche); if (stocke) stock('va_fiche', APP.fiche); }
+            if (deLien) stock('va_fiche', APP.fiche);
             var manque = ficheValide(APP.fiche) ? clesManquantes(APP.fiche) : [];
             if (manque.length) {
                 /* fiche faite avec une ancienne version : on pose seulement les nouvelles questions obligatoires */
                 APP.mode = 'fiche'; APP.rep = reponsesDepuisFiche(APP.fiche); APP.ordre = []; APP.miseAJour = true; APP.nbMaj = manque.length;
+                APP.correction = manque.every(function (k) { return propre(APP.rep[k]); });
                 /* les nouvelles questions facultatives ne sont pas posées : valeur par défaut */
                 for (var qi = 0; qi < QUESTIONS_FICHE.length; qi++) { var qq = QUESTIONS_FICHE[qi]; if (qq.cle !== 'siretOk' && !(qq.cle in APP.rep) && manque.indexOf(qq.cle) < 0) APP.rep[qq.cle] = qq.defaut != null ? qq.defaut : ''; }
                 for (var mq = 0; mq < manque.length; mq++) delete APP.rep[manque[mq]];
@@ -1384,7 +1412,7 @@
 
         function nouveauDevis(silencieux) {
             APP.mode = 'devis'; APP.rep = {}; APP.ordre = []; APP.lignes = null; APP.pdf = null; APP.signature = null; APP.erreur = ''; APP.autoQte = {};
-            APP.devisId = null; APP.numero = null; APP.dateDevis = null; APP.photos = []; APP.facture = null; APP.bon = null;
+            APP.devisId = null; APP.numero = null; APP.dateDevis = null; APP.photos = []; APP.facture = null; APP.bon = null; APP.nouveauPrix = {};
             if (!APP.demo) stock('va_devis', null);
             if (!silencieux) { avancer(true); }
         }
@@ -1403,6 +1431,8 @@
         /* Passe à la question suivante (ou à la fin) */
         function avancer(defiler) {
             APP.erreur = '';
+            /* l'écoute en cours concernait l'ancienne question : on la jette (le micro reste allumé) */
+            if (ECOUTE.rec) { var vieux = ECOUTE.rec; ECOUTE.rec = null; try { vieux.abort(); } catch (e) {} }
             if (APP.mode === 'fiche') {
                 APP.courante = questionFiche(APP.rep);
                 /* infos retrouvées grâce au SIRET : remplies toutes seules */
@@ -1427,19 +1457,24 @@
             if (APP.creerAuto) { APP.creerAuto = false; if (!manques().length) creerPdf(); }
             sauverBrouillon();
             if (defiler) defilerVersCourante();
-            if (APP.courante && ECOUTE.session) setTimeout(function () { ecouter(true); }, 350);
+            if (APP.courante && ECOUTE.session) setTimeout(function () { ecouter(true); }, 150);
         }
 
         function repondre(brut) {
             var q = APP.courante;
             if (!q || APP.attente) return;
             if (estRetour(brut)) { allerPrecedente(); return; }
+            if (q.prixConnu && veutAutrePrix(brut)) {
+                APP.nouveauPrix = APP.nouveauPrix || {}; APP.nouveauPrix[q.cle] = true; APP.erreur = '';
+                avancer(true);
+                return;
+            }
             var res = interpreter(q, brut);
             if (!res.ok) {
                 APP.erreur = res.erreur;
                 dessiner();
                 defilerVersCourante();
-                if (ECOUTE.session) setTimeout(function () { ecouter(true); }, 900);
+                if (ECOUTE.session) setTimeout(function () { ecouter(true); }, 400);
                 return;
             }
             var valeur = res.valeur, qteDite = null;
@@ -1461,19 +1496,28 @@
             avancer(true);
         }
 
+        function veutAutrePrix(brut) {
+            if (/\d/.test(String(brut))) return false;
+            var b = ' ' + bas(propre(String(brut))).replace(/[.,;:!?']/g, ' ') + ' ';
+            return /\s(autre|autres|nouveau|nouvelle|change|changer|changez|modifier|different|differente|plus cher|moins cher)\s/.test(b) ||
+                   /\spas (pareil|pareille|le meme|la meme|ca|ce prix)\s/.test(b) || /^\s*non\s/.test(b);
+        }
         function allerPrecedente() {
+            /* « Retour » sur « Quel est le nouveau prix ? » : on revient à « Pareil ou autre prix ? » */
+            if (APP.courante && APP.nouveauPrix && APP.nouveauPrix[APP.courante.cle]) { delete APP.nouveauPrix[APP.courante.cle]; avancer(true); return; }
             if (APP.mode === 'recap') APP.mode = 'devis';
             if (APP.mode === 'fiche-ok') APP.mode = 'fiche';
             if (!APP.ordre.length) {
                 APP.erreur = "C'est déjà la première question.";
                 dessiner(); defilerVersCourante();
-                if (ECOUTE.session) setTimeout(function () { ecouter(true); }, 900);
+                if (ECOUTE.session) setTimeout(function () { ecouter(true); }, 400);
                 return;
             }
             var cle = APP.ordre.pop();
             /* les infos remplies grâce au SIRET se remettront seules : on revient à la dernière question vraiment posée */
             while (APP.auto && APP.autoCles && APP.autoCles[cle] && APP.ordre.length) { delete APP.rep[cle]; cle = APP.ordre.pop(); }
             delete APP.rep[cle];
+            if (APP.nouveauPrix && /_des$/.test(cle)) delete APP.nouveauPrix[cle.replace(/des$/, 'pu')];
             if (APP.auto && APP.autoCles && APP.autoCles[cle]) delete APP.auto[cle];
             if (cle === 'siretOk') APP.auto = null;
             /* quantité comprise avec la fourniture : on revient directement à la fourniture */
@@ -1576,11 +1620,13 @@
         }
 
         function toucherMicro() {
-            if (ECOUTE.session) { arreterEcoute(); etat('Micro en pause. Touchez-le pour reprendre.'); return; }
+            if (ECOUTE.session) { arreterEcoute(); etat('Micro coupé. Touchez-le pour le rallumer.'); return; }
             if (!APP.courante) { etat('Il n\'y a plus de question : vérifiez le récapitulatif.'); return; }
             if (!SR) { modeClavier(); return; }
             ECOUTE.session = true;
             ECOUTE.essais = 0;
+            ECOUTE.premier = true;
+            boutonMicroActif(true);
             if (!stock('va_micro_ok')) etat('Votre téléphone va demander l\'accès au micro : touchez « Autoriser ».');
             ECOUTE.parGeste = true;
             ecouter();
@@ -1601,14 +1647,14 @@
                 ECOUTE.aMarche = true;
                 stock('va_micro_ok', true);
                 boutonMicroActif(true);
-                etat('Je vous écoute… Répondez à la question.', 'text-red-300');
+                if (ECOUTE.premier) { ECOUTE.premier = false; etat('Micro allumé : répondez aux questions. Touchez-le pour le couper.', 'text-red-300'); }
             };
             rec.onresult = function (ev) {
                 var txt = '', fin = false;
                 for (var i = ev.resultIndex || 0; i < ev.results.length; i++) { txt += ev.results[i][0].transcript; if (ev.results[i].isFinal) fin = true; }
                 var champ = document.getElementById('saisie');
                 if (champ) champ.value = txt;
-                if (fin) { ECOUTE.resultat = true; ECOUTE.essais = 0; boutonMicroActif(false); repondre(meilleureProposition(ev, txt)); }
+                if (fin) { ECOUTE.resultat = true; ECOUTE.essais = 0; repondre(meilleureProposition(ev, txt)); }
             };
             rec.onerror = function (ev) {
                 ECOUTE.dernierCode = ev.error;
@@ -1616,18 +1662,16 @@
                     arreterEcoute();
                     if (ECOUTE.aMarche && !ECOUTE.parGeste) etat('Touchez le micro pour répondre à la question suivante.');
                     else demanderPermissions(ev.error);
-                } else if (ev.error === 'no-speech') {
-                    etat("Je n'ai rien entendu…", 'text-slate-300');
                 } else if (ev.error === 'network') {
                     arreterEcoute(); etat('Pas de connexion internet : le micro a besoin du réseau.', 'text-red-300');
                 }
             };
             rec.onend = function () {
-                boutonMicroActif(false);
+                /* le micro reste allumé : on relance l'écoute sans rien changer à l'écran */
                 if (!ECOUTE.session || ECOUTE.resultat || ECOUTE.rec !== rec) return;
                 ECOUTE.essais++;
-                if (ECOUTE.essais < 3) { setTimeout(function () { ecouter(true); }, 300); }
-                else { arreterEcoute(); etat('Touchez le micro quand vous êtes prêt.'); }
+                if (ECOUTE.essais < 60) { setTimeout(function () { ecouter(true); }, 150); }
+                else { arreterEcoute(); etat('Micro coupé après un long silence. Touchez-le pour reprendre.'); }
             };
             try { rec.start(); }
             catch (e) { arreterEcoute(); etat('Touchez le micro pour continuer.'); }
@@ -1709,7 +1753,12 @@
         function defilerVersCourante() {
             setTimeout(function () {
                 var c = document.getElementById('carte-courante') || document.getElementById('fin');
-                if (c && c.scrollIntoView) c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (!c) return;
+                /* la question doit apparaître juste sous la zone du micro (qui reste en haut), jamais cachée dessous */
+                var z = document.getElementById('zone-micro');
+                var bas = z ? z.offsetHeight : 0;
+                var y = (window.pageYOffset || document.documentElement.scrollTop || 0) + c.getBoundingClientRect().top - Math.max(bas, 0) - 12;
+                try { window.scrollTo({ top: Math.max(y, 0), behavior: 'smooth' }); } catch (e) { window.scrollTo(0, Math.max(y, 0)); }
             }, 60);
         }
 
@@ -1731,7 +1780,7 @@
             var titre = document.getElementById('titre-parcours');
             var sous = document.getElementById('sous-titre');
             var barre = document.getElementById('barre-fiche');
-            if (APP.mode === 'fiche' || APP.mode === 'fiche-edition') { titre.textContent = 'Ma fiche'; sous.textContent = APP.mode === 'fiche' ? (APP.miseAJour ? 'Nouvelle information obligatoire sur les devis : répondez à la question.' : 'Une seule fois : répondez aux questions à voix haute.') : 'Corrigez ce qui a changé, puis enregistrez.'; }
+            if (APP.mode === 'fiche' || APP.mode === 'fiche-edition') { titre.textContent = 'Ma fiche'; sous.textContent = APP.mode === 'fiche' ? (APP.miseAJour ? (APP.correction ? 'Une réponse de votre fiche semble fausse : redites-la.' : 'Nouvelle information obligatoire sur les devis : répondez à la question.') : 'Une seule fois : répondez aux questions à voix haute.') : 'Corrigez ce qui a changé, puis enregistrez.'; }
             else if (APP.mode === 'fiche-ok') { titre.textContent = 'Fiche enregistrée'; sous.textContent = ''; }
             else if (APP.mode === 'facture') { titre.textContent = 'Facture'; sous.textContent = 'Quand le chantier est terminé.'; }
             else if (APP.mode === 'bon') { titre.textContent = "Bon d'intervention"; sous.textContent = 'Le client signe que les travaux sont faits.'; }
@@ -1762,12 +1811,13 @@
                         '<p class="text-gold-400 text-xs font-semibold uppercase tracking-wider">À dire maintenant</p>' +
                         '<p class="text-white text-lg font-semibold mt-1">' + esc(c.texte) + '</p>' +
                         (c.aide ? '<p class="text-slate-300 text-base mt-1">' + esc(c.aide) + '</p>' : '') +
-                        (c.prixConnu ? '<button type="button" onclick="arreterEcoute(); repondre(\'pareil\')" class="mt-3 w-full px-4 py-3 rounded-full text-sm font-bold text-gold-400 border-2 border-gold-500/70">Pareil : ' + euros(nombre(c.prixConnu)) + '</button>' : '') +
+                        (c.prixConnu ? '<div class="grid grid-cols-2 gap-2 mt-3"><button type="button" onclick="repondre(\'pareil\')" class="px-3 py-3 rounded-full text-sm font-bold text-gold-400 border-2 border-gold-500/70">Pareil : ' + euros(nombre(c.prixConnu)) + '</button>' +
+                                       '<button type="button" onclick="repondre(\'autre prix\')" class="px-3 py-3 rounded-full text-sm font-bold text-slate-100 border-2 border-white/30">Autre prix</button></div>' : '') +
                         (c.cle === 'f0_des' && !APP.demo ? typesDevis().map(function (t, i) { return '<button type="button" onclick="appliquerTypeNumero(' + i + ')" class="mt-2 mr-2 px-3 py-2 rounded-full text-xs font-semibold text-gold-400 border border-gold-500/50">Devis type : ' + esc(t.nom) + '</button>'; }).join('') : '') +
                         '<textarea id="saisie" rows="2" placeholder="Votre réponse s\'écrit ici…" class="' + CHAMP + ' mt-3"></textarea>' +
                         (APP.erreur ? '<p class="text-red-300 text-sm mt-2">' + esc(APP.erreur) + '</p>' : '') +
                         '<div class="flex gap-2 mt-3">' +
-                            (APP.ordre.length ? '<button type="button" onclick="arreterEcoute(); allerPrecedente()" aria-label="Question précédente" class="px-4 py-3 rounded-full text-sm text-slate-200 border border-white/20">←</button>' : '') +
+                            (APP.ordre.length ? '<button type="button" onclick="allerPrecedente()" aria-label="Question précédente" class="px-4 py-3 rounded-full text-sm text-slate-200 border border-white/20">←</button>' : '') +
                             '<button type="button" onclick="validerSaisie()" class="flex-1 px-4 py-3 rounded-full text-sm font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">Valider</button>' +
                             (!c.requis ? '<button type="button" onclick="repondre(\'passer\')" class="px-4 py-3 rounded-full text-sm text-slate-200 border border-white/20">Passer</button>' : '') +
                         '</div>' +
@@ -1780,7 +1830,9 @@
                 document.getElementById('cartes').innerHTML = '';
                 fin.innerHTML = APP.mode === 'facture' ? factureHtml() : (APP.mode === 'bon' ? bonHtml() : historiqueHtml());
             } else if (APP.mode === 'fiche-edition') {
-                fin.innerHTML = '<div id="fin" class="mt-4 space-y-3">' + logoHtml() + (APP.erreur ? '<p class="text-red-300 text-sm mb-2">' + esc(APP.erreur) + '</p>' : '') +
+                var cpt = stock('va_factures');
+                fin.innerHTML = '<div id="fin" class="mt-4 space-y-3">' + logoHtml() +
+                    (cpt && cpt.n > 0 ? '<button type="button" onclick="remettreFacturesAZero()" class="w-full px-4 py-2.5 rounded-lg border border-red-400/40 text-red-200 text-sm">Remettre les numéros de facture à zéro (dernière : ' + cpt.annee + '-' + ('000' + cpt.n).slice(-4) + ')</button>' : '') + (APP.erreur ? '<p class="text-red-300 text-sm mb-2">' + esc(APP.erreur) + '</p>' : '') +
                     '<button type="button" onclick="enregistrerFicheModifiee()" class="w-full px-6 py-4 rounded-full font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">Enregistrer ma fiche</button></div>';
             } else if (APP.mode === 'fiche-ok') {
                 var lien = lienPersonnel(APP.fiche);
@@ -2179,6 +2231,10 @@
         function retourRecap() { APP.mode = 'recap'; dessiner(); window.scrollTo(0, 0); }
 
         /* --- Facture : créée depuis le devis, numéro qui se suit, ne se modifie plus --- */
+        function remettreFacturesAZero() {
+            if (!window.confirm('Seulement si toutes vos factures étaient des ESSAIS : la prochaine facture reprendra au numéro 0001. Les vraies factures ne doivent jamais avoir deux fois le même numéro. Continuer ?')) return;
+            stock('va_factures', null); dessiner();
+        }
         function prochainNumeroFacture(d) {
             var an = d.getFullYear(), cpt = stock('va_factures') || {};
             if (cpt.annee !== an) cpt = { annee: an, n: 0 };
