@@ -62,7 +62,7 @@
         <div id="cartes" class="mt-4 space-y-3"></div>
         <div id="fin-zone" class="mt-4"></div>
 
-        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v14</p>
+        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v15</p>
     </main>
     <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-gold-500/30 px-4 pt-3 pb-5">
         <div class="max-w-xl mx-auto">
@@ -109,7 +109,9 @@
     <script>
         /* ===================== PDF DU DEVIS (jsPDF, sans IA) ===================== */
         function nombre(v) {
-            var s = String(v == null ? '' : v).replace(/\s/g, '').replace(/[€a-zA-Z]/g, '').replace(',', '.');
+            var s = String(v == null ? '' : v).replace(/\s/g, '').replace(/[€a-zA-Z]/g, '');
+            if (/^-?\d{1,3}(\.\d{3})+(,\d*)?$/.test(s)) s = s.replace(/\./g, '');
+            s = s.replace(',', '.');
             var n = parseFloat(s);
             return isNaN(n) ? 0 : n;
         }
@@ -146,6 +148,7 @@
             return 'DEV-' + d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2) + '-' + nom;
         }
 
+        function cent(x) { return Math.round((x + (x >= 0 ? 1e-9 : -1e-9)) * 100) / 100; }
         function calculerDevis(fiche, devis) {
             var franchise = fiche.regime === 'franchise';
             var taux = franchise ? 0 : nombre(devis.tauxTva);
@@ -154,7 +157,7 @@
                 var l = devis.lignes[i];
                 var q = nombre(l.qte), pu = nombre(l.pu);
                 if (!String(l.designation || '').trim() || q <= 0) continue;
-                var tot = Math.round(q * pu * 100) / 100;
+                var tot = cent(q * pu);
                 lignes.push({ designation: String(l.designation).trim(), qte: q, unite: l.unite || 'u', pu: pu, total: tot });
                 ht += tot;
             }
@@ -162,19 +165,19 @@
             for (var mo = 0; mo < lignes.length; mo++) if (/^main.d/i.test(sansAccents(lignes[mo].designation))) moHt += lignes[mo].total;
             var majPct = Math.min(200, Math.max(0, nombre(devis.majoration))), majoration = 0;
             if (majPct > 0 && moHt > 0) {
-                majoration = Math.round(moHt * majPct) / 100;
+                majoration = cent(moHt * majPct / 100);
                 lignes.push({ designation: 'Majoration ' + String(majPct).replace('.', ',') + ' % de la main-d\'œuvre (urgence, soir, week-end ou jour férié)', qte: 1, unite: 'forfait', pu: majoration, total: majoration });
                 ht += majoration; moHt += majoration;
             }
-            var htBrut = Math.round(ht * 100) / 100;
+            var htBrut = cent(ht);
             var remisePct = Math.min(100, Math.max(0, nombre(devis.remise)));
-            var remise = Math.round(htBrut * remisePct) / 100;
-            ht = Math.round((htBrut - remise) * 100) / 100;
-            var tva = Math.round(ht * taux) / 100;
-            var ttc = Math.round((ht + tva) * 100) / 100;
-            var acompte = Math.round(ttc * nombre(fiche.acompte)) / 100;
+            var remise = cent(htBrut * remisePct / 100);
+            ht = cent(htBrut - remise);
+            var tva = cent(ht * taux / 100);
+            var ttc = cent(ht + tva);
+            var acompte = cent(ttc * Math.min(100, Math.max(0, nombre(fiche.acompte))) / 100);
             return { franchise: franchise, taux: taux, lignes: lignes, htBrut: htBrut, remisePct: remisePct, remise: remise, ht: ht, tva: tva, ttc: ttc, acompte: acompte,
-                     moHt: Math.round(moHt * 100) / 100, majPct: majPct, majoration: majoration };
+                     moHt: cent(moHt), majPct: majPct, majoration: majoration };
         }
 
         function sansPointFinal(o) {
@@ -539,6 +542,16 @@
             return n + frac;
         }
 
+        /* « 30 minutes » = 0,5 h ; « 1 heure 45 minutes » = 1,75 h */
+        function chiffre(v) { var p = String(v).split('.'); return p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + (p[1] ? ',' + p[1] : ''); }
+        function heuresFr(t) {
+            var s = bas(propre(t));
+            if (!/\bmin(ute)?s?\b|\bmn\b/.test(s)) return nombreFr(t);
+            var m = s.match(/^(.*?)\s*(?:heures?|\bh\b)\s*(?:et\s+)?(.*?)\s*(?:min(?:ute)?s?|mn)\b/);
+            if (m) { var h = nombreFr(m[1]), mi = nombreFr(m[2]); if (h === null) return null; return Math.round((h + (mi || 0) / 60) * 100) / 100; }
+            var x = nombreFr(s.replace(/\b(min(ute)?s?|mn)\b.*$/, ''));
+            return x === null ? null : Math.round(x / 60 * 100) / 100;
+        }
         function estZero(t) {
             return /^(gratuit|gratuite|offert|offerte|inclus|incluse|compris|comprise|sans|aucun|aucune|rien|nul|nulle|neant|pas d|pas de|zero)\b/.test(bas(propre(t)));
         }
@@ -1095,8 +1108,12 @@
                 return { ok: true, valeur: q.defaut != null ? q.defaut : '', passe: true };
             }
             switch (q.type) {
-                case 'nombre': v = nombreFr(t); if (v === null) return { ok: false, erreur: "Je n'ai pas compris le nombre. Dites par exemple « 55 »." };
-                    if (q.max != null && v > q.max) return { ok: false, erreur: 'J\'ai compris ' + String(Math.round(v * 100) / 100).replace('.', ',') + ' : ça semble faux. ' + (q.maxAide || 'Redites le nombre.') };
+                case 'nombre':
+                    if (q.heures && /journee|jour\b|jours\b/.test(bas(t))) return { ok: false, erreur: 'Combien d\'heures exactement ? Dites par exemple « 8 heures » pour une journée, « 4 heures » pour une demi-journée.' };
+                    if (/\d\s*(fois|x|×)\s*\d/.test(bas(t))) return { ok: false, erreur: q.cle && /pu$/.test(q.cle) ? 'Dites seulement le prix d\'une pièce : la quantité est demandée juste après.' : 'Dites un seul nombre.' };
+                    v = q.heures ? heuresFr(t) : nombreFr(t);
+                    if (v === null) return { ok: false, erreur: "Je n'ai pas compris le nombre. Dites par exemple « 55 »." };
+                    if (q.max != null && v > q.max) return { ok: false, erreur: 'J\'ai compris ' + chiffre(Math.round(v * 100) / 100) + ' : ça semble faux. ' + (q.maxAide || 'Redites le nombre.') };
                     return { ok: true, valeur: String(Math.round(v * 100) / 100) };
                 case 'ouinon': return { ok: false, erreur: 'Répondez par oui ou par non.' };
                 case 'decompte': v = decompte(t); if (!v) return { ok: false, erreur: 'Dites : au quart d\'heure, à la demi-heure, à l\'heure, ou au temps réel.' }; return { ok: true, valeur: v };
@@ -1179,15 +1196,15 @@
                 if (!((p + 'pu') in r)) {
                     var nouveau = APP.nouveauPrix && APP.nouveauPrix[p + 'pu'];
                     var pc = APP.demo || nouveau ? null : prixConnu(r[p + 'des']);
-                    return { cle: p + 'pu', texte: (nouveau ? 'Quel est le nouveau prix hors taxes' : 'Son prix hors taxes') + (r[p + 'unite'] === 'm' ? ', au mètre' : (r[p + 'unite'] === 'm²' ? ', au m²' : '')) + ' ?',
+                    return { cle: p + 'pu', confirmerAuDela: 5000, texte: (nouveau ? 'Quel est le nouveau prix hors taxes' : 'Son prix hors taxes') + (r[p + 'unite'] === 'm' ? ', au mètre' : (r[p + 'unite'] === 'm²' ? ', au m²' : '')) + ' ?',
                              aide: pc ? 'Dernière fois : ' + euros(nombre(pc.pu)) + '. Dites « pareil » ou un autre prix.' : 'Ex. : 450', type: 'nombre', requis: true, prixConnu: pc ? pc.pu : null };
                 }
-                if (!((p + 'qte') in r)) return { cle: p + 'qte', max: 10000, texte: 'Quelle quantité ?', aide: 'Ex. : 1 (ou « passer » pour 1)', type: 'nombre', defaut: '1' };
+                if (!((p + 'qte') in r)) return { cle: p + 'qte', confirmerAuDela: 100, max: 10000, texte: 'Quelle quantité ?', aide: 'Ex. : 1 (ou « passer » pour 1)', type: 'nombre', defaut: '1' };
                 if (!((p + 'autre') in r)) return { cle: p + 'autre', texte: 'Une autre fourniture ?', aide: 'Oui ou non', type: 'ouinon', requis: true };
                 if (r[p + 'autre'] !== 'oui') break;
                 n++;
             }
-            if (!('heures' in r)) return { cle: 'heures', max: 500, maxAide: 'Redites le nombre d\'heures, par exemple « trois heures ».', texte: "Combien d'heures de main-d'œuvre ?", aide: 'Ex. : 3 (ou « zéro »)', type: 'nombre', requis: true };
+            if (!('heures' in r)) return { cle: 'heures', heures: true, confirmerAuDela: 40, max: 500, maxAide: 'Redites le nombre d\'heures, par exemple « trois heures ».', texte: "Combien d'heures de main-d'œuvre ?", aide: 'Ex. : 3 (ou « zéro »)', type: 'nombre', requis: true };
             if (f.regime !== 'franchise' && !('tauxTva' in r)) return { cle: 'tauxTva', texte: 'Quel taux de TVA pour ce devis ?', aide: '10 % (logement de plus de 2 ans), 5,5 % (économies d\'énergie), 20 % (neuf, local pro, chaudière gaz ou fioul). « Passer » = ' + String(f.tauxDefaut || '10').replace('.', ',') + ' %', type: 'taux', defaut: f.tauxDefaut || '10' };
             if (!('duree' in r)) return { cle: 'duree', texte: 'Durée estimée des travaux ?', aide: 'Ex. : une demi-journée, ou « passer »', vocab: 'duree' };
             if (!('debut' in r)) return { cle: 'debut', texte: 'Quand pouvez-vous commencer les travaux ?', aide: 'Ex. : « sous 15 jours », « lundi prochain », « le 2 décembre »', vocab: 'duree', date: true, requis: true };
@@ -1391,11 +1408,7 @@
                 for (var qi = 0; qi < QUESTIONS_FICHE.length; qi++) { var qq = QUESTIONS_FICHE[qi]; if (qq.cle !== 'siretOk' && !(qq.cle in APP.rep) && manque.indexOf(qq.cle) < 0) APP.rep[qq.cle] = qq.defaut != null ? qq.defaut : ''; }
                 for (var mq = 0; mq < manque.length; mq++) delete APP.rep[manque[mq]];
             } else if (ficheValide(APP.fiche)) {
-                var b = stock('va_devis');
-                if (b && b.rep) { APP.mode = b.mode || 'devis'; APP.rep = b.rep; APP.ordre = b.ordre || []; APP.lignes = b.lignes || null; APP.autoQte = b.autoQte || {}; APP.signature = b.signature || null;
-                                  APP.devisId = b.devisId || null; APP.numero = b.numero || null; APP.dateDevis = b.dateDevis || null; APP.photos = b.photos || []; APP.facture = b.facture || null; APP.bon = b.bon || null;
-                                  if (APP.mode === 'facture' || APP.mode === 'bon' || APP.mode === 'historique') APP.mode = 'recap'; }
-                else nouveauDevis(true);
+                if (!chargerBrouillon(stock('va_devis'))) nouveauDevis(true);
             } else {
                 APP.mode = 'fiche'; APP.rep = {}; APP.ordre = [];
             }
@@ -1403,8 +1416,21 @@
             afficherAideNavigateur();
         }
 
+        function brouillonValable(b) { return !!(b && b.rep && /^(devis|recap|facture|bon|historique)$/.test(b.mode || 'devis') && !('nom' in b.rep && 'siret' in b.rep)); }
+        function chargerBrouillon(b) {
+            if (!brouillonValable(b)) return false;
+            APP.mode = b.mode || 'devis'; APP.rep = b.rep; APP.ordre = b.ordre || []; APP.lignes = b.lignes || null; APP.autoQte = b.autoQte || {}; APP.signature = b.signature || null;
+            APP.devisId = b.devisId || null; APP.numero = b.numero || null; APP.dateDevis = b.dateDevis || null; APP.photos = b.photos || []; APP.facture = b.facture || null; APP.bon = b.bon || null;
+            APP.pdf = null; APP.nouveauPrix = {};
+            if (APP.mode === 'facture' || APP.mode === 'bon' || APP.mode === 'historique') APP.mode = 'recap';
+            /* prix de l'heure / déplacement impossibles ou changés dans la fiche : le devis pas encore facturé prend les bons prix */
+            if (!APP.facture && corrigerLignesAuto(APP.lignes, false, APP.ficheAvant)) { APP.signature = null; }
+            return true;
+        }
+        function reprendreDevis() { if (chargerBrouillon(stock('va_devis'))) { APP.erreur = ''; avancer(true); window.scrollTo(0, 0); } else nouveauDevis(); }
         function sauverBrouillon() {
-            if (APP.mode === 'fiche' || APP.demo) return;
+            /* seulement un devis : jamais les réponses de la fiche (sinon le devis en cours était effacé) */
+            if (APP.demo || !/^(devis|recap|facture|bon)$/.test(APP.mode)) return;
             var b = { mode: APP.mode, rep: APP.rep, ordre: APP.ordre, lignes: APP.lignes, autoQte: APP.autoQte || {}, signature: APP.signature || null,
                       devisId: APP.devisId || null, numero: APP.numero || null, dateDevis: APP.dateDevis || null, photos: APP.photos || [], facture: APP.facture || null, bon: APP.bon || null };
             if (!stock('va_devis', b)) { b.photos = []; stock('va_devis', b); }
@@ -1477,6 +1503,15 @@
                 if (ECOUTE.session) setTimeout(function () { ecouter(true); }, 400);
                 return;
             }
+            /* montant inhabituel (ex. 10 015 €) : on le fait redire pour être sûr */
+            if (q.confirmerAuDela && !res.passe && nombre(res.valeur) > q.confirmerAuDela && APP.aConfirmer !== q.cle + '=' + res.valeur) {
+                APP.aConfirmer = q.cle + '=' + res.valeur;
+                APP.erreur = 'J\'ai compris ' + (/pu$/.test(q.cle) ? euros(nombre(res.valeur)) : chiffre(res.valeur) + (q.heures ? ' heures' : '')) + ' : c\'est beaucoup. Redites-le pour confirmer (ou dites le bon nombre).';
+                dessiner(); defilerVersCourante();
+                if (ECOUTE.session) setTimeout(function () { ecouter(true); }, 400);
+                return;
+            }
+            APP.aConfirmer = null;
             var valeur = res.valeur, qteDite = null;
             if (q.cle === 'f0_des' && APP.reinserer == null) { var ty = trouverType(brut); if (ty) { appliquerType(ty); return; } }
             var uniteDite = '';
@@ -1532,22 +1567,25 @@
             var q = trouverQuestion(cle);
             var res = interpreter(q, brut);
             var el = document.getElementById('rep-' + cle);
-            if (!res.ok) { if (el) el.style.borderColor = '#f87171'; return; }
+            if (!res.ok) { if (el) el.style.borderColor = '#f87171'; return res; }
             if (el) el.style.borderColor = '';
             APP.rep[cle] = res.valeur;
             APP.pdf = null; APP.signature = null;
             sauverBrouillon();
             if (APP.mode === 'recap') { dessinerRecap(); majBarrePdf(); }
+            return res;
         }
 
         function enregistrerFicheModifiee() {
             for (var i = 0; i < APP.ordre.length; i++) {
                 var el = document.getElementById('rep-' + APP.ordre[i]);
-                if (el) corriger(APP.ordre[i], el.value);
+                if (!el) continue;
+                var r = corriger(APP.ordre[i], el.value);
+                if (r && !r.ok) { var qe = trouverQuestion(APP.ordre[i]); APP.erreur = (qe ? qe.texte + ' ' : '') + r.erreur; dessiner(); return; }
             }
             var f = ficheDepuisReponses(APP.rep);
             if (!ficheValide(f)) { APP.erreur = 'Il manque une information obligatoire (en rouge).'; dessiner(); return; }
-            APP.fiche = f; stock('va_fiche', f);
+            APP.ficheAvant = APP.fiche; APP.fiche = f; stock('va_fiche', f);
             APP.mode = 'fiche-ok'; APP.erreur = '';
             dessiner(); window.scrollTo(0, 0);
         }
@@ -1651,7 +1689,7 @@
             };
             rec.onresult = function (ev) {
                 var txt = '', fin = false;
-                for (var i = ev.resultIndex || 0; i < ev.results.length; i++) { txt += ev.results[i][0].transcript; if (ev.results[i].isFinal) fin = true; }
+                for (var i = ev.resultIndex || 0; i < ev.results.length; i++) { txt = joindre(txt, ev.results[i][0].transcript); if (ev.results[i].isFinal) fin = true; }
                 var champ = document.getElementById('saisie');
                 if (champ) champ.value = txt;
                 if (fin) { ECOUTE.resultat = true; ECOUTE.essais = 0; repondre(meilleureProposition(ev, txt)); }
@@ -1678,13 +1716,15 @@
         }
 
         /* Pour les gens qui articulent mal : la reconnaissance propose plusieurs phrases, on prend la première qui a du sens */
+        /* deux morceaux de phrase : toujours séparés par un espace (sinon « 100 » + « 15 » = « 10015 ») */
+        function joindre(a, b) { a = String(a || ''); b = String(b || ''); if (!a) return b; if (!b) return a; return /\s$/.test(a) || /^\s/.test(b) ? a + b : a + ' ' + b; }
         function meilleureProposition(ev, defaut) {
             var props = [];
             var n = 0;
             for (var i = 0; i < ev.results.length; i++) n = Math.max(n, ev.results[i].length || 1);
             for (var k = 0; k < n; k++) {
                 var s = '';
-                for (var j = 0; j < ev.results.length; j++) { var r = ev.results[j]; s += (r[k] || r[0]).transcript; }
+                for (var j = 0; j < ev.results.length; j++) { var r = ev.results[j]; s = joindre(s, (r[k] || r[0]).transcript); }
                 props.push(s);
             }
             if (!props.length) return defaut;
@@ -1843,7 +1883,9 @@
                     '<div class="flex gap-2"><button type="button" onclick="copierLien()" class="flex-1 px-4 py-3 rounded-full text-sm font-semibold text-emerald-200 border border-emerald-400/50">Copier le lien</button>' +
                     '<a href="' + esc(lien) + '" target="_top" class="flex-1 text-center px-4 py-3 rounded-full text-sm font-semibold text-emerald-200 border border-emerald-400/50">Ouvrir le lien</a></div>' +
                     '<p id="lien-msg" class="text-xs text-slate-400"></p>' + logoHtml() +
-                    '<button type="button" onclick="nouveauDevis()" class="w-full px-6 py-4 rounded-full font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">Faire mon premier devis</button></div>';
+                    (brouillonValable(stock('va_devis')) && stock('va_devis').rep.clientNom ? '<button type="button" onclick="reprendreDevis()" class="w-full px-6 py-4 rounded-full font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">Reprendre mon devis en cours (' + esc(stock('va_devis').rep.clientNom) + ')</button>' +
+                        '<button type="button" onclick="nouveauDevis()" class="w-full px-6 py-3 rounded-full font-semibold text-gold-400 border-2 border-gold-500/70">Faire un nouveau devis</button></div>'
+                    : '<button type="button" onclick="nouveauDevis()" class="w-full px-6 py-4 rounded-full font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">Faire mon premier devis</button></div>');
             } else if (APP.mode === 'recap') {
                 fin.innerHTML = '<div id="fin"></div>';
                 dessinerRecap();
@@ -2029,6 +2071,21 @@
 
         /* ===================== MES PRIX, DEVIS TYPES, MES DEVIS, LOGO, PHOTOS ===================== */
         function cleArticle(t) { return bas(propre(t)).replace(/[^a-z0-9]+/g, ' ').trim().split(' ').map(function (w) { return w.length > 3 ? w.replace(/s$/, '') : w; }).join(' '); }
+        /* tout = true : on remet les prix de la fiche (devis dupliqué). Sinon on ne corrige que les prix impossibles (ex. 10 015 €/h). */
+        function corrigerLignesAuto(lignes, tout, ancienne) {
+            var f = APP.fiche || {}, n = 0;
+            if (!lignes) return 0;
+            for (var i = 0; i < lignes.length; i++) {
+                var l = lignes[i], d = bas(String(l.designation || '')).replace(/[-']/g, ' '), bon = null, max = 0;
+                var cle = /^main d/.test(d) ? 'tauxHoraire' : (/^deplacement/.test(d) ? 'deplacement' : (/^gestion et evacuation/.test(d) ? 'dechetsPrix' : ''));
+                if (!cle) continue;
+                bon = f[cle]; max = { tauxHoraire: 300, deplacement: 500, dechetsPrix: 1000 }[cle];
+                if (bon == null || !propre(String(bon))) continue;
+                var avant = ancienne && ancienne[cle] != null && nombre(l.pu) === nombre(ancienne[cle]);
+                if ((tout || avant || nombre(l.pu) > max) && nombre(l.pu) !== nombre(bon)) { l.pu = String(bon); n++; }
+            }
+            return n;
+        }
         function estLigneAuto(des) { return /^(main d|deplacement|gestion et evacuation)/.test(bas(des).replace(/[-']/g, ' ')); }
         function prixConnu(des) { var cat = stock('va_catalogue') || {}; return cat[cleArticle(des)] || null; }
         function memoriserPrix(lignes) {
@@ -2195,6 +2252,7 @@
             if (!x) return;
             APP.mode = 'recap'; APP.rep = x.rep || {}; APP.ordre = x.ordre || []; APP.lignes = x.lignes || []; APP.signature = x.signature && x.signature.image ? x.signature : null;
             APP.devisId = x.id; APP.numero = x.numero; APP.dateDevis = x.date; APP.photos = []; APP.facture = x.facture || null; APP.bon = x.bon || null; APP.pdf = null; APP.autoQte = {};
+            if (!APP.facture && !APP.signature) corrigerLignesAuto(APP.lignes);
             dessiner(); creerPdf(); window.scrollTo(0, 0);
         }
         function dupliquerDevis(id) {
@@ -2206,6 +2264,7 @@
             APP.rep = garder;
             APP.ordre = (x.ordre || []).filter(function (k) { return k in garder; });
             APP.lignes = JSON.parse(JSON.stringify(x.lignes || []));
+            corrigerLignesAuto(APP.lignes, true);
             avancer(true); window.scrollTo(0, 0);
         }
 
