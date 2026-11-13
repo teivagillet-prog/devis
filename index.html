@@ -15,7 +15,7 @@
             } }
         }
     </script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@1.72.0"></script>
     <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,20 +52,55 @@
                 <i data-lucide="mic" class="w-11 h-11"></i>
             </button>
             <p id="etat" class="mt-3 text-sm font-semibold text-gold-400">Touchez le micro et répondez à la question</p>
-            <p id="question-courante" class="mt-1 text-white text-base"></p>
-            <p class="mt-1 text-[11px] text-slate-500">Dites « passer » pour sauter, « question précédente » pour revenir. Trompé ? Dites « pardon » puis la bonne réponse.</p>
+            <p id="question-courante" class="mt-1 text-slate-200 text-sm font-semibold"></p>
+            <div class="mt-2 mx-auto max-w-xs h-1.5 rounded-full bg-white/10 overflow-hidden"><div id="barre-progression" class="h-full bg-gold-500 rounded-full transition-all" style="width:0%"></div></div>
+            <p class="mt-2 text-xs text-slate-300">Dites « passer » pour sauter, « question précédente » pour revenir. Trompé ? Dites « pardon » puis la bonne réponse.</p>
         </section>
 
+        <div id="bandeau-demo" class="mt-4"></div>
         <div id="aide-navigateur" class="mt-4"></div>
         <div id="cartes" class="mt-4 space-y-3"></div>
         <div id="fin-zone" class="mt-4"></div>
 
-        <p class="mt-10 text-center text-[11px] text-slate-600">Vos informations restent sur votre téléphone. · v6</p>
+        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v12</p>
     </main>
     <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-gold-500/30 px-4 pt-3 pb-5">
         <div class="max-w-xl mx-auto">
             <p id="barre-pdf-info" class="text-xs text-center mb-2"></p>
-            <button type="button" id="barre-pdf-bouton" onclick="actionBarrePdf()" class="w-full px-6 py-4 rounded-full text-base font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600 transition"></button>
+            <div class="flex gap-2">
+                <button type="button" id="barre-pdf-signer" onclick="ouvrirSignature()" class="hidden flex-1 px-4 py-4 rounded-full text-sm font-bold text-gold-400 border-2 border-gold-500/70 transition">✍️ Faire signer</button>
+                <button type="button" id="barre-pdf-bouton" onclick="actionBarrePdf()" class="flex-[2] w-full px-6 py-4 rounded-full text-base font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600 transition"></button>
+            </div>
+        </div>
+    </div>
+    <!-- Signature du client au doigt -->
+    <div id="signature-modal" class="hidden fixed inset-0 z-50 bg-obsidian/95 overflow-y-auto">
+        <div class="max-w-xl mx-auto px-4 py-6">
+            <p class="text-gold-400 text-xs font-semibold uppercase tracking-wider">Signature du client</p>
+            <p id="sig-resume" class="text-white text-lg font-semibold mt-1"></p>
+            <p id="sig-citation" class="text-slate-300 text-sm mt-2">« Devis reçu avant l'exécution des travaux. Bon pour accord. »</p>
+            <p id="sig-retract" class="text-slate-300 text-xs mt-2">Si vous signez chez vous, vous avez 14 jours pour changer d'avis (formulaire dans le devis).</p>
+            <label id="sig-anticipe-zone" class="flex items-start gap-3 mt-4 p-3 rounded-xl border border-white/15 text-sm text-slate-200">
+                <input type="checkbox" id="sig-anticipe" class="mt-1 w-5 h-5 accent-amber-400">
+                <span>Je demande que les travaux commencent avant la fin des 14 jours.</span>
+            </label>
+            <div id="sig-pieces-zone" class="mt-3 p-3 rounded-xl border border-white/15 text-sm text-slate-200">
+                <p>Conserver les pièces remplacées ?</p>
+                <div class="flex gap-6 mt-2">
+                    <label class="flex items-center gap-2"><input type="radio" name="sig-pieces" id="sig-pieces-oui" value="oui" class="w-5 h-5 accent-amber-400"> Oui</label>
+                    <label class="flex items-center gap-2"><input type="radio" name="sig-pieces" id="sig-pieces-non" value="non" class="w-5 h-5 accent-amber-400"> Non</label>
+                </div>
+            </div>
+            <p class="text-slate-300 text-sm mt-4">Signez avec le doigt dans le cadre blanc :</p>
+            <div id="sig-cadre" class="mt-2 rounded-xl bg-white overflow-hidden" style="touch-action: none;">
+                <canvas id="sig-canvas" style="display:block; width:100%; touch-action: none;"></canvas>
+            </div>
+            <p id="sig-erreur" class="text-red-300 text-xs mt-2"></p>
+            <div class="flex gap-2 mt-3">
+                <button type="button" onclick="effacerSignature()" class="flex-1 px-4 py-3 rounded-full text-sm text-slate-200 border border-white/20">Effacer</button>
+                <button type="button" onclick="fermerSignature()" class="flex-1 px-4 py-3 rounded-full text-sm text-slate-200 border border-white/20">Annuler</button>
+            </div>
+            <button type="button" id="sig-valider" onclick="validerSignature()" class="mt-3 w-full px-6 py-4 rounded-full text-base font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600 opacity-40" disabled>Valider la signature</button>
         </div>
     </div>
     <main class="hidden">
@@ -93,6 +128,13 @@
             return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         }
 
+        function formeAffichee(forme) {
+            if (forme === 'Micro-entreprise') return 'EI (micro-entreprise)';
+            if (forme === 'Entreprise individuelle (EI)') return 'Entrepreneur individuel (EI)';
+            return forme || '';
+        }
+        function estSociete(forme) { return /^(SARL|EURL|SAS|SASU)$/.test(String(forme || '')); }
+
         function numeroDevis(d, nomClient) {
             var mots = String(nomClient || 'CLIENT').trim().split(/\s+/);
             var nom = sansAccents(mots[mots.length - 1]).toUpperCase().replace(/[^A-Z0-9-]/g, '') || 'CLIENT';
@@ -111,11 +153,14 @@
                 lignes.push({ designation: String(l.designation).trim(), qte: q, unite: l.unite || 'u', pu: pu, total: tot });
                 ht += tot;
             }
-            ht = Math.round(ht * 100) / 100;
+            var htBrut = Math.round(ht * 100) / 100;
+            var remisePct = Math.min(100, Math.max(0, nombre(devis.remise)));
+            var remise = Math.round(htBrut * remisePct) / 100;
+            ht = Math.round((htBrut - remise) * 100) / 100;
             var tva = Math.round(ht * taux) / 100;
             var ttc = Math.round((ht + tva) * 100) / 100;
             var acompte = Math.round(ttc * nombre(fiche.acompte)) / 100;
-            return { franchise: franchise, taux: taux, lignes: lignes, ht: ht, tva: tva, ttc: ttc, acompte: acompte };
+            return { franchise: franchise, taux: taux, lignes: lignes, htBrut: htBrut, remisePct: remisePct, remise: remise, ht: ht, tva: tva, ttc: ttc, acompte: acompte };
         }
 
         function genererPdfDevis(JsPDF, fiche, devis, aujourdhui) {
@@ -125,7 +170,9 @@
             var G = 16, D = 194, L = D - G;
             var date = aujourdhui || new Date();
             var fin = new Date(date.getTime()); fin.setDate(fin.getDate() + (Math.round(nombre(fiche.validite)) || 30));
-            var numero = numeroDevis(date, devis.clientNom);
+            var numero = devis.numero || numeroDevis(date, devis.clientNom);
+            var pro = !!devis.pro;
+            var type = devis.typeDoc || 'devis', estDevis = type === 'devis', estFacture = type === 'facture', estBon = type === 'bon';
             var y;
 
             function texte(t, x, yy, o) {
@@ -139,24 +186,39 @@
             }
             function place(h) { if (y + h > 285) { doc.addPage(); y = 18; } }
 
-            // En-tête entreprise
+            // En-tête entreprise (avec le logo s'il y en a un)
             y = 20;
+            if (devis.logo) {
+                try {
+                    var ip = doc.getImageProperties(devis.logo), rl = ip.width / ip.height, hL = 16, wL = hL * rl;
+                    if (wL > 50) { wL = 50; hL = wL / rl; }
+                    doc.addImage(devis.logo, /^data:image\/png/.test(devis.logo) ? 'PNG' : 'JPEG', G, 10, wL, hL, undefined, 'FAST');
+                    y = 10 + hL + 6;
+                } catch (e) {}
+            }
             texte(fiche.nom, G, y, { taille: 16, gras: true }); y += 6;
-            var ent = [fiche.forme + (fiche.dirigeant ? ' – ' + fiche.dirigeant : ''), fiche.adresse,
+            var capital = estSociete(fiche.forme) && nombre(fiche.capital) > 0 ? ' au capital de ' + euros(nombre(fiche.capital)).replace(',00 €', ' €') : '';
+            var ent = [formeAffichee(fiche.forme) + capital + (fiche.dirigeant ? ' – ' + fiche.dirigeant : ''), fiche.adresse,
                        [fiche.tel, fiche.email].filter(Boolean).join(' – '),
-                       'SIRET ' + fiche.siret + (fiche.rm ? ' – RM ' + fiche.rm : '')];
+                       'SIRET ' + fiche.siret + (fiche.rm ? ' – RM ' + String(fiche.rm).replace(/^\s*(rm|r\.m\.)\s*/i, '') : '')];
             if (!c.franchise && fiche.tvaNum) ent.push('TVA intracom. ' + fiche.tvaNum);
             for (var e = 0; e < ent.length; e++) { y += texte(ent[e], G, y, { largeur: 110 }); }
             // En-tête devis
-            texte('DEVIS', D, 21, { taille: 22, gras: true, couleur: MARINE, droite: true });
+            texte(estDevis ? 'DEVIS' : (estFacture ? 'FACTURE' : "BON D'INTERVENTION"), D, 21, { taille: estBon ? 16 : 22, gras: true, couleur: MARINE, droite: true });
             texte('N° ' + numero, D, 28, { gras: true, droite: true });
             texte('Date : ' + dateFr(date), D, 32, { droite: true });
-            texte("Valable jusqu'au : " + dateFr(fin), D, 36, { droite: true });
+            if (estDevis) texte("Valable jusqu'au : " + dateFr(fin), D, 36, { droite: true });
+            if (estFacture && devis.echeanceDate) texte("Échéance : " + dateFr(new Date(devis.echeanceDate)), D, 36, { droite: true });
 
             // Client
             y = Math.max(y, 40) + 4;
             var cli = [devis.clientNom, devis.clientAdresse, devis.clientContact].filter(function (s) { return String(s || '').trim(); });
-            var hCli = 9 + cli.length * 4.6 + (devis.chantier ? 9.5 : 0);
+            /* hauteur du cadre calculée sur les lignes réelles (nom ou adresse longs = plusieurs lignes) */
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+            var hCli = 9;
+            for (var kc = 0; kc < cli.length; kc++) hCli += doc.splitTextToSize(String(cli[kc]), D - 116).length * 9 * 0.42 + 0.8;
+            doc.setFontSize(8);
+            if (devis.chantier) hCli += 5.5 + doc.splitTextToSize(String(devis.chantier), D - 116).length * 8 * 0.42 + 0.7;
             doc.setDrawColor(MARINE[0], MARINE[1], MARINE[2]); doc.setLineWidth(0.3);
             doc.rect(108, y, D - 108, hCli);
             texte('CLIENT', 112, y + 5.5, { gras: true, couleur: MARINE });
@@ -165,35 +227,50 @@
             if (devis.chantier) { texte('Adresse du chantier :', 112, yc + 1, { gras: true, taille: 8 }); texte(devis.chantier, 112, yc + 5, { taille: 8, largeur: D - 116 }); }
             y += hCli + 7;
 
-            if (devis.objet) { y += texte('Objet : ' + devis.objet, G, y, { largeur: L }) + 3; }
+            if (devis.objet) { y += texte('Objet : ' + devis.objet, G, y, { largeur: L }) + 1.5; }
+            if (devis.reference) { y += texte(devis.reference, G, y, { largeur: L, taille: 8, couleur: GRIS }) + 1.5; }
+            y += 1.5;
 
             // Tableau
-            var cols = [{ t: 'Désignation', x: G + 2, w: 82 }, { t: 'Qté', x: 112, d: true }, { t: 'Unité', x: 116 },
-                        { t: 'Prix unit. HT', x: 152, d: true }, { t: 'TVA', x: 167, d: true }, { t: 'Total HT', x: D - 2, d: true }];
+            var xQ = estBon ? 172 : 112, xU = estBon ? 176 : 116, wDes = estBon ? 145 : 80;
+            var cols = estBon ? [{ t: 'Travaux réalisés et pièces posées', x: G + 2 }, { t: 'Qté', x: xQ, d: true }, { t: 'Unité', x: xU }]
+                              : [{ t: 'Désignation', x: G + 2, w: 82 }, { t: 'Qté', x: 112, d: true }, { t: 'Unité', x: 116 },
+                                 { t: 'Prix unit. HT', x: 152, d: true }, { t: 'TVA', x: 167, d: true }, { t: 'Total HT', x: D - 2, d: true }];
+            function enteteTableau() {
+                doc.setFillColor(MARINE[0], MARINE[1], MARINE[2]); doc.rect(G, y, L, 8, 'F');
+                for (var h = 0; h < cols.length; h++) texte(cols[h].t, cols[h].x, y + 5.3, { gras: true, couleur: [255, 255, 255], droite: cols[h].d });
+                y += 8;
+            }
             place(14);
-            doc.setFillColor(MARINE[0], MARINE[1], MARINE[2]); doc.rect(G, y, L, 8, 'F');
-            for (var h = 0; h < cols.length; h++) texte(cols[h].t, cols[h].x, y + 5.3, { gras: true, couleur: [255, 255, 255], droite: cols[h].d });
-            y += 8;
+            enteteTableau();
             for (var r = 0; r < c.lignes.length; r++) {
                 var li = c.lignes[r];
                 doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-                var des = doc.splitTextToSize(li.designation, 80);
+                var des = doc.splitTextToSize(li.designation, wDes);
                 var hl = Math.max(7, des.length * 3.8 + 3.2);
-                place(hl);
+                if (y + hl > 285) { place(hl); enteteTableau(); }   /* nouvelle page : on remet l'en-tête du tableau */
                 var yt = y + 4.8;
                 texte(des, G + 2, yt);
-                texte(String(li.qte).replace('.', ','), 112, yt, { droite: true });
-                texte(li.unite, 116, yt);
-                texte(euros(li.pu), 152, yt, { droite: true });
-                texte(c.franchise ? '—' : String(c.taux).replace('.', ',') + ' %', 167, yt, { droite: true });
-                texte(euros(li.total), D - 2, yt, { droite: true });
+                texte(String(li.qte).replace('.', ','), xQ, yt, { droite: true });
+                texte(li.unite, xU, yt);
+                if (!estBon) {
+                    texte(euros(li.pu), 152, yt, { droite: true });
+                    texte(c.franchise ? '—' : String(c.taux).replace('.', ',') + ' %', 167, yt, { droite: true });
+                    texte(euros(li.total), D - 2, yt, { droite: true });
+                }
                 y += hl;
                 doc.setDrawColor(CLAIR[0], CLAIR[1], CLAIR[2]); doc.setLineWidth(0.2); doc.line(G, y, D, y);
             }
 
             // Totaux
-            y += 5; place(26);
+            y += 5;
+            if (!estBon) {
+            place(26);
             var xl = 168, xr = D - 2;
+            if (c.remise > 0) {
+                texte('Total HT avant remise', xl, y, { droite: true }); texte(euros(c.htBrut), xr, y, { droite: true }); y += 5;
+                texte('Remise ' + String(c.remisePct).replace('.', ',') + ' %', xl, y, { droite: true }); texte(euros(-c.remise), xr, y, { droite: true }); y += 5;
+            }
             texte('Total HT', xl, y, { droite: true }); texte(euros(c.ht), xr, y, { droite: true }); y += 5;
             if (c.franchise) { texte('TVA non applicable, art. 293 B du CGI', xr, y, { droite: true, taille: 8, couleur: GRIS }); }
             else { texte('TVA ' + String(c.taux).replace('.', ',') + ' %', xl, y, { droite: true }); texte(euros(c.tva), xr, y, { droite: true }); }
@@ -201,43 +278,133 @@
             doc.setDrawColor(MARINE[0], MARINE[1], MARINE[2]); doc.setLineWidth(0.4); doc.line(120, y, D, y); y += 4.5;
             texte('Total TTC', xl, y, { droite: true, gras: true }); texte(euros(c.ttc), xr, y, { droite: true, gras: true }); y += 2.5;
             doc.line(120, y, D, y); y += 4.5;
-            if (nombre(fiche.acompte) > 0) { texte('Acompte à la signature (' + nombre(fiche.acompte) + ' %)', xl, y, { droite: true }); texte(euros(c.acompte), xr, y, { droite: true }); y += 5; }
+            if (estDevis && nombre(fiche.acompte) > 0) { texte('Acompte (' + nombre(fiche.acompte) + ' %)', xl, y, { droite: true }); texte(euros(c.acompte), xr, y, { droite: true }); y += 5; }
+            if (estFacture) {
+                var recu = Math.min(c.ttc, Math.max(0, nombre(devis.acompteRecu)));
+                if (recu > 0) { texte('Acompte déjà reçu', xl, y, { droite: true }); texte(euros(-recu), xr, y, { droite: true }); y += 5; }
+                texte('Net à payer', xl, y, { droite: true, gras: true }); texte(euros(Math.round((c.ttc - recu) * 100) / 100), xr, y, { droite: true, gras: true }); y += 5;
+            }
+            }
 
             // Conditions et mentions
             y += 3;
             var dechetsLigne = 0;
             for (var dl = 0; dl < c.lignes.length; dl++) if (/d[ée]chet/i.test(c.lignes[dl].designation)) dechetsLigne += c.lignes[dl].total;
-            var mentions = [
+            var mentions = estDevis ? [
                 'Conditions : devis gratuit, valable ' + (Math.round(nombre(fiche.validite)) || 30) + ' jours. Paiement par ' + fiche.paiement + '.' +
-                    (nombre(fiche.acompte) > 0 ? ' Acompte de ' + nombre(fiche.acompte) + ' % à la signature, solde à la fin des travaux.' : '') +
-                    (devis.duree ? ' Durée estimée des travaux : ' + devis.duree + '.' : ''),
+                    (nombre(fiche.acompte) > 0 ? ' Acompte de ' + nombre(fiche.acompte) + ' % à la signature' + (pro ? '' : ' (devis signé à votre domicile : acompte réglé au plus tôt 7 jours après la signature)') + ', solde à la fin des travaux.' : '') +
+                    (devis.debut ? ' Début des travaux : ' + devis.debut.charAt(0).toLowerCase() + devis.debut.slice(1) + '.' : '') +
+                    (devis.duree ? ' Durée estimée des travaux : ' + devis.duree.charAt(0).toLowerCase() + devis.duree.slice(1) + '.' : ''),
                 'Déchets : les déchets du chantier sont triés puis déposés par nos soins à : ' + fiche.dechetterie + '. Coût estimé : ' + (dechetsLigne > 0 ? euros(dechetsLigne) + ' HT.' : 'inclus.'),
+                'Taux horaire de main-d\'œuvre : ' + euros(nombre(fiche.tauxHoraire)) + (c.franchise ? ' (TVA non applicable).' : ' HT, soit ' + euros(Math.round(nombre(fiche.tauxHoraire) * (1 + c.taux / 100) * 100) / 100) + ' TTC.') +
+                    (fiche.decompte ? ' Temps de main-d\'œuvre décompté ' + fiche.decompte + '.' : '') +
+                    (nombre(fiche.deplacement) > 0 ? '' : ' Déplacement offert.'),
                 'Assurance décennale : ' + fiche.decennale + '.' + (fiche.rcpro ? ' RC professionnelle : ' + fiche.rcpro + '.' : ''),
-            ];
-            if (fiche.mediateur) mentions.push('Médiateur de la consommation : ' + fiche.mediateur + '.');
-            if (!c.franchise && c.taux > 0 && c.taux < 20) mentions.push("TVA à taux réduit : le client certifie que les travaux portent sur des locaux à usage d'habitation achevés depuis plus de deux ans, et qu'ils n'ont pas pour effet de rendre l'immeuble neuf ni d'augmenter sa surface de plancher de plus de 10 %.");
+            ] : (estFacture ? [
+                'Travaux réalisés le ' + (devis.dateTravaux ? dateFr(new Date(devis.dateTravaux)) : dateFr(date)) + (devis.chantier ? ' au ' + devis.chantier : '') + '.',
+                'Paiement ' + (devis.echeanceTexte || 'à réception de la facture') + ', par ' + fiche.paiement + '. Pas d\'escompte pour paiement anticipé.',
+                'Assurance décennale : ' + fiche.decennale + '.' + (fiche.rcpro ? ' RC professionnelle : ' + fiche.rcpro + '.' : '')
+            ] : [
+                'Intervention du ' + dateFr(date) + (devis.horaires ? ' – ' + devis.horaires : '') + '.',
+                devis.observations ? 'Observations : ' + devis.observations : ''
+            ].filter(Boolean));
+            if (pro && !estBon) mentions.push("Retard de paiement : pénalités au taux de trois fois le taux d'intérêt légal et indemnité forfaitaire pour frais de recouvrement de 40 € (art. L441-10 du Code de commerce).");
+            if (fiche.mediateur && !pro && !estBon) mentions.push('Médiateur de la consommation : ' + fiche.mediateur + '.');
+            if (!pro && estDevis) mentions.push("Droit de rétractation : si vous signez ce devis à votre domicile ou à distance, vous disposez de 14 jours à compter de la signature pour vous rétracter, sans avoir à vous justifier, en nous renvoyant le formulaire ci-dessous ou toute déclaration claire (courrier ou e-mail). Si le devis est signé à votre domicile, aucun paiement ne peut être demandé avant 7 jours. Si vous voulez que les travaux commencent avant la fin des 14 jours, cochez la case prévue : en cas de rétractation, vous paierez alors les travaux déjà réalisés (art. L221-18 et suivants du Code de la consommation).");
+            if (!estBon && !c.franchise && c.taux > 0 && c.taux < 20) mentions.push("TVA à taux réduit : le client certifie que les travaux portent sur des locaux à usage d'habitation achevés depuis plus de deux ans, et qu'ils n'ont pas pour effet de rendre l'immeuble neuf ni d'augmenter sa surface de plancher de plus de 10 %.");
             for (var m = 0; m < mentions.length; m++) {
                 doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
                 var hm = doc.splitTextToSize(mentions[m], L).length * 3.4;
                 place(hm + 2);
                 y += texte(mentions[m], G, y, { taille: 8, couleur: GRIS, largeur: L }) + 1.6;
             }
+            if (estDevis) {
             place(8);
             texte('Souhaitez-vous conserver les pièces remplacées ?', G, y + 1, { taille: 8, couleur: GRIS });
             doc.setDrawColor(GRIS[0], GRIS[1], GRIS[2]); doc.setLineWidth(0.25);
             doc.rect(G + 72, y - 1.8, 3, 3); texte('Oui', G + 77, y + 1, { taille: 8, couleur: GRIS });
             doc.rect(G + 88, y - 1.8, 3, 3); texte('Non', G + 93, y + 1, { taille: 8, couleur: GRIS });
+            var sigP = devis.signature && devis.signature.pieces, xP = sigP === 'oui' ? G + 72 : (sigP === 'non' ? G + 88 : 0);
+            if (xP) { doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.4); doc.line(xP + 0.5, y - 1.3, xP + 2.5, y + 0.7); doc.line(xP + 2.5, y - 1.3, xP + 0.5, y + 0.7); }
             y += 7;
+            }
 
             // Signature
-            place(36);
+            var sig = devis.signature || null;
+            if (!estFacture) {
+            place(48);
+            // à gauche : demande de début des travaux avant la fin du délai de rétractation
+            if (!pro && estDevis) {
+                doc.setDrawColor(GRIS[0], GRIS[1], GRIS[2]); doc.setLineWidth(0.25);
+                doc.rect(G, y + 2, 3, 3);
+                if (sig && sig.anticipe) { doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.4); doc.line(G + 0.5, y + 2.5, G + 2.5, y + 4.5); doc.line(G + 2.5, y + 2.5, G + 0.5, y + 4.5); }
+                texte('Je demande que les travaux commencent avant la fin du délai de rétractation de 14 jours.', G + 5, y + 4.6, { taille: 8, couleur: GRIS, largeur: 70 });
+            }
             doc.setDrawColor(MARINE[0], MARINE[1], MARINE[2]); doc.setLineWidth(0.3);
-            doc.rect(98, y, D - 98, 34);
-            texte('Bon pour accord du client', 102, y + 5.5, { gras: true });
-            texte("« Devis reçu avant l'exécution des travaux. Bon pour accord. »", 102, y + 10.5, { taille: 8, largeur: D - 106 });
-            texte('Date :', 102, y + 19); texte('Signature :', 102, y + 26);
+            doc.rect(98, y, D - 98, 45);
+            texte(estBon ? 'Intervention réalisée – le client' : 'Bon pour accord du client', 102, y + 5.5, { gras: true });
+            texte(estBon ? "« Je reconnais que l'intervention décrite ci-dessus a été réalisée. »" : "« Devis reçu avant l'exécution des travaux. Bon pour accord. »", 102, y + 10.5, { taille: 8, largeur: D - 106 });
+            texte('Date :' + (sig && sig.date ? ' ' + dateFr(new Date(sig.date)) : ''), 102, y + 17);
+            if (sig && sig.nom) texte('Nom : ' + sig.nom, 102, y + 21.5, { taille: 8, largeur: D - 106 });
+            texte('Signature :', 102, y + 31);
+            if (sig && sig.image) {
+                try { doc.addImage(sig.image, /^data:image\/jpe?g/.test(sig.image) ? 'JPEG' : 'PNG', 122, y + 23.5, 54, 18, undefined, 'FAST'); } catch (e) {}
+                texte('Signé électroniquement sur écran le ' + dateFr(new Date(sig.date)) + '.', 102, y + 43.3, { taille: 6.5, couleur: GRIS });
+            }
+            y += 51;
+            }
+
+            // Formulaire de rétractation (à découper) : seulement sur le devis d'un particulier
+            if (!pro && estDevis) {
+            place(58);
+            doc.setDrawColor(GRIS[0], GRIS[1], GRIS[2]); doc.setLineWidth(0.25);
+            if (doc.setLineDashPattern) doc.setLineDashPattern([1.5, 1.2], 0);
+            doc.line(G, y, D, y);
+            if (doc.setLineDashPattern) doc.setLineDashPattern([], 0);
+            y += 6;
+            texte('Formulaire de rétractation', G, y, { gras: true });
+            texte('(à compléter et renvoyer uniquement si vous souhaitez vous rétracter du contrat)', G + 45, y, { taille: 8, couleur: GRIS });
+            y += 5.5;
+            var dest = [fiche.nom, fiche.adresse, fiche.email].filter(Boolean).join(', ');
+            var lignesForm = [
+                "À l'attention de : " + dest,
+                'Je/Nous (*) vous notifie/notifions (*) par la présente ma/notre (*) rétractation du contrat portant sur la prestation de services ci-dessous :',
+                'Devis n° ' + numero + ' – signé le : ......................................',
+                'Nom du (des) client(s) : ' + (devis.clientNom || '......................................'),
+                'Adresse du (des) client(s) : ' + (devis.clientAdresse || '......................................'),
+                'Signature du (des) client(s) (uniquement si ce formulaire est envoyé sur papier) :',
+                'Date : ......................................',
+                '(*) Rayez la mention inutile.'
+            ];
+            for (var lf = 0; lf < lignesForm.length; lf++) y += texte(lignesForm[lf], G, y, { taille: 8, largeur: L, couleur: lf === 7 ? GRIS : [0, 0, 0] }) + (lf === 5 ? 7 : 1.8);
+            }
+
+            // Annexe : photos du chantier
+            var photos = estFacture ? [] : (devis.photos || []);
+            if (photos.length) {
+                doc.addPage(); y = 20;
+                texte('Annexe – photos du chantier', G, y, { gras: true, taille: 12, couleur: MARINE }); y += 8;
+                var colX = [G, G + L / 2 + 3], wP = L / 2 - 3, hMax = 78, ligneH = 0;
+                for (var ph = 0; ph < photos.length; ph++) {
+                    try {
+                        var pp = doc.getImageProperties(photos[ph]), hP = Math.min(hMax, wP * pp.height / pp.width), wR = hP * pp.width / pp.height;
+                        if (ph % 2 === 0) { if (y + hP + 8 > 285) { doc.addPage(); y = 20; } ligneH = 0; }
+                        doc.addImage(photos[ph], 'JPEG', colX[ph % 2], y, wR, hP, undefined, 'FAST');
+                        texte('Photo ' + (ph + 1), colX[ph % 2], y + hP + 4, { taille: 7, couleur: GRIS });
+                        ligneH = Math.max(ligneH, hP + 8);
+                        if (ph % 2 === 1 || ph === photos.length - 1) y += ligneH + 2;
+                    } catch (e) {}
+                }
+            }
 
             var nb = doc.getNumberOfPages();
+            if (fiche.demo) for (var pd = 1; pd <= nb; pd++) {
+                doc.setPage(pd);
+                try { if (doc.GState) doc.setGState(new doc.GState({ opacity: 0.12 })); } catch (e) {}
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(90); doc.setTextColor(200, 30, 30);
+                doc.text('EXEMPLE', 48, 215, { angle: 40 });
+                try { if (doc.GState) doc.setGState(new doc.GState({ opacity: 1 })); } catch (e) {}
+            }
             if (nb > 1) for (var pg = 1; pg <= nb; pg++) { doc.setPage(pg); texte(numero + ' – page ' + pg + '/' + nb, D, 291, { taille: 7, couleur: GRIS, droite: true }); }
             return { doc: doc, numero: numero, calcul: c };
         }
@@ -251,7 +418,7 @@
         function propre(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
         function majuscule(t) { t = propre(t); return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; }
         /* sans accents ni ligatures, pour comparer */
-        function plat(t) { return String(t == null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/œ/g, 'oe').replace(/æ/g, 'ae'); }
+        function plat(t) { return String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/œ/g, 'oe').replace(/æ/g, 'ae'); }
         function bas(t) { return plat(t).toLowerCase(); }
         function sansPonct(m) { return String(m).replace(/[.,;:!?]+$/, ''); }
 
@@ -320,6 +487,12 @@
             if (m) return Math.round((parseInt(m[1], 10) + parseInt(m[2], 10) / 60) * 100) / 100;
             m = s.match(/(\d+)\s*(?:€|euros?)\s*(\d{1,2})(?!\d)/);
             if (m) return parseInt(m[1], 10) + parseInt(m[2], 10) / 100;
+            /* en lettres : « douze euros cinquante » = 12,50 (et pas 62) */
+            m = s.match(/^(.*\S)\s+(?:€|euros?)\s+(\S.*\S|\S)\s*$/);
+            if (m) {
+                var eu = nombreFr(m[1]), ct = nombreFr(m[2]);
+                if (eu !== null && ct !== null && ct > 0 && ct < 100 && ct === Math.floor(ct)) return eu + ct / 100;
+            }
             var frac = 0;
             if (/\bet quart\b/.test(s)) { frac += 0.25; s = s.replace(/\bet quart\b/g, ' '); }
             if (/\bet demie?\b/.test(s)) { frac += 0.5; s = s.replace(/\bet demie?\b/g, ' '); }
@@ -362,6 +535,15 @@
             if (/sarl/.test(c)) return 'SARL';
             if (/sas\b|^sas$/.test(s) || c === 'sas' || /\bs a s\b/.test(s)) return 'SAS';
             if (/individuelle|\bei\b|^ei$|\be i\b/.test(s) || c === 'ei') return 'Entreprise individuelle (EI)';
+            return null;
+        }
+
+        function decompte(t) {
+            var s = bas(propre(t));
+            if (/quart/.test(s)) return "au quart d'heure entamé";
+            if (/demi/.test(s)) return 'à la demi-heure entamée';
+            if (/r[e]el|minute|exact|vrai|pass[e]/.test(s)) return 'au temps réellement passé';
+            if (/heure/.test(s)) return "à l'heure entamée";
             return null;
         }
 
@@ -630,7 +812,18 @@
                 'Médicys': 'medicys|médicis|médicys|medicis',
                 'CNPM': 'cnpm|c n p m',
                 'CM2C': 'cm2c|c m 2 c|cm 2 c|c m deux c|cm deux c',
-                'décennale': 'décénale|decennale|décennal|decenale'
+                'décennale': 'décénale|decennale|décennal|decenale',
+                'France entière': 'france entière|france entiere|toute la france',
+                'France': 'france',
+                'Nouvelle-Aquitaine': 'nouvelle aquitaine|nouvelle-aquitaine',
+                'Gironde': 'gironde',
+                'Occitanie': 'occitanie',
+                'Île-de-France': 'île de france|ile de france|île-de-france',
+                'Auvergne-Rhône-Alpes': 'auvergne rhône alpes|auvergne-rhône-alpes|auvergne rhone alpes',
+                "Provence-Alpes-Côte d'Azur": "provence alpes côte d'azur|paca|p a c a",
+                'Bretagne': 'bretagne', 'Normandie': 'normandie', 'Grand Est': 'grand est', 'Hauts-de-France': 'hauts de france|hauts-de-france',
+                'Pays de la Loire': 'pays de la loire', 'Centre-Val de Loire': 'centre val de loire|centre-val de loire',
+                'Bourgogne-Franche-Comté': 'bourgogne franche comté|bourgogne-franche-comté', 'Corse': 'corse'
             },
             duree: {}
         };
@@ -700,9 +893,10 @@
                  .replace(/\bdouze (?:par |sur )?dix[- ]sept\b/gi, '12x17').replace(/\bvingt[- ]six (?:par |sur )?trente[- ]quatre\b/gi, '26x34')
                  .replace(/\btrente[- ]trois (?:par |sur )?quarante[- ]deux\b/gi, '33x42');
             t = t.replace(/\b(\d{1,2})\s*(?:par|sur|x|fois|\/|-)?\s*(\d{2})\b/g, function (x, a, b) { return DIAMETRES[a] === b ? a + 'x' + b : x; });
+            t = t.replace(/\b(\d{2,3})\s+(?:par|fois|x)\s+(\d{2,3})\b/g, '$1x$2');
             t = t.replace(/\btrois[- ]quarts?\b/gi, '3/4').replace(/\b(?:un )?demi[- ]pouces?\b/gi, '1/2"');
             t = t.replace(/(\d)\s*millim[eè]tres?(?=\s|$|[.,;])/gi, '$1 mm').replace(/(\d)\s*centim[eè]tres?(?=\s|$|[.,;])/gi, '$1 cm')
-                 .replace(/(\d)\s*(?:kilo ?watts?|kw)(?=\s|$|[.,;])/gi, '$1 kW').replace(/(\d)\s*degr[ée]s?(?=\s|$|[.,;])/gi, '$1 °C');
+                 .replace(/(\d)\s*(?:kilo ?watts?|kw)(?=\s|$|[.,;])/gi, '$1 kW').replace(/(\d)\s*watts?(?=\s|$|[.,;])/gi, '$1 W').replace(/(\d)\s*degr[ée]s?(?=\s|$|[.,;])/gi, '$1 °C');
             return t;
         }
 
@@ -779,17 +973,53 @@
 
         var SIGLES_NOMS = { sarl: 'SARL', sas: 'SAS', sasu: 'SASU', eurl: 'EURL', ei: 'EI', eirl: 'EIRL', sci: 'SCI', snc: 'SNC', sa: 'SA', btp: 'BTP', rge: 'RGE', cvc: 'CVC', mme: 'Mme', mlle: 'Mlle', mr: 'M.' };
         function enTitre(t) {
-            return propre(t).split(' ').map(function (m, i) {
+            var mots = propre(t).split(' ');
+            return mots.map(function (m, i) {
                 var nu = sansPonct(m), suf = m.slice(nu.length);
                 var low = nu.toLowerCase();
                 if (SIGLES_NOMS[low] && !(i === 0 && (low === 'sa' || low === 'ei'))) return SIGLES_NOMS[low] + (low === 'mr' ? '' : suf);
-                if (i > 0 && PETITS_MOTS[nu.toLowerCase()]) return nu.toLowerCase() + suf;
+                var precedent = i > 0 ? bas(sansPonct(mots[i - 1])) : '';
+                if (i > 0 && (low === 'le' || low === 'la') && precedent !== 'de' && precedent !== 'du' && i < mots.length - 1) return capitaliser(nu, {}, true) + suf;
+                if (i > 0 && PETITS_MOTS[low]) return low + suf;
                 return capitaliser(nu, PETITS_MOTS, i === 0) + suf;
             }).join(' ');
         }
 
         /* Quantité dite avec la fourniture : « 2 robinets » -> quantité 2, « Robinets » */
+        /* Dates dites à voix haute : « lundi prochain » -> « le lundi 16 novembre 2026 » */
+        var MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+        var JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+        function APP_MAINTENANT() { return (typeof window !== 'undefined' && window.__maintenant) ? new Date(window.__maintenant) : new Date(); }
+        function dateLongue(d, avecJour) { return (avecJour ? JOURS[d.getDay()] + ' ' : '') + (d.getDate() === 1 ? '1er' : d.getDate()) + ' ' + MOIS[d.getMonth()] + ' ' + d.getFullYear(); }
+        function dateParlee(t, maintenant) {
+            var s = bas(propre(t)).replace(/[.,!]+$/, ''), j0 = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate());
+            var plus = function (n) { var d = new Date(j0.getTime()); d.setDate(d.getDate() + n); return d; };
+            if (/^(aujourd'hui|tout de suite|immediatement|des maintenant|des aujourd'hui|maintenant)$/.test(s)) return 'Dès le ' + dateLongue(j0, true);
+            if (/^(des )?demain$/.test(s)) return 'Le ' + dateLongue(plus(1), true);
+            if (/^(des )?apres-? ?demain$/.test(s)) return 'Le ' + dateLongue(plus(2), true);
+            var mj = /^(?:des |a partir de |le |ce |des le )?(dimanche|lundi|mardi|mercredi|jeudi|vendredi|samedi)( prochain| qui vient)?$/.exec(s);
+            if (mj) { var cible = JOURS.indexOf(mj[1]), ecart = (cible - j0.getDay() + 7) % 7 || 7; return 'Le ' + dateLongue(plus(ecart), true); }
+            if (/^(des |a partir de )?la semaine prochaine$/.test(s)) { var l = (8 - j0.getDay()) % 7 || 7; return 'La semaine du ' + dateLongue(plus(l), true); }
+            if (/^(des |a partir du |en |le )?mois prochain$/.test(s)) { var m = new Date(j0.getFullYear(), j0.getMonth() + 1, 1); return 'En ' + MOIS[m.getMonth()] + ' ' + m.getFullYear(); }
+            var md = /^(?:(des|a partir du|a partir de|vers le|le|au) )?(\d{1,2}|1er|premier|[a-z-]+(?: [a-z-]+)?) (janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)(?: (\d{4}))?$/.exec(s);
+            if (md) {
+                var jour = /^(1er|premier)$/.test(md[2]) ? 1 : (/^\d+$/.test(md[2]) ? parseInt(md[2], 10) : motsVersNombre(md[2]));
+                var mois = MOIS.map(bas).indexOf(md[3]);
+                if (jour && jour <= 31 && mois >= 0) {
+                    var an = md[4] ? parseInt(md[4], 10) : j0.getFullYear();
+                    var d = new Date(an, mois, jour);
+                    if (!md[4] && d < j0) d = new Date(an + 1, mois, jour);
+                    var debut = { des: 'Dès le ', 'a partir du': 'À partir du ', 'a partir de': 'À partir du ', 'vers le': 'Vers le ' }[md[1]] || 'Le ';
+                    return debut + dateLongue(d, true);
+                }
+            }
+            return majuscule(t);
+        }
+
         function extraireQuantite(des) {
+            /* « 10 mètres de tube multicouche » -> 10 m de « Tube multicouche » */
+            var mu = /^(\d+(?:[.,]\d+)?)\s+(m|ml|m2|m²|m[eè]tres?(?: carr[ée]s?| lin[ée]aires?)?)\s+(?:de\s+|d'|du\s+|des\s+)?(\S.*)$/i.exec(propre(des));
+            if (mu) { var qm = parseFloat(mu[1].replace(',', '.')); if (qm > 0 && qm <= 2000) return { qte: String(qm), des: majuscule(mu[3]), unite: /2|²|carr/i.test(mu[2]) ? 'm²' : 'm' }; }
             var m = /^(\d{1,3}|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|quinze|vingt)\s+(\S.*)$/i.exec(propre(des));
             if (!m) return null;
             var premier = bas(sansPonct(m[2].split(' ')[0]));
@@ -812,19 +1042,23 @@
                 t = t.replace(/^j'ai besoin d(e\s+|')/i, '');
             }
             t = t.replace(/[\s,]+(voilà|voila|c'est tout|c'est bon|merci|hein|quoi)[.!]?$/i, '');
-            if (!q.type) {
+            if (!q.type && !q.site) {
                 t = sansRepetitions(t, q.titre);
                 t = t.replace(/\b(\d{2}) (\d{3})\b/g, function (x, a, b) { return /^(0[1-9]|[1-8]\d|9[0-8])$/.test(a) ? a + b : x; });
             }
             t = propre(t.replace(/^[,.;:\s]+|[,;:.!?\s]+$/g, ''));
             if (q.vocab) t = corrigerVocab(t, q.vocab).texte;
+            /* « Médicys medicys point fr » -> « Médicys – medicys.fr » (le nom n'est plus avalé par le site) */
+            if (q.site) t = sansRepetitions(t, true).replace(/^(.*[^\s,–-])[\s,–-]+((?:www\.)?[a-z0-9-]+\.(?:fr|com|org|net|eu|info))$/i, '$1 – $2');
             if (q.adresse) t = formaterAdresse(t);
             if (q.titre) t = enTitre(t);
+            if (q.date) t = dateParlee(t, APP_MAINTENANT());
             return t;
         }
 
         /* Interprète une réponse selon le type de question. Renvoie { ok, valeur, erreur } */
         function interpreter(q, brut) {
+            if (q.prixConnu && /^(pareil|pareille|le meme|la meme|meme prix|le meme prix|idem|comme d'hab|comme d'habitude|comme la derniere fois|comme avant|oui|ok|d'accord)\b/.test(bas(propre(brut)).replace(/[.,!]/g, ''))) return { ok: true, valeur: String(q.prixConnu) };
             var t = nettoyer(brut, q);
             var v = null;
             if (q.type === 'ouinon') { v = ouiNon(t) || ouiNon(brut); if (v) return { ok: true, valeur: v }; }
@@ -836,12 +1070,20 @@
             switch (q.type) {
                 case 'nombre': v = nombreFr(t); if (v === null) return { ok: false, erreur: "Je n'ai pas compris le nombre. Dites par exemple « 55 »." }; return { ok: true, valeur: String(Math.round(v * 100) / 100) };
                 case 'ouinon': return { ok: false, erreur: 'Répondez par oui ou par non.' };
+                case 'decompte': v = decompte(t); if (!v) return { ok: false, erreur: 'Dites : au quart d\'heure, à la demi-heure, à l\'heure, ou au temps réel.' }; return { ok: true, valeur: v };
                 case 'forme': v = formeJuridique(t); if (!v) return { ok: false, erreur: 'Dites : micro-entreprise, EI, EURL, SARL, SASU ou SAS.' }; return { ok: true, valeur: v };
                 case 'taux': v = tauxTva(t); if (!v) return { ok: false, erreur: 'Dites : 10, 20 ou 5,5.' }; return { ok: true, valeur: v };
                 case 'siret': v = siret(t); if (!v) return { ok: false, erreur: 'Le SIRET doit faire 14 chiffres. Redites-le lentement.' }; return { ok: true, valeur: v };
                 case 'tel': v = telephone(t); if (!v) return { ok: false, erreur: "Je n'ai pas compris le numéro. Redites-le." }; return { ok: true, valeur: v };
+                case 'contact':
+                    if (/@|arobase|arrobase|arobas|arrobas|a robe|point (fr|com|net)/i.test(t)) { v = email(t); if (v) return { ok: true, valeur: v }; }
+                    if (chiffresSeuls(t).length >= 9) { v = telephone(t); if (v) return { ok: true, valeur: v }; }
+                    return { ok: true, valeur: majuscule(t) };
                 case 'email': v = email(t); if (!v) return { ok: false, erreur: 'E-mail incompris. Dites par exemple « contact arobase plomberie martin point fr ».' }; return { ok: true, valeur: v };
-                default: return { ok: true, valeur: q.casse ? t : majuscule(t) };
+                default:
+                    if (q.retirer) t = propre(t.replace(q.retirer, '')) || t;
+                    if (q.cle === 'tvaNum') t = t.replace(/^fr\s*/i, 'FR ').replace(/\s+/g, ' ');
+                    return { ok: true, valeur: q.casse ? t : majuscule(t) };
             }
         }
 
@@ -858,21 +1100,24 @@
 
         /* ===================== LES QUESTIONS ===================== */
         var QUESTIONS_FICHE = [
+            { cle: 'siret', texte: 'Votre numéro SIRET ?', aide: 'Les 14 chiffres, lentement : votre entreprise sera retrouvée toute seule.', type: 'siret', requis: true },
+            { cle: 'siretOk', texte: 'Entreprise trouvée grâce au SIRET', type: 'ouinon', requis: true, si: function () { return !!APP.trouve; } },
             { cle: 'nom', texte: 'Quel est le nom de votre entreprise ?', aide: 'Ex. : Plomberie Martin', requis: true, titre: true },
             { cle: 'forme', texte: 'Quelle est sa forme juridique ?', aide: 'Micro-entreprise, EI, EURL, SARL, SASU ou SAS', type: 'forme', requis: true },
+            { cle: 'capital', texte: 'Le capital social de votre société, en euros ?', aide: 'Ex. : 1000 (écrit sur vos statuts et votre Kbis)', type: 'nombre', requis: true, si: function (r) { return estSociete(r.forme); } },
             { cle: 'dirigeant', texte: 'Quel est votre nom ?', aide: 'Ex. : Jean Martin', titre: true },
             { cle: 'adresse', texte: "Quelle est l'adresse de votre entreprise ?", aide: 'Ex. : 12 rue des Lilas, 69003 Lyon', requis: true, adresse: true },
             { cle: 'tel', texte: 'Votre numéro de téléphone ?', aide: 'Ex. : 06 12 34 56 78', type: 'tel', requis: true },
             { cle: 'email', texte: 'Votre adresse e-mail ?', aide: 'Dites « arobase » pour @ et « point » pour le point', type: 'email' },
-            { cle: 'siret', texte: 'Votre numéro SIRET ?', aide: 'Les 14 chiffres, lentement', type: 'siret', requis: true },
-            { cle: 'rm', texte: 'Votre numéro au répertoire des métiers ?', aide: 'Dites « passer » si vous ne l\'avez pas' },
+            { cle: 'rm', texte: 'Votre numéro au répertoire des métiers ?', aide: 'Dites « passer » si vous ne l\'avez pas', retirer: /^((mon |le )?(num[ée]ro( au| du)? )?(r[ée]pertoire des m[ée]tiers|rm|r m|r\.m\.)( c'est| est)?\s*:?\s*|(mon |le )?num[ée]ro( c'est| est)?\s+)/i },
             { cle: 'regime', texte: 'Facturez-vous la TVA ?', aide: 'Oui ou non (non = micro-entreprise sans TVA)', type: 'ouinon', requis: true },
-            { cle: 'tvaNum', texte: 'Votre numéro de TVA intracommunautaire ?', aide: 'Dites « passer » si vous ne l\'avez pas', si: function (r) { return r.regime === 'oui'; } },
+            { cle: 'tvaNum', texte: 'Votre numéro de TVA intracommunautaire ?', aide: 'Dites « passer » si vous ne l\'avez pas', retirer: /^((mon |le )?(num[ée]ro )?(de )?(tva|t v a)( intra(-| )?communautaire| intracom)?( c'est| est)?\s*:?\s*)/i, si: function (r) { return r.regime === 'oui'; } },
             { cle: 'tauxDefaut', texte: 'Votre taux de TVA habituel ?', aide: '10, 20 ou 5,5', type: 'taux', requis: true, si: function (r) { return r.regime === 'oui'; } },
             { cle: 'decennale', texte: 'Votre assurance décennale ?', aide: "Le nom de l'assureur, le numéro de contrat et la zone couverte", requis: true, vocab: 'assurance' },
             { cle: 'rcpro', texte: 'Votre assurance responsabilité civile pro ?', aide: 'Assureur et numéro, ou « passer »', vocab: 'assurance' },
-            { cle: 'mediateur', texte: 'Votre médiateur de la consommation ?', aide: 'Nom et site internet, ou « passer »', vocab: 'assurance' },
+            { cle: 'mediateur', texte: 'Votre médiateur de la consommation ?', aide: 'Obligatoire pour les particuliers. Nom et site internet, ex. : Médicys, medicys.fr', vocab: 'assurance', requis: true, site: true },
             { cle: 'tauxHoraire', texte: "Votre prix de l'heure, hors taxes ?", aide: 'Ex. : 55', type: 'nombre', requis: true },
+            { cle: 'decompte', texte: 'Comment comptez-vous le temps de main-d\'œuvre ?', aide: 'Au quart d\'heure, à la demi-heure, à l\'heure, ou au temps réel', type: 'decompte', requis: true },
             { cle: 'deplacement', texte: 'Votre prix de déplacement, hors taxes ?', aide: 'Ex. : 35 (dites « zéro » si offert)', type: 'nombre', requis: true },
             { cle: 'dechetsPrix', texte: "Le prix de l'évacuation des déchets ?", aide: 'Dites « zéro » si c\'est inclus', type: 'nombre', defaut: '0' },
             { cle: 'dechetterie', texte: 'Où déposez-vous les déchets ?', aide: 'Ex. : déchetterie professionnelle de Lyon', requis: true, casse: true },
@@ -883,21 +1128,27 @@
 
         var QUESTIONS_CLIENT = [
             { cle: 'clientNom', texte: 'Quel est le nom du client ?', aide: 'Ex. : Madame Claire Durand', requis: true, titre: true },
+            { cle: 'pro', texte: 'Ce client est-il un professionnel (entreprise, syndic, agence) ?', aide: 'Oui ou non. Pour un professionnel, pas de droit de rétractation sur le devis.', type: 'ouinon', requis: true, si: function (r) { return RE_PRO.test(' ' + bas(r.clientNom || '') + ' '); } },
             { cle: 'clientAdresse', texte: "Quelle est l'adresse du client ?", aide: 'Ex. : 8 avenue Jean Jaurès, 69007 Lyon', requis: true, adresse: true },
-            { cle: 'clientContact', texte: 'Son téléphone ou son e-mail ?', aide: 'Ou « passer »' },
+            { cle: 'clientContact', texte: 'Son téléphone ou son e-mail ?', aide: 'Ou « passer »', type: 'contact' },
             { cle: 'chantier', texte: "L'adresse du chantier, si elle est différente ?", aide: 'Sinon dites « même adresse »', adresse: true },
             { cle: 'objet', texte: 'En une phrase, quels sont les travaux ?', aide: 'Ex. : remplacement du chauffe-eau', vocab: 'plomberie' }
         ];
 
+        var RE_PRO = /\s(sarl|sas|sasu|eurl|sci|snc|sa|ets|syndic|syndicat|copropriete|agence|immobilier|immobiliere|societe|entreprise|etablissements?|cabinet|mairie|commune|restaurant|hotel|boulangerie|garage|foncia|nexity|citya|orpi|laforet|gestion|bailleur|hlm|association|ehpad|clinique|camping|office)\s/;
         /* Devis : client, puis une boucle de fournitures, puis main-d'œuvre, TVA, durée */
         function questionDevis(r, f) {
-            for (var i = 0; i < QUESTIONS_CLIENT.length; i++) if (!(QUESTIONS_CLIENT[i].cle in r)) return QUESTIONS_CLIENT[i];
+            for (var i = 0; i < QUESTIONS_CLIENT.length; i++) { var qc = QUESTIONS_CLIENT[i]; if (qc.si && !qc.si(r)) continue; if (!(qc.cle in r)) return qc; }
             var n = 0;
             while (true) {
                 var p = 'f' + n + '_';
                 if (!((p + 'des') in r)) return { cle: p + 'des', texte: n === 0 ? 'Première fourniture : qu\'est-ce que c\'est ?' : 'Fourniture ' + (n + 1) + " : qu'est-ce que c'est ?", aide: n === 0 ? 'Ex. : chauffe-eau 200 litres Atlantic, ou « aucune »' : 'Ex. : 2 flexibles inox, ou « non »', fourniture: true, vocab: 'plomberie' };
                 if (r[p + 'des'] === '') break;
-                if (!((p + 'pu') in r)) return { cle: p + 'pu', texte: 'Son prix hors taxes ?', aide: 'Ex. : 450', type: 'nombre', requis: true };
+                if (!((p + 'pu') in r)) {
+                    var pc = APP.demo ? null : prixConnu(r[p + 'des']);
+                    return { cle: p + 'pu', texte: 'Son prix hors taxes' + (r[p + 'unite'] === 'm' ? ', au mètre' : (r[p + 'unite'] === 'm²' ? ', au m²' : '')) + ' ?',
+                             aide: pc ? 'Dernière fois : ' + euros(nombre(pc.pu)) + '. Dites « pareil » ou un autre prix.' : 'Ex. : 450', type: 'nombre', requis: true, prixConnu: pc ? pc.pu : null };
+                }
                 if (!((p + 'qte') in r)) return { cle: p + 'qte', texte: 'Quelle quantité ?', aide: 'Ex. : 1 (ou « passer » pour 1)', type: 'nombre', defaut: '1' };
                 if (!((p + 'autre') in r)) return { cle: p + 'autre', texte: 'Une autre fourniture ?', aide: 'Oui ou non', type: 'ouinon', requis: true };
                 if (r[p + 'autre'] !== 'oui') break;
@@ -906,6 +1157,7 @@
             if (!('heures' in r)) return { cle: 'heures', texte: "Combien d'heures de main-d'œuvre ?", aide: 'Ex. : 3 (ou « zéro »)', type: 'nombre', requis: true };
             if (f.regime !== 'franchise' && !('tauxTva' in r)) return { cle: 'tauxTva', texte: 'Quel taux de TVA pour ce devis ?', aide: '10 % (logement de plus de 2 ans), 20 % ou 5,5 %. « Passer » = ' + String(f.tauxDefaut || '10').replace('.', ',') + ' %', type: 'taux', defaut: f.tauxDefaut || '10' };
             if (!('duree' in r)) return { cle: 'duree', texte: 'Durée estimée des travaux ?', aide: 'Ex. : une demi-journée, ou « passer »', vocab: 'duree' };
+            if (!('debut' in r)) return { cle: 'debut', texte: 'Quand pouvez-vous commencer les travaux ?', aide: 'Ex. : « sous 15 jours », « lundi prochain », « le 2 décembre »', vocab: 'duree', date: true, requis: true };
             return null;
         }
 
@@ -913,9 +1165,64 @@
             for (var i = 0; i < QUESTIONS_FICHE.length; i++) {
                 var q = QUESTIONS_FICHE[i];
                 if (q.si && !q.si(r)) continue;
-                if (!(q.cle in r)) return q;
+                if (!(q.cle in r)) return q.cle === 'siretOk' ? questionSiretOk(q) : q;
             }
             return null;
+        }
+
+        /* ===================== SIRET : L'ENTREPRISE SE REMPLIT TOUTE SEULE (API gratuite de l'État) ===================== */
+        function questionSiretOk(q) {
+            var c = APP.trouve.champs;
+            var t = c.nom + (c.forme ? ' (' + c.forme + ')' : '') + (c.adresse ? ', ' + c.adresse : '') + (c.dirigeant ? ', ' + c.dirigeant : '');
+            return Object.assign({}, q, { texte: "C'est bien vous ? " + t,
+                aide: (APP.trouve.ferme ? 'Attention : cet établissement est indiqué fermé. ' : '') + 'Oui : ces informations sont remplies pour vous. Non : je vous les demande.' });
+        }
+        var ABREV_VOIE = { all: 'allée', av: 'avenue', ave: 'avenue', bd: 'boulevard', bld: 'boulevard', che: 'chemin', chem: 'chemin', imp: 'impasse', pl: 'place', rte: 'route',
+            lot: 'lotissement', res: 'résidence', sq: 'square', crs: 'cours', pas: 'passage', ham: 'hameau', ld: 'lieu-dit', fg: 'faubourg', fbg: 'faubourg', prom: 'promenade',
+            sen: 'sentier', tra: 'traverse', vla: 'villa', cit: 'cité', cite: 'cité', r: 'rue', qu: 'quai', mte: 'montée', esp: 'esplanade', car: 'carrefour', rpt: 'rond-point' };
+        function adresseApi(t) {
+            var mots = propre(String(t).toLowerCase()).split(' ');
+            for (var i = 0; i < mots.length; i++) { if (/^\d/.test(mots[i]) || /^(bis|ter|quater|b|t)$/.test(mots[i])) continue; if (ABREV_VOIE[mots[i]]) mots[i] = ABREV_VOIE[mots[i]]; break; }
+            return formaterAdresse(mots.join(' '));
+        }
+        function nomPropre(t) {
+            var petits = { le: 1, la: 1, les: 1, de: 1, du: 1, des: 1, et: 1, en: 1, au: 1, aux: 1, sur: 1 };
+            return propre(t).split(' ').map(function (m, i) {
+                if (m.length <= 3 && /^[A-Z0-9&]+$/.test(m) && !petits[m.toLowerCase()]) return m;
+                return capitaliser(m.toLowerCase(), i === 0 ? {} : PETITS_MOTS, i === 0);
+            }).join(' ');
+        }
+        function tvaIntracom(siren) {
+            if (!/^\d{9}$/.test(String(siren))) return '';
+            var cle = (12 + 3 * (parseInt(siren, 10) % 97)) % 97;
+            return 'FR' + ('0' + cle).slice(-2) + siren;
+        }
+        function entrepriseDepuisApi(e, d) {
+            if (!e || e.siren !== d.slice(0, 9)) return null;
+            var nj = String(e.nature_juridique || ''), ei = nj === '1000' || !!(e.complements && e.complements.est_entrepreneur_individuel);
+            var siege = e.siege || {};
+            var et = (e.matching_etablissements || []).filter(function (x) { return x.siret === d; })[0] || (siege.siret === d ? siege : null) || siege;
+            var ens = (et.liste_enseignes && et.liste_enseignes[0]) || (siege.liste_enseignes && siege.liste_enseignes[0]) || et.nom_commercial || siege.nom_commercial || '';
+            var brut = String(e.nom_complet || '').replace(/\s*\(.*\)\s*$/, '');
+            var nom = ei ? (ens || brut) : (e.nom_raison_sociale || brut);
+            var forme = /^54/.test(nj) ? 'SARL' : (/^57/.test(nj) ? 'SAS' : '');
+            var pp = (e.dirigeants || []).filter(function (x) { return x.type_dirigeant === 'personne physique' && x.nom; })[0];
+            var tva = (e.tva && e.tva[0]) || tvaIntracom(e.siren);
+            var champs = { nom: nomPropre(nom), adresse: et.adresse ? adresseApi(et.adresse) : '', dirigeant: pp ? nomPropre(String(pp.prenoms || '').split(' ')[0] + ' ' + pp.nom) : '',
+                           tvaNum: tva ? tva.replace(/^FR(\w\w)(\d{9})$/, 'FR $1 $2') : '' };
+            if (forme) champs.forme = forme;
+            if (!champs.nom) return null;
+            return { champs: champs, ferme: e.etat_administratif === 'C' || et.etat_administratif === 'F' };
+        }
+        function chercherEntreprise(siretTexte) {
+            var d = String(siretTexte).replace(/\D/g, '');
+            if (d.length !== 14 || !window.fetch) return Promise.resolve(null);
+            var ctrl = window.AbortController ? new AbortController() : null;
+            var minuterie = setTimeout(function () { if (ctrl) ctrl.abort(); }, 7000);
+            return fetch('https://recherche-entreprises.api.gouv.fr/search?q=' + d + '&page=1&per_page=1', ctrl ? { signal: ctrl.signal } : {})
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (j) { clearTimeout(minuterie); return entrepriseDepuisApi(j && j.results && j.results[0], d); })
+                .catch(function () { clearTimeout(minuterie); return null; });
         }
 
         function trouverQuestion(cle) {
@@ -928,6 +1235,7 @@
             if (cle === 'heures') return { cle: cle, texte: "Heures de main-d'œuvre", type: 'nombre', requis: true };
             if (cle === 'tauxTva') return { cle: cle, texte: 'Taux de TVA', type: 'taux' };
             if (cle === 'duree') return { cle: cle, texte: 'Durée estimée', vocab: 'duree' };
+            if (cle === 'debut') return { cle: cle, texte: 'Début des travaux', vocab: 'duree', date: true, requis: true };
             return { cle: cle, texte: cle };
         }
 
@@ -944,9 +1252,9 @@
 
         function ficheDepuisReponses(r) {
             return {
-                nom: r.nom || '', forme: r.forme || '', dirigeant: r.dirigeant || '', adresse: r.adresse || '', tel: r.tel || '', email: r.email || '',
+                nom: r.nom || '', forme: r.forme || '', capital: estSociete(r.forme) ? (r.capital || '') : '', dirigeant: r.dirigeant || '', adresse: r.adresse || '', tel: r.tel || '', email: r.email || '',
                 siret: r.siret || '', rm: r.rm || '', regime: r.regime === 'non' ? 'franchise' : 'assujetti', tvaNum: r.tvaNum || '', tauxDefaut: r.tauxDefaut || '10',
-                decennale: r.decennale || '', rcpro: r.rcpro || '', mediateur: r.mediateur || '', tauxHoraire: r.tauxHoraire || '0', deplacement: r.deplacement || '0',
+                decennale: r.decennale || '', rcpro: r.rcpro || '', mediateur: r.mediateur || '', tauxHoraire: r.tauxHoraire || '0', decompte: r.decompte || '', deplacement: r.deplacement || '0',
                 dechetsPrix: r.dechetsPrix || '0', dechetterie: r.dechetterie || '', acompte: r.acompte || '0', validite: r.validite || '30', paiement: r.paiement || ''
             };
         }
@@ -956,6 +1264,12 @@
             for (var k in f) r[k] = f[k];
             r.regime = f.regime === 'franchise' ? 'non' : 'oui';
             return r;
+        }
+
+        function clesManquantes(f) {
+            var r = reponsesDepuisFiche(f), m = [];
+            for (var i = 0; i < QUESTIONS_FICHE.length; i++) { var q = QUESTIONS_FICHE[i]; if (q.requis && (!q.si || q.si(r)) && !propre(r[q.cle])) m.push(q.cle); }
+            return m;
         }
 
         function ficheValide(f) {
@@ -985,14 +1299,51 @@
             return base + '?f=' + encoderFiche(f);
         }
 
+        /* ===================== ESSAI AVEC UN EXEMPLE (rien à remplir) ===================== */
+        var FICHE_DEMO = { demo: true, nom: 'Plomberie Martin', forme: 'SARL', capital: '1000', dirigeant: 'Jean Martin', adresse: '12 rue des Lilas, 33000 Bordeaux',
+            tel: '06 12 34 56 78', email: 'contact@plomberie-martin.fr', siret: '123 456 789 00012', rm: '123 456 789', regime: 'assujetti', tvaNum: 'FR 32 123456789', tauxDefaut: '10',
+            decennale: 'Assurance Exemple, contrat n° 000000, France entière', rcpro: '', mediateur: 'Médiateur Exemple – exemple.fr', tauxHoraire: '55',
+            decompte: "au quart d'heure entamé", deplacement: '35', dechetsPrix: '20', dechetterie: 'déchetterie professionnelle de Bordeaux', acompte: '30', validite: '30', paiement: 'virement ou chèque' };
+        function lancerDemo() {
+            arreterEcoute();
+            APP.demo = true; APP.fiche = FICHE_DEMO; APP.miseAJour = false; APP.trouve = null; APP.auto = null;
+            nouveauDevis(false);
+            window.scrollTo(0, 0);
+        }
+        function quitterDemo() { location.replace(location.pathname); }
+        function dessinerBandeauDemo() {
+            var z = document.getElementById('bandeau-demo');
+            if (!z) return;
+            if (APP.demo) {
+                z.innerHTML = '<div class="p-4 rounded-2xl border border-gold-500/50 bg-gold-500/10 text-sm text-slate-100">' +
+                    '<p><strong class="text-gold-400">Essai avec une entreprise fictive.</strong> Dites un client, des fournitures et des prix au hasard : le devis PDF se crée à la fin (marqué « EXEMPLE »).</p>' +
+                    '<button type="button" onclick="quitterDemo()" class="mt-3 w-full px-4 py-3 rounded-full text-sm font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">J\'ai compris : je fais ma vraie fiche</button></div>';
+            } else if (APP.mode === 'fiche' && !APP.miseAJour && !APP.ordre.length) {
+                z.innerHTML = '<div class="p-4 rounded-2xl border border-white/15 bg-white/5 text-sm text-slate-200">' +
+                    '<p>Envie de voir le résultat avant de remplir votre fiche\u00a0?</p>' +
+                    '<button type="button" onclick="lancerDemo()" class="mt-3 w-full px-4 py-3 rounded-full text-sm font-bold text-gold-400 border-2 border-gold-500/70">Essayer avec un exemple (1 minute)</button></div>';
+            } else z.innerHTML = '';
+        }
+
         /* ===================== DÉMARRAGE ===================== */
         function demarrer() {
+            if ((new URLSearchParams(location.search)).get('demo') === '1') { lancerDemo(); afficherAideNavigateur(); return; }
             var deLien = decoderFiche(config('fiche') || (new URLSearchParams(location.search)).get('f') || '');
-            APP.fiche = deLien || stock('va_fiche');
+            var stocke = stock('va_fiche');
+            /* ancien lien en favori mais fiche déjà complétée sur ce téléphone : on garde la fiche complète */
+            if (deLien && ficheValide(stocke) && stocke.siret === deLien.siret && clesManquantes(deLien).length && !clesManquantes(stocke).length) deLien = stocke;
+            APP.fiche = deLien || stocke;
             if (deLien) stock('va_fiche', deLien);
-            if (ficheValide(APP.fiche)) {
+            var manque = ficheValide(APP.fiche) ? clesManquantes(APP.fiche) : [];
+            if (manque.length) {
+                /* fiche faite avec une ancienne version : on pose seulement les nouvelles questions obligatoires */
+                APP.mode = 'fiche'; APP.rep = reponsesDepuisFiche(APP.fiche); APP.ordre = []; APP.miseAJour = true; APP.nbMaj = manque.length;
+                for (var mq = 0; mq < manque.length; mq++) delete APP.rep[manque[mq]];
+            } else if (ficheValide(APP.fiche)) {
                 var b = stock('va_devis');
-                if (b && b.rep) { APP.mode = b.mode || 'devis'; APP.rep = b.rep; APP.ordre = b.ordre || []; APP.lignes = b.lignes || null; APP.autoQte = b.autoQte || {}; }
+                if (b && b.rep) { APP.mode = b.mode || 'devis'; APP.rep = b.rep; APP.ordre = b.ordre || []; APP.lignes = b.lignes || null; APP.autoQte = b.autoQte || {}; APP.signature = b.signature || null;
+                                  APP.devisId = b.devisId || null; APP.numero = b.numero || null; APP.dateDevis = b.dateDevis || null; APP.photos = b.photos || []; APP.facture = b.facture || null; APP.bon = b.bon || null;
+                                  if (APP.mode === 'facture' || APP.mode === 'bon' || APP.mode === 'historique') APP.mode = 'recap'; }
                 else nouveauDevis(true);
             } else {
                 APP.mode = 'fiche'; APP.rep = {}; APP.ordre = [];
@@ -1002,13 +1353,16 @@
         }
 
         function sauverBrouillon() {
-            if (APP.mode === 'fiche') return;
-            stock('va_devis', { mode: APP.mode, rep: APP.rep, ordre: APP.ordre, lignes: APP.lignes, autoQte: APP.autoQte || {} });
+            if (APP.mode === 'fiche' || APP.demo) return;
+            var b = { mode: APP.mode, rep: APP.rep, ordre: APP.ordre, lignes: APP.lignes, autoQte: APP.autoQte || {}, signature: APP.signature || null,
+                      devisId: APP.devisId || null, numero: APP.numero || null, dateDevis: APP.dateDevis || null, photos: APP.photos || [], facture: APP.facture || null, bon: APP.bon || null };
+            if (!stock('va_devis', b)) { b.photos = []; stock('va_devis', b); }
         }
 
         function nouveauDevis(silencieux) {
-            APP.mode = 'devis'; APP.rep = {}; APP.ordre = []; APP.lignes = null; APP.pdf = null; APP.erreur = ''; APP.autoQte = {};
-            stock('va_devis', null);
+            APP.mode = 'devis'; APP.rep = {}; APP.ordre = []; APP.lignes = null; APP.pdf = null; APP.signature = null; APP.erreur = ''; APP.autoQte = {};
+            APP.devisId = null; APP.numero = null; APP.dateDevis = null; APP.photos = []; APP.facture = null; APP.bon = null;
+            if (!APP.demo) stock('va_devis', null);
             if (!silencieux) { avancer(true); }
         }
 
@@ -1028,6 +1382,12 @@
             APP.erreur = '';
             if (APP.mode === 'fiche') {
                 APP.courante = questionFiche(APP.rep);
+                /* infos retrouvées grâce au SIRET : remplies toutes seules */
+                while (APP.courante && APP.auto && APP.auto[APP.courante.cle]) {
+                    APP.rep[APP.courante.cle] = APP.auto[APP.courante.cle]; APP.ordre.push(APP.courante.cle);
+                    APP.autoCles = APP.autoCles || {}; APP.autoCles[APP.courante.cle] = true;
+                    APP.courante = questionFiche(APP.rep);
+                }
                 if (!APP.courante) {
                     APP.fiche = ficheDepuisReponses(APP.rep);
                     stock('va_fiche', APP.fiche);
@@ -1049,7 +1409,7 @@
 
         function repondre(brut) {
             var q = APP.courante;
-            if (!q) return;
+            if (!q || APP.attente) return;
             if (estRetour(brut)) { allerPrecedente(); return; }
             var res = interpreter(q, brut);
             if (!res.ok) {
@@ -1060,11 +1420,21 @@
                 return;
             }
             var valeur = res.valeur, qteDite = null;
-            if (q.fourniture && APP.reinserer == null && valeur) { var xq = extraireQuantite(valeur); if (xq) { valeur = xq.des; qteDite = xq.qte; } }
+            if (q.cle === 'f0_des' && APP.reinserer == null) { var ty = trouverType(brut); if (ty) { appliquerType(ty); return; } }
+            var uniteDite = '';
+            if (q.fourniture && APP.reinserer == null && valeur) { var xq = extraireQuantite(valeur); if (xq) { valeur = xq.des; qteDite = xq.qte; uniteDite = xq.unite || ''; } }
+            if (q.fourniture) APP.rep[q.cle.replace(/des$/, 'unite')] = uniteDite;
             APP.rep[q.cle] = valeur;
             if (APP.reinserer != null) { APP.ordre.splice(APP.reinserer, 0, q.cle); APP.reinserer = null; }
             else APP.ordre.push(q.cle);
             if (qteDite) { var kq = q.cle.replace(/des$/, 'qte'); APP.rep[kq] = qteDite; APP.ordre.push(kq); APP.autoQte = APP.autoQte || {}; APP.autoQte[kq] = true; }
+            if (q.cle === 'siretOk') APP.auto = (valeur === 'oui' && APP.trouve) ? Object.assign({}, APP.trouve.champs) : null;
+            if (q.cle === 'siret' && APP.mode === 'fiche' && !APP.miseAJour) {
+                APP.trouve = null; APP.auto = null; APP.autoCles = {}; APP.attente = true;
+                etat('Je cherche votre entreprise…', 'text-slate-200');
+                chercherEntreprise(valeur).then(function (t) { APP.attente = false; APP.trouve = t; avancer(true); });
+                return;
+            }
             avancer(true);
         }
 
@@ -1078,11 +1448,15 @@
                 return;
             }
             var cle = APP.ordre.pop();
+            /* les infos remplies grâce au SIRET se remettront seules : on revient à la dernière question vraiment posée */
+            while (APP.auto && APP.autoCles && APP.autoCles[cle] && APP.ordre.length) { delete APP.rep[cle]; cle = APP.ordre.pop(); }
             delete APP.rep[cle];
+            if (APP.auto && APP.autoCles && APP.autoCles[cle]) delete APP.auto[cle];
+            if (cle === 'siretOk') APP.auto = null;
             /* quantité comprise avec la fourniture : on revient directement à la fourniture */
             if (APP.autoQte && APP.autoQte[cle] && APP.ordre.length) { delete APP.autoQte[cle]; var des = APP.ordre.pop(); delete APP.rep[des]; }
             if (/^f\d+_|^heures$/.test(cle)) APP.lignes = null;
-            APP.pdf = null;
+            APP.pdf = null; APP.signature = null;
             avancer(true);
             etat('Retour à la question précédente.');
         }
@@ -1094,7 +1468,7 @@
             if (!res.ok) { if (el) el.style.borderColor = '#f87171'; return; }
             if (el) el.style.borderColor = '';
             APP.rep[cle] = res.valeur;
-            APP.pdf = null;
+            APP.pdf = null; APP.signature = null;
             sauverBrouillon();
             if (APP.mode === 'recap') { dessinerRecap(); majBarrePdf(); }
         }
@@ -1116,6 +1490,7 @@
             if (i < 0) return;
             delete APP.rep[cle];
             if (APP.autoQte) delete APP.autoQte[cle];
+            if (APP.auto) delete APP.auto[cle];
             APP.ordre.splice(i, 1);
             APP.reinserer = i;
             if (APP.mode === 'recap') APP.mode = 'devis';
@@ -1128,32 +1503,35 @@
             for (var n = 0; ('f' + n + '_des') in r; n++) {
                 var p = 'f' + n + '_';
                 if (!r[p + 'des']) break;
-                l.push({ designation: r[p + 'des'], qte: r[p + 'qte'] || '1', unite: 'u', pu: r[p + 'pu'] || '' });
+                l.push({ designation: r[p + 'des'], qte: r[p + 'qte'] || '1', unite: r[p + 'unite'] || 'u', pu: r[p + 'pu'] || '' });
                 if (r[p + 'autre'] !== 'oui') break;
             }
             if (nombre(r.heures) > 0) l.push({ designation: "Main-d'œuvre", qte: r.heures, unite: 'h', pu: f.tauxHoraire });
             if (nombre(f.deplacement) > 0) l.push({ designation: 'Déplacement', qte: '1', unite: 'forfait', pu: f.deplacement });
-            l.push({ designation: 'Gestion et évacuation des déchets', qte: '1', unite: 'forfait', pu: f.dechetsPrix || '0' });
+            if (nombre(f.dechetsPrix) > 0) l.push({ designation: 'Gestion et évacuation des déchets', qte: '1', unite: 'forfait', pu: f.dechetsPrix });
             return l;
         }
 
         function devisPourPdf() {
             var r = APP.rep;
             return { clientNom: r.clientNom || '', clientAdresse: r.clientAdresse || '', clientContact: r.clientContact || '', chantier: r.chantier || '',
-                     objet: r.objet || '', duree: r.duree || '', tauxTva: r.tauxTva || APP.fiche.tauxDefaut || '10', lignes: APP.lignes || [] };
+                     objet: r.objet || '', duree: r.duree || '', debut: r.debut || '', signature: APP.signature || null, tauxTva: r.tauxTva || APP.fiche.tauxDefaut || '10', lignes: APP.lignes || [],
+                     pro: r.pro === 'oui', remise: r.remise || '', numero: APP.numero || '' };
         }
 
         function manques() {
-            var d = devisPourPdf(), m = [], ok = 0, sansPrix = 0;
+            var d = devisPourPdf(), m = [], ok = 0, sansPrix = 0, sansNom = 0;
             if (!d.clientNom) m.push('le nom du client');
             if (!d.clientAdresse) m.push("l'adresse du client");
             for (var i = 0; i < d.lignes.length; i++) {
                 var l = d.lignes[i];
+                if (!propre(l.designation) && nombre(l.pu) > 0) { sansNom++; continue; }
                 if (!propre(l.designation) || nombre(l.qte) <= 0) continue;
                 if (propre(l.pu) === '') { sansPrix++; continue; }
                 if (nombre(l.pu) > 0) ok++;
             }
             if (sansPrix) m.push(sansPrix + ' ligne(s) sans prix');
+            if (sansNom) m.push(sansNom + ' ligne(s) sans désignation');
             if (!ok) m.push('au moins une ligne avec un prix');
             return m;
         }
@@ -1299,7 +1677,7 @@
                 ? (ios ? 'Activez la dictée : Réglages → Général → Clavier → Activer la dictée. Puis rechargez la page.' : 'La reconnaissance vocale est désactivée sur cet appareil.')
                 : (ios ? 'Dans Safari, touchez « aA » à gauche de l\'adresse → Réglages du site web → Microphone → Autoriser. Puis rechargez la page.'
                        : 'Touchez le cadenas à côté de l\'adresse → Autorisations → Micro → Autoriser. Puis rechargez la page.');
-            if (z) z.innerHTML = '<details class="text-xs text-slate-400"><summary class="cursor-pointer text-gold-400">Le micro ne démarre pas ? Voir comment l\'autoriser</summary><p class="mt-2">' + esc(aide) + '</p><p class="mt-1 text-slate-600">Code : ' + esc(code || ECOUTE.dernierCode || '?') + '</p></details>';
+            if (z) z.innerHTML = '<details class="text-xs text-slate-400"><summary class="cursor-pointer text-gold-400">Le micro ne démarre pas ? Voir comment l\'autoriser</summary><p class="mt-2">' + esc(aide) + '</p><p class="mt-1 text-slate-400">Code : ' + esc(code || ECOUTE.dernierCode || '?') + '</p></details>';
             etat('Touchez la case de réponse, puis le micro 🎤 du clavier.', 'text-slate-200');
             stock('va_micro_ok', null);
             var champ = document.getElementById('saisie'); if (champ) champ.focus();
@@ -1319,6 +1697,7 @@
 
         function valeurAffichee(cle, v) {
             if (cle === 'regime') return v === 'non' ? 'Non (TVA non applicable)' : 'Oui';
+            if (cle === 'siretOk') return v === 'oui' ? 'Oui' : 'Non';
             if (cle === 'tauxDefaut' || cle === 'tauxTva') return String(v).replace('.', ',') + ' %';
             if (v === '') return '';
             return v;
@@ -1328,15 +1707,20 @@
             var titre = document.getElementById('titre-parcours');
             var sous = document.getElementById('sous-titre');
             var barre = document.getElementById('barre-fiche');
-            if (APP.mode === 'fiche' || APP.mode === 'fiche-edition') { titre.textContent = 'Ma fiche'; sous.textContent = APP.mode === 'fiche' ? 'Une seule fois : répondez aux questions à voix haute.' : 'Corrigez ce qui a changé, puis enregistrez.'; }
+            if (APP.mode === 'fiche' || APP.mode === 'fiche-edition') { titre.textContent = 'Ma fiche'; sous.textContent = APP.mode === 'fiche' ? (APP.miseAJour ? 'Nouvelle information obligatoire sur les devis : répondez à la question.' : 'Une seule fois : répondez aux questions à voix haute.') : 'Corrigez ce qui a changé, puis enregistrez.'; }
             else if (APP.mode === 'fiche-ok') { titre.textContent = 'Fiche enregistrée'; sous.textContent = ''; }
+            else if (APP.mode === 'facture') { titre.textContent = 'Facture'; sous.textContent = 'Quand le chantier est terminé.'; }
+            else if (APP.mode === 'bon') { titre.textContent = "Bon d'intervention"; sous.textContent = 'Le client signe que les travaux sont faits.'; }
+            else if (APP.mode === 'historique') { titre.textContent = 'Mes devis'; sous.textContent = 'Gardés sur ce téléphone. Ouvrez-en un pour le renvoyer, le faire signer ou le facturer.'; }
             else { titre.textContent = 'Nouveau devis'; sous.textContent = 'Touchez le micro et répondez aux questions.'; }
-            barre.innerHTML = ficheValide(APP.fiche) && APP.mode !== 'fiche-edition'
-                ? '<span class="text-slate-300">Ma fiche : <strong class="text-white">' + esc(APP.fiche.nom) + '</strong></span><button type="button" onclick="modifierFiche()" class="text-gold-400 underline">Modifier</button>'
+            barre.innerHTML = APP.demo ? '<span class="text-gold-400 font-semibold">Mode essai</span>' : ficheValide(APP.fiche) && APP.mode !== 'fiche-edition'
+                ? '<button type="button" onclick="ouvrirHistorique()" class="text-gold-400 underline">Mes devis</button><span class="text-slate-300">Ma fiche : <strong class="text-white">' + esc(APP.fiche.nom) + '</strong></span><button type="button" onclick="modifierFiche()" class="text-gold-400 underline">Modifier</button>'
                 : '';
             document.getElementById('zone-micro').style.display = APP.courante ? '' : 'none';
-            var q = document.getElementById('question-courante');
-            q.textContent = APP.courante ? APP.courante.texte : '';
+            var pr = progression();
+            document.getElementById('question-courante').textContent = pr ? pr.texte : '';
+            document.getElementById('barre-progression').style.width = pr ? Math.round(Math.min(1, pr.part) * 100) + '%' : '0%';
+            dessinerBandeauDemo();
 
             var h = '';
             for (var i = 0; i < APP.ordre.length; i++) {
@@ -1344,7 +1728,7 @@
                 if (APP.mode === 'recap' && /^f\d+_|^heures$/.test(cle)) continue;
                 h += '<div class="p-3 rounded-xl bg-obsidian/50 border border-white/10">' +
                         '<div class="flex items-center justify-between gap-2"><p class="text-slate-400 text-xs">' + esc(qq.texte) + '</p>' +
-                        (APP.mode === 'fiche-edition' ? '' : '<button type="button" onclick="refaireQuestion(\'' + cle + '\')" class="text-[11px] text-gold-400 underline flex-shrink-0">Redire</button>') + '</div>' +
+                        (APP.mode === 'fiche-edition' ? '' : '<button type="button" onclick="refaireQuestion(\'' + cle + '\')" class="text-xs text-gold-400 underline flex-shrink-0">Redire</button>') + '</div>' +
                         '<input id="rep-' + cle + '" value="' + esc(valeurAffichee(cle, APP.rep[cle])) + '" placeholder="(passé)" onchange="corriger(\'' + cle + '\', this.value)" class="mt-1 w-full bg-transparent text-white text-sm border-b border-transparent focus:border-gold-500/60 focus:outline-none">' +
                      '</div>';
             }
@@ -1353,7 +1737,9 @@
                 h += '<div id="carte-courante" class="p-4 rounded-2xl border-2 border-gold-500/70 bg-gold-500/10 shadow-lg shadow-gold-500/10">' +
                         '<p class="text-gold-400 text-xs font-semibold uppercase tracking-wider">À dire maintenant</p>' +
                         '<p class="text-white text-lg font-semibold mt-1">' + esc(c.texte) + '</p>' +
-                        (c.aide ? '<p class="text-slate-400 text-sm mt-1">' + esc(c.aide) + '</p>' : '') +
+                        (c.aide ? '<p class="text-slate-300 text-base mt-1">' + esc(c.aide) + '</p>' : '') +
+                        (c.prixConnu ? '<button type="button" onclick="arreterEcoute(); repondre(\'pareil\')" class="mt-3 w-full px-4 py-3 rounded-full text-sm font-bold text-gold-400 border-2 border-gold-500/70">Pareil : ' + euros(nombre(c.prixConnu)) + '</button>' : '') +
+                        (c.cle === 'f0_des' && !APP.demo ? typesDevis().map(function (t, i) { return '<button type="button" onclick="appliquerTypeNumero(' + i + ')" class="mt-2 mr-2 px-3 py-2 rounded-full text-xs font-semibold text-gold-400 border border-gold-500/50">Devis type : ' + esc(t.nom) + '</button>'; }).join('') : '') +
                         '<textarea id="saisie" rows="2" placeholder="Votre réponse s\'écrit ici…" class="' + CHAMP + ' mt-3"></textarea>' +
                         (APP.erreur ? '<p class="text-red-300 text-sm mt-2">' + esc(APP.erreur) + '</p>' : '') +
                         '<div class="flex gap-2 mt-3">' +
@@ -1366,18 +1752,21 @@
             document.getElementById('cartes').innerHTML = h;
 
             var fin = document.getElementById('fin-zone');
-            if (APP.mode === 'fiche-edition') {
-                fin.innerHTML = '<div id="fin" class="mt-4">' + (APP.erreur ? '<p class="text-red-300 text-sm mb-2">' + esc(APP.erreur) + '</p>' : '') +
+            if (APP.mode === 'historique' || APP.mode === 'facture' || APP.mode === 'bon') {
+                document.getElementById('cartes').innerHTML = '';
+                fin.innerHTML = APP.mode === 'facture' ? factureHtml() : (APP.mode === 'bon' ? bonHtml() : historiqueHtml());
+            } else if (APP.mode === 'fiche-edition') {
+                fin.innerHTML = '<div id="fin" class="mt-4 space-y-3">' + logoHtml() + (APP.erreur ? '<p class="text-red-300 text-sm mb-2">' + esc(APP.erreur) + '</p>' : '') +
                     '<button type="button" onclick="enregistrerFicheModifiee()" class="w-full px-6 py-4 rounded-full font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">Enregistrer ma fiche</button></div>';
             } else if (APP.mode === 'fiche-ok') {
                 var lien = lienPersonnel(APP.fiche);
                 fin.innerHTML = '<div id="fin" class="p-5 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 space-y-3">' +
                     '<p class="text-emerald-300 font-semibold">C\'est enregistré sur ce téléphone.</p>' +
-                    '<p class="text-slate-300 text-sm">Gardez aussi votre <strong>lien personnel</strong> : il contient votre fiche. Ouvrez-le puis ajoutez-le à vos favoris, vous n\'aurez jamais à refaire la fiche.</p>' +
+                    '<p class="text-slate-300 text-sm">Gardez aussi votre <strong>lien personnel</strong> : il contient votre fiche. Ouvrez-le puis ajoutez-le à vos favoris, vous n\'aurez jamais à refaire la fiche.' + (APP.miseAJour ? ' <strong>Remplacez l\'ancien lien de vos favoris par celui-ci.</strong>' : '') + '</p>' +
                     '<input id="lien-perso" readonly value="' + esc(lien) + '" class="' + CHAMP + ' text-xs">' +
                     '<div class="flex gap-2"><button type="button" onclick="copierLien()" class="flex-1 px-4 py-3 rounded-full text-sm font-semibold text-emerald-200 border border-emerald-400/50">Copier le lien</button>' +
                     '<a href="' + esc(lien) + '" target="_top" class="flex-1 text-center px-4 py-3 rounded-full text-sm font-semibold text-emerald-200 border border-emerald-400/50">Ouvrir le lien</a></div>' +
-                    '<p id="lien-msg" class="text-xs text-slate-400"></p>' +
+                    '<p id="lien-msg" class="text-xs text-slate-400"></p>' + logoHtml() +
                     '<button type="button" onclick="nouveauDevis()" class="w-full px-6 py-4 rounded-full font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">Faire mon premier devis</button></div>';
             } else if (APP.mode === 'recap') {
                 fin.innerHTML = '<div id="fin"></div>';
@@ -1387,6 +1776,26 @@
             } else fin.innerHTML = '';
             majBarrePdf();
             if (window.lucide) lucide.createIcons();
+        }
+
+        /* « Question 4 sur 22 » */
+        function progression() {
+            var c = APP.courante;
+            if (!c) return null;
+            if (APP.mode === 'fiche') {
+                var tot = 0, faits = 0;
+                for (var i = 0; i < QUESTIONS_FICHE.length; i++) { var q = QUESTIONS_FICHE[i]; if (q.si && !q.si(APP.rep)) continue; tot++; if (q.cle in APP.rep) faits++; }
+                if (APP.miseAJour && APP.nbMaj) { tot = APP.nbMaj; faits = APP.ordre.length; }
+                return { texte: (APP.miseAJour ? 'Mise à jour · ' : 'Votre fiche · ') + 'question ' + (faits + 1) + ' sur ' + tot, part: faits / tot };
+            }
+            var iC = -1;
+            for (var k = 0; k < QUESTIONS_CLIENT.length; k++) if (QUESTIONS_CLIENT[k].cle === c.cle) iC = k;
+            if (iC >= 0) return { texte: 'Le client · question ' + (iC + 1) + ' sur ' + QUESTIONS_CLIENT.length, part: 0.3 * iC / QUESTIONS_CLIENT.length };
+            var mf = /^f(\d+)_/.exec(c.cle);
+            if (mf) { var n = parseInt(mf[1], 10); return { texte: 'Fourniture ' + (n + 1), part: 0.3 + Math.min(0.4, 0.1 * n) }; }
+            var fin = ['heures', 'tauxTva', 'duree', 'debut'].filter(function (x) { return x !== 'tauxTva' || (APP.fiche && APP.fiche.regime !== 'franchise'); });
+            var iF = fin.indexOf(c.cle);
+            return { texte: 'Main-d\'œuvre et dates · question ' + (iF + 1) + ' sur ' + fin.length, part: 0.75 + 0.25 * iF / fin.length };
         }
 
         function validerSaisie() {
@@ -1418,9 +1827,11 @@
                 b.textContent = 'Créer le devis PDF'; b.disabled = false; b.className = b.className.replace(' opacity-40', '');
                 info.textContent = 'Tout est prêt.'; info.className = 'text-xs text-center mb-2 text-emerald-300';
             } else {
-                b.textContent = 'Partager le devis PDF'; b.disabled = false; b.className = b.className.replace(' opacity-40', '');
-                info.textContent = 'Devis ' + APP.pdf.numero + ' prêt en PDF.'; info.className = 'text-xs text-center mb-2 text-emerald-300';
+                b.textContent = 'Envoyer au client'; b.disabled = false; b.className = b.className.replace(' opacity-40', '');
+                info.textContent = 'Devis ' + APP.pdf.numero + ' prêt en PDF' + (APP.signature ? ' – signé ✓' : ' – pas encore signé') + '.'; info.className = 'text-xs text-center mb-2 text-emerald-300';
             }
+            var bs = document.getElementById('barre-pdf-signer');
+            if (bs) { bs.classList.toggle('hidden', !APP.pdf); bs.textContent = APP.signature ? '✍️ Re-signer' : '✍️ Faire signer'; }
         }
         function actionBarrePdf() { if (APP.pdf) partagerPdf(); else creerPdf(); }
 
@@ -1435,28 +1846,42 @@
                         '<input value="' + esc(l[i].designation) + '" oninput="majLigne(' + i + ',\'designation\',this.value)" class="w-full bg-transparent text-white text-sm focus:outline-none border-b border-white/10 pb-1">' +
                         '<div class="grid grid-cols-12 gap-2 mt-2 items-center text-sm">' +
                             '<input value="' + esc(String(l[i].qte).replace('.', ',')) + '" inputmode="decimal" oninput="majLigne(' + i + ',\'qte\',this.value)" aria-label="Quantité" class="col-span-3 ' + CHAMP + ' !py-1.5">' +
-                            '<span class="col-span-2 text-slate-400 text-xs">' + esc(l[i].unite) + '</span>' +
+                            '<select onchange="majLigne(' + i + ',\'unite\',this.value)" aria-label="Unité" class="col-span-2 bg-obsidian/80 border border-white/15 rounded-lg text-slate-100 text-xs py-1.5">' + optionsUnite(l[i].unite) + '</select>' +
                             '<input value="' + esc(String(l[i].pu).replace('.', ',')) + '" inputmode="decimal" placeholder="Prix HT" oninput="majLigne(' + i + ',\'pu\',this.value)" aria-label="Prix HT" class="col-span-4 ' + CHAMP + ' !py-1.5">' +
                             '<span id="tot-' + i + '" class="col-span-2 text-right text-slate-300 text-xs">' + euros(nombre(l[i].qte) * nombre(l[i].pu)) + '</span>' +
                             '<button type="button" onclick="supprimerLigne(' + i + ')" aria-label="Supprimer" class="col-span-1 text-red-300 text-lg leading-none">×</button>' +
                         '</div></div>';
             }
             h += '</div><button type="button" onclick="ajouterLigne()" class="mt-2 w-full px-4 py-2.5 rounded-lg border border-white/15 text-slate-200 text-sm">+ Ajouter une ligne</button>';
+            h += '<div class="mt-3 grid grid-cols-2 gap-2 items-center text-sm"><label for="remise" class="text-slate-300">Remise (%)</label>' +
+                 '<input id="remise" value="' + esc(String(APP.rep.remise || '').replace('.', ',')) + '" inputmode="decimal" placeholder="0" oninput="majRemise(this.value)" class="' + CHAMP + ' !py-1.5"></div>';
+            h += '<label class="mt-3 flex items-start gap-3 p-3 rounded-xl border border-white/15 text-sm text-slate-200"><input type="checkbox" ' + (APP.rep.pro === 'oui' ? 'checked ' : '') +
+                 'onchange="majPro(this.checked)" class="mt-1 w-5 h-5 accent-amber-400"><span>Client professionnel (entreprise, syndic, agence) : pas de droit de rétractation sur le devis.</span></label>';
             h += '<div id="totaux" class="mt-4 p-4 rounded-xl bg-obsidian/70 border border-white/10 text-sm">' + totauxHtml(c) + '</div>';
+            h += photosHtml();
             h += '<p id="manque" class="mt-3 text-xs text-red-300">' + (m.length ? 'Pour créer le PDF, il manque : ' + esc(m.join(', ')) + '.' : '') + '</p>' +
                  '<button type="button" id="creer" onclick="creerPdf()" ' + (m.length ? 'disabled ' : '') + 'class="mt-2 w-full px-6 py-4 rounded-full text-base font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600 ' + (m.length ? 'opacity-40 cursor-not-allowed' : '') + '">Créer le PDF</button>' +
                  '<div id="resultat" class="' + (APP.pdf ? '' : 'hidden ') + 'mt-3 space-y-2">' +
-                    '<p class="text-emerald-300 text-sm">Devis prêt en PDF. Relisez-le avant de l\'envoyer.</p>' +
-                    '<button type="button" onclick="partagerPdf()" class="w-full px-6 py-4 rounded-full text-base font-bold text-black bg-emerald-400">Partager le devis (WhatsApp, Mail, SMS…)</button>' +
+                    '<p class="text-emerald-300 text-sm">' + (APP.signature ? 'Devis signé par le client ✓' : 'Devis prêt en PDF. Relisez-le avant de l\'envoyer.') + '</p>' +
+                    '<button type="button" onclick="ouvrirSignature()" class="w-full px-6 py-4 rounded-full text-base font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">' + (APP.signature ? '✍️ Refaire la signature' : '✍️ Faire signer le client au doigt') + '</button>' +
+                    '<button type="button" onclick="partagerPdf()" class="w-full px-6 py-4 rounded-full text-base font-bold text-black bg-emerald-400">Envoyer au client (Mail, WhatsApp, SMS…)</button>' +
                     '<button type="button" onclick="telechargerPdf()" class="w-full px-6 py-3 rounded-full text-sm font-semibold text-emerald-300 border border-emerald-400/50">Enregistrer le PDF</button>' +
                     '<button type="button" onclick="ouvrirPdf()" class="w-full px-6 py-3 rounded-full text-sm text-slate-300 border border-white/15">Voir le PDF</button>' +
+                    (APP.demo ? '' : '<button type="button" onclick="enregistrerType()" class="w-full px-6 py-3 rounded-full text-sm text-gold-400 border border-gold-500/40">Garder comme devis type (pour le refaire en 1 mot)</button>' +
+                        '<button type="button" onclick="copierLigneDevis()" class="w-full px-6 py-3 rounded-full text-sm text-gold-400 border border-gold-500/40">Relancer ce devis s\'il n\'est pas signé (copier la ligne)</button>') +
+                    '<div class="pt-3 mt-2 border-t border-white/10 space-y-2"><p class="text-slate-300 text-xs font-semibold uppercase tracking-wider">Après le chantier</p>' +
+                    '<button type="button" onclick="ouvrirFacture()" class="w-full px-6 py-4 rounded-full text-base font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">🧾 ' + (APP.facture ? 'Facture n° ' + esc(APP.facture.numero) + ' : renvoyer' : 'Créer la facture') + '</button>' +
+                    '<button type="button" onclick="ouvrirBon()" class="w-full px-6 py-3 rounded-full text-sm font-semibold text-slate-100 border border-white/20">📋 Bon d\'intervention signé' + (APP.bon && APP.bon.signature ? ' ✓' : '') + '</button>' +
+                    '<button type="button" onclick="partagerMateriel()" class="w-full px-6 py-3 rounded-full text-sm font-semibold text-slate-100 border border-white/20">🛒 Liste du matériel à acheter</button></div>' +
                  '</div>' +
                  '<button type="button" onclick="nouveauDevis()" class="mt-4 w-full text-sm text-slate-400 underline">Commencer un nouveau devis</button></div>';
             z.innerHTML = h;
         }
 
         function totauxHtml(c) {
-            return '<div class="flex justify-between text-slate-300"><span>Total HT</span><span>' + euros(c.ht) + '</span></div>' +
+            return (c.remise > 0 ? '<div class="flex justify-between text-slate-300"><span>Total HT avant remise</span><span>' + euros(c.htBrut) + '</span></div>' +
+                                   '<div class="flex justify-between text-slate-300 mt-1"><span>Remise ' + String(c.remisePct).replace('.', ',') + ' %</span><span>' + euros(-c.remise) + '</span></div>' : '') +
+                   '<div class="flex justify-between text-slate-300' + (c.remise > 0 ? ' mt-1' : '') + '"><span>Total HT</span><span>' + euros(c.ht) + '</span></div>' +
                    (c.franchise ? '<div class="text-slate-400 text-xs mt-1">TVA non applicable (art. 293 B du CGI)</div>'
                                 : '<div class="flex justify-between text-slate-300 mt-1"><span>TVA ' + String(c.taux).replace('.', ',') + ' %</span><span>' + euros(c.tva) + '</span></div>') +
                    '<div class="flex justify-between text-white font-bold mt-2 pt-2 border-t border-white/10"><span>Total TTC</span><span>' + euros(c.ttc) + '</span></div>';
@@ -1465,7 +1890,7 @@
         function majLigne(i, champ, v) {
             if (!APP.lignes[i]) return;
             APP.lignes[i][champ] = v;
-            APP.pdf = null;
+            APP.pdf = null; APP.signature = null;
             var t = document.getElementById('tot-' + i);
             if (t) t.textContent = euros(nombre(APP.lignes[i].qte) * nombre(APP.lignes[i].pu));
             document.getElementById('totaux').innerHTML = totauxHtml(calculerDevis(APP.fiche, devisPourPdf()));
@@ -1479,15 +1904,23 @@
             sauverBrouillon();
         }
 
-        function ajouterLigne() { APP.lignes.push({ designation: '', qte: '1', unite: 'u', pu: '' }); APP.pdf = null; sauverBrouillon(); dessinerRecap(); majBarrePdf(); }
-        function supprimerLigne(i) { APP.lignes.splice(i, 1); APP.pdf = null; sauverBrouillon(); dessinerRecap(); majBarrePdf(); }
+        function ajouterLigne() { APP.lignes.push({ designation: '', qte: '1', unite: 'u', pu: '' }); APP.pdf = null; APP.signature = null; sauverBrouillon(); dessinerRecap(); majBarrePdf(); }
+        function supprimerLigne(i) { APP.lignes.splice(i, 1); APP.pdf = null; APP.signature = null; sauverBrouillon(); dessinerRecap(); majBarrePdf(); }
 
         function creerPdf() {
             if (manques().length) return;
             if (!window.jspdf || !window.jspdf.jsPDF) { document.getElementById('manque').textContent = "L'outil PDF ne s'est pas chargé : vérifiez votre connexion internet et rechargez la page."; return; }
-            APP.pdf = genererPdfDevis(window.jspdf.jsPDF, APP.fiche, devisPourPdf(), new Date());
+            if (!APP.devisId) APP.devisId = Date.now().toString(36);
+            if (!APP.dateDevis) APP.dateDevis = new Date().toISOString();
+            if (!APP.numero) APP.numero = numeroUnique(new Date(APP.dateDevis), APP.rep.clientNom);
+            var dp = devisPourPdf();
+            dp.logo = APP.demo ? '' : (stock('va_logo') || '');
+            dp.photos = APP.photos || [];
+            APP.pdf = genererPdfDevis(window.jspdf.jsPDF, APP.fiche, dp, new Date(APP.dateDevis));
+            if (!APP.demo) { memoriserPrix(APP.lignes || []); sauverHistorique(); }
             APP.pdfFichier = null;
-            try { APP.pdfFichier = new File([APP.pdf.doc.output('blob')], 'Devis_' + APP.pdf.numero + '.pdf', { type: 'application/pdf' }); } catch (e) {}
+            try { APP.pdfFichier = new File([APP.pdf.doc.output('blob')], nomFichierPdf(), { type: 'application/pdf' }); } catch (e) {}
+            if (APP.mode === 'recap') dessinerRecap();
             var r = document.getElementById('resultat');
             r.classList.remove('hidden');
             majBarrePdf();
@@ -1498,13 +1931,412 @@
             var f = APP.pdfFichier;
             try {
                 if (f && navigator.canShare && navigator.canShare({ files: [f] })) {
-                    navigator.share({ files: [f], title: 'Devis ' + APP.pdf.numero, text: 'Bonjour, voici votre devis.' }).catch(function () {});
+                    navigator.share({ files: [f], title: 'Devis ' + APP.pdf.numero, text: messageClient() }).catch(function () {});
                     return;
                 }
             } catch (e) {}
             telechargerPdf();
         }
-        function telechargerPdf() { if (APP.pdf) APP.pdf.doc.save('Devis_' + APP.pdf.numero + '.pdf'); }
+        function nomFichierPdf() { return (APP.demo ? 'EXEMPLE_' : '') + 'Devis_' + APP.pdf.numero + (APP.signature ? '_signe' : '') + '.pdf'; }
+        function messageClient() {
+            var r = APP.rep, f = APP.fiche || {};
+            return 'Bonjour' + (r.clientNom ? ' ' + r.clientNom : '') + ',\n\nVeuillez trouver ci-joint ' + (APP.signature ? 'votre devis signé' : 'votre devis') + ' n° ' + APP.pdf.numero + '.\n\nCordialement,\n' +
+                   (f.dirigeant ? f.dirigeant + ' – ' : '') + (f.nom || '') + (f.tel ? '\n' + f.tel : '');
+        }
+        function telechargerPdf() { if (APP.pdf) APP.pdf.doc.save(nomFichierPdf()); }
+
+        /* ===================== MES PRIX, DEVIS TYPES, MES DEVIS, LOGO, PHOTOS ===================== */
+        function cleArticle(t) { return bas(propre(t)).replace(/[^a-z0-9]+/g, ' ').trim().split(' ').map(function (w) { return w.length > 3 ? w.replace(/s$/, '') : w; }).join(' '); }
+        function estLigneAuto(des) { return /^(main d|deplacement|gestion et evacuation)/.test(bas(des).replace(/[-']/g, ' ')); }
+        function prixConnu(des) { var cat = stock('va_catalogue') || {}; return cat[cleArticle(des)] || null; }
+        function memoriserPrix(lignes) {
+            var cat = stock('va_catalogue') || {};
+            for (var i = 0; i < lignes.length; i++) {
+                var l = lignes[i];
+                if (!propre(l.designation) || nombre(l.pu) <= 0 || estLigneAuto(l.designation)) continue;
+                cat[cleArticle(l.designation)] = { des: l.designation, pu: String(nombre(l.pu)), unite: l.unite || 'u', n: Date.now() };
+            }
+            var cles = Object.keys(cat);
+            if (cles.length > 300) { cles.sort(function (a, b) { return cat[a].n - cat[b].n; }); cles.slice(0, cles.length - 300).forEach(function (k) { delete cat[k]; }); }
+            stock('va_catalogue', cat);
+        }
+
+        function typesDevis() { return stock('va_types') || []; }
+        function trouverType(brut) {
+            var k = cleArticle(nettoyer(brut, {})), t = typesDevis();
+            k = k.replace(/^(devi type|devis type|le devi type|le devis type)\s*/, '');
+            if (!k) return null;
+            for (var i = 0; i < t.length; i++) if (cleArticle(t[i].nom) === k) return t[i];
+            return null;
+        }
+        function appliquerType(t) {
+            var r = APP.rep;
+            if (!t.lignes.length) { r.f0_des = ''; APP.ordre.push('f0_des'); }
+            for (var i = 0; i < t.lignes.length; i++) {
+                var l = t.lignes[i], p = 'f' + i + '_';
+                r[p + 'des'] = l.designation; r[p + 'pu'] = String(l.pu); r[p + 'qte'] = String(l.qte); r[p + 'unite'] = l.unite || 'u';
+                r[p + 'autre'] = i < t.lignes.length - 1 ? 'oui' : 'non';
+                APP.ordre.push(p + 'des', p + 'pu', p + 'qte', p + 'autre');
+            }
+            if (t.heures && !('heures' in r)) { r.heures = String(t.heures); APP.ordre.push('heures'); }
+            if (!r.objet && t.objet) r.objet = t.objet;
+            APP.lignes = null;
+            etat('Devis type « ' + t.nom + ' » ajouté.', 'text-emerald-300');
+            avancer(true);
+        }
+        function appliquerTypeNumero(i) { var t = typesDevis()[i]; if (t && APP.courante && APP.courante.cle === 'f0_des') { arreterEcoute(); appliquerType(t); } }
+        function enregistrerType() {
+            var nom = window.prompt('Nom de ce devis type (ex. : remplacement chauffe-eau) :', APP.rep.objet || '');
+            if (!nom || !propre(nom)) return;
+            var l = APP.lignes || [], four = [], heures = '';
+            for (var i = 0; i < l.length; i++) {
+                if (!propre(l[i].designation)) continue;
+                if (/^main d/.test(bas(l[i].designation).replace(/[-']/g, ' '))) { heures = String(l[i].qte); continue; }
+                if (estLigneAuto(l[i].designation)) continue;
+                four.push({ designation: l[i].designation, qte: String(l[i].qte), unite: l[i].unite || 'u', pu: String(l[i].pu) });
+            }
+            var t = typesDevis().filter(function (x) { return cleArticle(x.nom) !== cleArticle(nom); });
+            t.push({ nom: majuscule(nom), objet: APP.rep.objet || majuscule(nom), lignes: four, heures: heures });
+            stock('va_types', t.slice(-30));
+            var m = document.getElementById('manque');
+            if (m) { m.className = 'mt-3 text-xs text-emerald-300'; m.textContent = 'Devis type « ' + majuscule(nom) + ' » gardé : la prochaine fois, dites son nom à la première fourniture.'; }
+        }
+
+        var UNITES = ['u', 'h', 'm', 'ml', 'm²', 'forfait', 'lot', 'kg', 'l', 'jour'];
+        function optionsUnite(u) {
+            var l = UNITES.indexOf(u) < 0 && u ? [u].concat(UNITES) : UNITES;
+            return l.map(function (x) { return '<option' + (x === u ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('');
+        }
+        function rafraichirRecap() { APP.pdf = null; APP.signature = null; sauverBrouillon(); dessinerRecap(); majBarrePdf(); }
+        function majRemise(v) {
+            APP.rep.remise = propre(v); APP.pdf = null; APP.signature = null;
+            document.getElementById('totaux').innerHTML = totauxHtml(calculerDevis(APP.fiche, devisPourPdf()));
+            var r = document.getElementById('resultat'); if (r) r.classList.add('hidden');
+            majBarrePdf(); sauverBrouillon();
+        }
+        function majPro(oui) { APP.rep.pro = oui ? 'oui' : 'non'; rafraichirRecap(); }
+
+        /* Photos et logo : réduits sur le téléphone avant d'être gardés */
+        function compresserImage(fichier, maxDim, garderPng, rappel) {
+            var lecteur = new FileReader();
+            lecteur.onload = function () {
+                var img = new Image();
+                img.onload = function () {
+                    var r = Math.min(1, maxDim / Math.max(img.width, img.height)), cv = document.createElement('canvas');
+                    cv.width = Math.round(img.width * r); cv.height = Math.round(img.height * r);
+                    var ctx = cv.getContext('2d');
+                    if (!garderPng) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height); }
+                    ctx.drawImage(img, 0, 0, cv.width, cv.height);
+                    rappel(garderPng ? cv.toDataURL('image/png') : cv.toDataURL('image/jpeg', 0.6));
+                };
+                img.onerror = function () { rappel(null); };
+                img.src = lecteur.result;
+            };
+            lecteur.onerror = function () { rappel(null); };
+            lecteur.readAsDataURL(fichier);
+        }
+        function photosHtml() {
+            var ph = APP.photos || [], h = '<div class="mt-4 p-3 rounded-xl border border-white/15"><p class="text-sm text-slate-200">Photos du chantier (facultatif, ajoutées à la fin du PDF)</p><div class="flex flex-wrap gap-2 mt-2">';
+            for (var i = 0; i < ph.length; i++) h += '<div class="relative"><img src="' + ph[i] + '" alt="Photo ' + (i + 1) + '" class="w-20 h-20 object-cover rounded-lg"><button type="button" onclick="supprimerPhoto(' + i + ')" aria-label="Retirer la photo" class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white text-sm leading-none">×</button></div>';
+            h += '</div>' + (ph.length < 6 ? '<label class="mt-2 block w-full text-center px-4 py-2.5 rounded-lg border border-white/15 text-slate-200 text-sm cursor-pointer">📷 Ajouter des photos<input type="file" accept="image/*" multiple class="hidden" onchange="ajouterPhotos(this)"></label>' : '') + '</div>';
+            return h;
+        }
+        function ajouterPhotos(input) {
+            var fichiers = Array.prototype.slice.call(input.files || [], 0, 6 - (APP.photos || []).length), reste = fichiers.length;
+            APP.photos = APP.photos || [];
+            fichiers.forEach(function (f) { compresserImage(f, 1000, false, function (d) { if (d) APP.photos.push(d); if (--reste === 0) rafraichirRecap(); }); });
+        }
+        function supprimerPhoto(i) { APP.photos.splice(i, 1); rafraichirRecap(); }
+        function logoHtml() {
+            var lg = stock('va_logo');
+            return '<div class="p-3 rounded-xl border border-white/15 text-sm text-slate-200"><p>Votre logo sur les devis (facultatif, gardé sur ce téléphone)</p>' +
+                (lg ? '<img src="' + lg + '" alt="Logo" class="mt-2 max-h-16 bg-white rounded p-1">' : '') +
+                '<div class="flex gap-2 mt-2"><label class="flex-1 text-center px-4 py-2.5 rounded-lg border border-white/15 cursor-pointer">' + (lg ? 'Changer' : 'Ajouter mon logo') +
+                '<input type="file" accept="image/*" class="hidden" onchange="choisirLogo(this)"></label>' +
+                (lg ? '<button type="button" onclick="stock(\'va_logo\', null); dessiner()" class="px-4 py-2.5 rounded-lg border border-white/15">Retirer</button>' : '') + '</div></div>';
+        }
+        function choisirLogo(input) {
+            var f = input.files && input.files[0];
+            if (!f) return;
+            compresserImage(f, 600, /png/i.test(f.type), function (d) { if (d) { stock('va_logo', d); APP.pdf = null; } dessiner(); });
+        }
+
+        /* Mes devis : chaque PDF créé est gardé sur le téléphone */
+        function historique() { return stock('va_historique') || []; }
+        function numeroUnique(date, client) {
+            var base = numeroDevis(date, client), pris = {}, h = historique();
+            for (var i = 0; i < h.length; i++) if (h[i].id !== APP.devisId) pris[h[i].numero] = 1;
+            if (!pris[base]) return base;
+            for (var k = 2; ; k++) if (!pris[base + '-' + k]) return base + '-' + k;
+        }
+        function sauverHistorique() {
+            if (APP.demo || !APP.pdf) return;
+            var h = historique().filter(function (x) { return x.id !== APP.devisId; });
+            h.unshift({ id: APP.devisId, numero: APP.numero, date: APP.dateDevis, client: APP.rep.clientNom || '', ttc: APP.pdf.calcul.ttc, signe: !!APP.signature,
+                        rep: APP.rep, lignes: APP.lignes, signature: APP.signature || null, ordre: APP.ordre, facture: APP.facture || null, bon: APP.bon || null });
+            h = h.slice(0, 60);
+            if (!stock('va_historique', h)) {
+                for (var i = 10; i < h.length; i++) h[i].signature = h[i].signature ? { image: '', anticipe: h[i].signature.anticipe, pieces: h[i].signature.pieces, nom: h[i].signature.nom, date: h[i].signature.date } : null;
+                stock('va_historique', h.slice(0, 40));
+            }
+        }
+        function ouvrirHistorique() { arreterEcoute(); APP.modeAvant = APP.mode; APP.mode = 'historique'; APP.courante = null; dessiner(); window.scrollTo(0, 0); }
+        function fermerHistorique() { APP.mode = APP.modeAvant && APP.modeAvant !== 'historique' ? APP.modeAvant : 'devis'; avancer(false); window.scrollTo(0, 0); }
+        function historiqueHtml() {
+            var h = historique();
+            var t = '<div id="fin" class="space-y-3"><button type="button" onclick="fermerHistorique()" class="text-sm text-gold-400 underline">← Retour</button>';
+            if (!h.length) t += '<p class="text-slate-300 text-sm">Aucun devis pour l\'instant. Chaque devis PDF créé apparaîtra ici.</p>';
+            for (var i = 0; i < h.length; i++) {
+                var x = h[i];
+                t += '<div class="p-4 rounded-xl bg-obsidian/60 border border-white/10">' +
+                    '<div class="flex justify-between gap-2"><p class="text-white font-semibold">' + esc(x.client || 'Client') + '</p><p class="text-white">' + euros(x.ttc || 0) + '</p></div>' +
+                    '<p class="text-slate-300 text-xs mt-1">' + esc(x.numero) + ' · ' + (x.date ? dateFr(new Date(x.date)) : '') + (x.signe ? ' · <span class="text-emerald-300">signé ✓</span>' : ' · pas signé') +
+                    (x.facture ? ' · <span class="text-emerald-300">facturé ✓</span>' : '') + '</p>' +
+                    '<div class="flex gap-2 mt-3"><button type="button" onclick="ouvrirDevis(\'' + x.id + '\')" class="flex-1 px-3 py-2.5 rounded-full text-sm font-semibold text-black bg-gradient-to-r from-gold-400 to-gold-600">Ouvrir</button>' +
+                    '<button type="button" onclick="dupliquerDevis(\'' + x.id + '\')" class="flex-1 px-3 py-2.5 rounded-full text-sm text-slate-200 border border-white/20">Dupliquer</button></div></div>';
+            }
+            return t + '</div>';
+        }
+        function trouverHistorique(id) { var h = historique(); for (var i = 0; i < h.length; i++) if (h[i].id === id) return h[i]; return null; }
+        function ouvrirDevis(id) {
+            var x = trouverHistorique(id);
+            if (!x) return;
+            APP.mode = 'recap'; APP.rep = x.rep || {}; APP.ordre = x.ordre || []; APP.lignes = x.lignes || []; APP.signature = x.signature && x.signature.image ? x.signature : null;
+            APP.devisId = x.id; APP.numero = x.numero; APP.dateDevis = x.date; APP.photos = []; APP.facture = x.facture || null; APP.bon = x.bon || null; APP.pdf = null; APP.autoQte = {};
+            dessiner(); creerPdf(); window.scrollTo(0, 0);
+        }
+        function dupliquerDevis(id) {
+            var x = trouverHistorique(id);
+            if (!x) return;
+            nouveauDevis(true);
+            var garder = {};
+            for (var k in x.rep) if (/^f\d+_|^heures$|^tauxTva$|^duree$|^objet$/.test(k)) garder[k] = x.rep[k];
+            APP.rep = garder;
+            APP.ordre = (x.ordre || []).filter(function (k) { return k in garder; });
+            APP.lignes = JSON.parse(JSON.stringify(x.lignes || []));
+            avancer(true); window.scrollTo(0, 0);
+        }
+
+        /* ===================== APRÈS LE CHANTIER : FACTURE, BON D'INTERVENTION, MATÉRIEL ===================== */
+        function copierTexte(t, rappel) {
+            var ok = false, zone = document.createElement('textarea');
+            zone.value = t; zone.setAttribute('readonly', ''); zone.style.position = 'fixed'; zone.style.opacity = '0';
+            document.body.appendChild(zone); zone.select();
+            try { zone.setSelectionRange(0, t.length); ok = document.execCommand('copy'); } catch (e) {}
+            document.body.removeChild(zone);
+            if (!ok && navigator.clipboard) { navigator.clipboard.writeText(t).then(function () { rappel(true); }, function () { rappel(false); }); return; }
+            rappel(ok);
+        }
+        function partagerFichier(fichierPdf, titre, message, secours) {
+            try {
+                var f = new File([fichierPdf.doc.output('blob')], titre + '.pdf', { type: 'application/pdf' });
+                if (navigator.canShare && navigator.canShare({ files: [f] })) { navigator.share({ files: [f], title: titre, text: message }).catch(function () {}); return; }
+            } catch (e) {}
+            fichierPdf.doc.save(titre + '.pdf');
+        }
+        function signatureFin(f) { return (f.dirigeant ? f.dirigeant + ' – ' : '') + (f.nom || '') + (f.tel ? '\n' + f.tel : ''); }
+        function emailClient() { var c = String(APP.rep.clientContact || ''); return /@/.test(c) ? c : ''; }
+        function retourRecap() { APP.mode = 'recap'; dessiner(); window.scrollTo(0, 0); }
+
+        /* --- Facture : créée depuis le devis, numéro qui se suit, ne se modifie plus --- */
+        function prochainNumeroFacture(d) {
+            var an = d.getFullYear(), cpt = stock('va_factures') || {};
+            if (cpt.annee !== an) cpt = { annee: an, n: 0 };
+            cpt.n++;
+            stock('va_factures', cpt);
+            return 'FAC-' + an + '-' + ('000' + cpt.n).slice(-4);
+        }
+        function ouvrirFacture() { arreterEcoute(); APP.mode = 'facture'; if (APP.facture) genererFacturePdf(); dessiner(); window.scrollTo(0, 0); }
+        function creerFacture() {
+            var dTrav = document.getElementById('fac-date').value, recu = nombre(document.getElementById('fac-acompte').value), delai = document.getElementById('fac-delai').value;
+            var c = calculerDevis(APP.fiche, devisPourPdf()), maintenant = new Date(), ech = new Date(maintenant.getTime());
+            if (delai === '30') ech.setDate(ech.getDate() + 30);
+            if (!APP.demo && !window.confirm('Créer la facture ? Elle aura un numéro définitif et ne pourra plus être modifiée.')) return;
+            var dv = devisPourPdf(); dv.signature = null;
+            APP.facture = { numero: APP.demo ? 'FAC-EXEMPLE' : prochainNumeroFacture(maintenant), date: maintenant.toISOString(),
+                dateTravaux: dTrav ? new Date(dTrav + 'T12:00:00').toISOString() : maintenant.toISOString(), acompteRecu: String(Math.min(recu, c.ttc)),
+                echeanceTexte: delai === '30' ? 'sous 30 jours, au plus tard le ' + dateFr(ech) : 'à réception de la facture', echeanceDate: ech.toISOString(),
+                fiche: JSON.parse(JSON.stringify(APP.fiche)), devis: dv, devisNumero: APP.numero || '', devisDate: APP.dateDevis || maintenant.toISOString(),
+                signeLe: APP.signature ? APP.signature.date : null, net: Math.round((c.ttc - Math.min(recu, c.ttc)) * 100) / 100 };
+            sauverBrouillon(); if (!APP.demo) sauverHistorique();
+            genererFacturePdf(); dessiner(); window.scrollTo(0, 0);
+        }
+        function genererFacturePdf() {
+            var f = APP.facture, d = JSON.parse(JSON.stringify(f.devis));
+            if (!window.jspdf) return;
+            d.typeDoc = 'facture'; d.numero = f.numero; d.signature = null; d.photos = []; d.logo = APP.demo ? '' : (stock('va_logo') || '');
+            d.reference = f.devisNumero ? 'Selon devis n° ' + f.devisNumero + ' du ' + dateFr(new Date(f.devisDate)) + (f.signeLe ? ', accepté le ' + dateFr(new Date(f.signeLe)) : '') + '.' : '';
+            d.dateTravaux = f.dateTravaux; d.acompteRecu = f.acompteRecu; d.echeanceTexte = f.echeanceTexte; d.echeanceDate = f.echeanceDate;
+            APP.pdfFacture = genererPdfDevis(window.jspdf.jsPDF, f.fiche, d, new Date(f.date));
+        }
+        function nomFacture() { return (APP.demo ? 'EXEMPLE_' : '') + 'Facture_' + APP.facture.numero; }
+        function envoyerFacture() {
+            var f = APP.facture, r = APP.rep;
+            partagerFichier(APP.pdfFacture, nomFacture(), 'Bonjour' + (r.clientNom ? ' ' + r.clientNom : '') + ',\n\nVeuillez trouver ci-joint la facture n° ' + f.numero + ', d\'un montant de ' + euros(f.net) + ' à régler ' + f.echeanceTexte + '.\n\nMerci pour votre confiance.\n\n' + signatureFin(f.fiche));
+        }
+        function copierLigneRelance() {
+            var f = APP.facture;
+            var ligne = [f.numero, APP.rep.clientNom || '', emailClient(), String(f.net.toFixed(2)).replace('.', ','), dateFr(new Date(f.date))].join('\t');
+            copierTexte(ligne, function (ok) {
+                var m = document.getElementById('fac-msg');
+                if (m) m.textContent = ok ? 'Ligne copiée. Dans la feuille « Relance des impayés », onglet Factures : touchez la première case vide de la colonne A, puis Coller.' + (emailClient() ? '' : ' Ajoutez l\'e-mail du client dans la colonne C.') : 'Copie impossible sur ce téléphone : recopiez le numéro, le client et le montant dans la feuille.';
+            });
+        }
+        function copierLigneDevis() {
+            var c = APP.pdf ? APP.pdf.calcul : calculerDevis(APP.fiche, devisPourPdf());
+            var ligne = [APP.numero || '', APP.rep.clientNom || '', emailClient(), String(c.ttc.toFixed(2)).replace('.', ','), dateFr(new Date())].join('\t');
+            copierTexte(ligne, function (ok) {
+                var m = document.getElementById('manque');
+                if (m) { m.className = 'mt-3 text-xs text-emerald-300'; m.textContent = ok ? 'Ligne copiée. Dans la feuille « Relance des impayés », onglet Devis : touchez la première case vide de la colonne A, puis Coller. Le client sera relancé à 3 et 7 jours tant que « Signé ? » n\'est pas coché.' + (emailClient() ? '' : ' Ajoutez son e-mail dans la colonne C.') : 'Copie impossible : recopiez le numéro, le client et le montant dans l\'onglet Devis.'; }
+            });
+        }
+        function factureHtml() {
+            var c = calculerDevis(APP.fiche, devisPourPdf()), B = 'w-full px-6 py-4 rounded-full text-base font-bold ', b = 'w-full px-6 py-3 rounded-full text-sm ';
+            var h = '<div id="fin" class="p-4 rounded-2xl border-2 border-gold-500/60 bg-gold-500/5 space-y-3">';
+            if (APP.facture) {
+                var f = APP.facture;
+                h += '<p class="text-emerald-300 font-semibold">Facture n° ' + esc(f.numero) + ' créée ✓</p><p class="text-slate-200 text-sm">Net à payer : <strong>' + euros(f.net) + '</strong>, ' + esc(f.echeanceTexte) + '.</p>' +
+                     '<button type="button" onclick="envoyerFacture()" class="' + B + 'text-black bg-emerald-400">Envoyer la facture au client</button>' +
+                     '<button type="button" onclick="APP.pdfFacture.doc.save(nomFacture() + \'.pdf\')" class="' + b + 'font-semibold text-emerald-300 border border-emerald-400/50">Enregistrer le PDF</button>' +
+                     '<button type="button" onclick="window.open(APP.pdfFacture.doc.output(\'bloburl\'), \'_blank\')" class="' + b + 'text-slate-200 border border-white/20">Voir la facture</button>' +
+                     (APP.demo ? '' : '<button type="button" onclick="copierLigneRelance()" class="' + b + 'font-semibold text-gold-400 border border-gold-500/50">Ajouter à la relance des impayés (copier la ligne)</button>') +
+                     '<p id="fac-msg" class="text-xs text-slate-300"></p>' +
+                     '<p class="text-xs text-slate-400">Une facture ne se modifie plus. En cas d\'erreur, appelez-moi pour faire un avoir.</p>';
+            } else {
+                var auj = new Date(), iso = auj.getFullYear() + '-' + ('0' + (auj.getMonth() + 1)).slice(-2) + '-' + ('0' + auj.getDate()).slice(-2);
+                h += '<p class="text-white text-lg font-semibold">Créer la facture</p><p class="text-slate-300 text-sm">À partir du devis ' + esc(APP.numero || '') + ' : ' + euros(c.ttc) + ' TTC.</p>' +
+                     '<label class="block text-sm text-slate-200">Date de fin des travaux<input id="fac-date" type="date" value="' + iso + '" class="' + CHAMP + ' mt-1"></label>' +
+                     '<label class="block text-sm text-slate-200">Acompte déjà reçu (€)<input id="fac-acompte" inputmode="decimal" placeholder="0" class="' + CHAMP + ' mt-1"></label>' +
+                     (nombre(APP.fiche.acompte) > 0 ? '<button type="button" onclick="document.getElementById(\'fac-acompte\').value=\'' + String(c.acompte).replace('.', ',') + '\'" class="text-xs text-gold-400 underline">L\'acompte prévu (' + euros(c.acompte) + ') a été payé</button>' : '') +
+                     '<label class="block text-sm text-slate-200">Paiement<select id="fac-delai" class="' + CHAMP + ' mt-1"><option value="0">À réception de la facture</option><option value="30">Sous 30 jours</option></select></label>' +
+                     '<p class="text-xs text-slate-300">Vérifiez le devis avant : une facture reçoit un numéro définitif et ne se modifie plus.</p>' +
+                     '<button type="button" onclick="creerFacture()" class="' + B + 'text-black bg-gradient-to-r from-gold-400 to-gold-600">Créer la facture</button>';
+            }
+            return h + '<button type="button" onclick="retourRecap()" class="w-full text-sm text-slate-300 underline">← Retour au devis</button></div>';
+        }
+
+        /* --- Bon d'intervention : le client signe que les travaux sont faits --- */
+        function heureTexte(d) { return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+        function ouvrirBon() {
+            arreterEcoute();
+            if (!APP.bon) APP.bon = { numero: 'BI-' + numeroDevis(new Date(), APP.rep.clientNom).slice(4), date: new Date().toISOString(), arrivee: '', depart: heureTexte(new Date()), observations: '', signature: null };
+            APP.mode = 'bon'; if (APP.bon.signature) genererBonPdf(); dessiner(); window.scrollTo(0, 0);
+        }
+        function majBon(champ, v) { APP.bon[champ] = v; APP.bon.signature = null; APP.pdfBon = null; sauverBrouillon(); }
+        function genererBonPdf() {
+            if (!window.jspdf) return;
+            var b = APP.bon, d = devisPourPdf();
+            d.typeDoc = 'bon'; d.numero = b.numero; d.signature = b.signature; d.photos = APP.photos || []; d.logo = APP.demo ? '' : (stock('va_logo') || '');
+            d.lignes = (APP.lignes || []).filter(function (l) { return !/^(deplacement|gestion et evacuation)/.test(bas(l.designation)); });
+            d.horaires = [b.arrivee ? 'arrivée ' + b.arrivee : '', b.depart ? 'départ ' + b.depart : ''].filter(Boolean).join(', ');
+            d.observations = b.observations; d.reference = APP.numero ? 'Selon devis n° ' + APP.numero + '.' : '';
+            APP.pdfBon = genererPdfDevis(window.jspdf.jsPDF, APP.fiche, d, new Date(b.date));
+        }
+        function envoyerBon() { partagerFichier(APP.pdfBon, nomBon(), 'Bonjour' + (APP.rep.clientNom ? ' ' + APP.rep.clientNom : '') + ",\n\nVoici le bon d'intervention signé.\n\n" + signatureFin(APP.fiche)); }
+        function nomBon() { return (APP.demo ? 'EXEMPLE_' : '') + 'Bon_intervention_' + APP.bon.numero; }
+        function bonHtml() {
+            var b = APP.bon, B = 'w-full px-6 py-4 rounded-full text-base font-bold ', s = 'w-full px-6 py-3 rounded-full text-sm ';
+            var h = '<div id="fin" class="p-4 rounded-2xl border-2 border-gold-500/60 bg-gold-500/5 space-y-3">' +
+                '<label class="block text-sm text-slate-200">Heure d\'arrivée<input type="time" value="' + esc(b.arrivee) + '" onchange="majBon(\'arrivee\', this.value)" class="' + CHAMP + ' mt-1"></label>' +
+                '<label class="block text-sm text-slate-200">Heure de départ<input type="time" value="' + esc(b.depart) + '" onchange="majBon(\'depart\', this.value)" class="' + CHAMP + ' mt-1"></label>' +
+                '<label class="block text-sm text-slate-200">Observations (facultatif : touchez la case puis le micro du clavier)<textarea rows="3" onchange="majBon(\'observations\', this.value)" class="' + CHAMP + ' mt-1">' + esc(b.observations) + '</textarea></label>' +
+                '<p class="text-xs text-slate-300">Les travaux du devis et ' + ((APP.photos || []).length ? 'les ' + APP.photos.length + ' photo(s)' : 'les photos (ajoutez-les dans le devis)') + ' sont repris.</p>';
+            if (b.signature && APP.pdfBon) {
+                h += '<p class="text-emerald-300 font-semibold">Bon signé par le client ✓</p>' +
+                     '<button type="button" onclick="envoyerBon()" class="' + B + 'text-black bg-emerald-400">Envoyer le bon signé</button>' +
+                     '<button type="button" onclick="APP.pdfBon.doc.save(nomBon() + \'.pdf\')" class="' + s + 'font-semibold text-emerald-300 border border-emerald-400/50">Enregistrer le PDF</button>' +
+                     '<button type="button" onclick="ouvrirSignature(\'bon\')" class="' + s + 'text-slate-200 border border-white/20">Refaire la signature</button>';
+            } else h += '<button type="button" onclick="ouvrirSignature(\'bon\')" class="' + B + 'text-black bg-gradient-to-r from-gold-400 to-gold-600">✍️ Faire signer le client</button>';
+            return h + '<button type="button" onclick="retourRecap()" class="w-full text-sm text-slate-300 underline">← Retour au devis</button></div>';
+        }
+
+        /* --- Liste du matériel à acheter --- */
+        function partagerMateriel() {
+            var l = (APP.lignes || []).filter(function (x) { return propre(x.designation) && !estLigneAuto(x.designation); });
+            var lieu = APP.rep.chantier || APP.rep.clientAdresse || '';
+            var t = 'Matériel – ' + (APP.rep.clientNom || 'chantier') + (lieu ? ' (' + lieu + ')' : '') + ' :\n' +
+                    l.map(function (x) { return '- ' + String(x.qte).replace('.', ',') + (x.unite === 'u' ? ' × ' : ' ' + x.unite + ' ') + x.designation; }).join('\n');
+            try { if (navigator.share) { navigator.share({ title: 'Liste du matériel', text: t }).catch(function () {}); return; } } catch (e) {}
+            copierTexte(t, function (ok) { var m = document.getElementById('manque'); if (m) { m.className = 'mt-3 text-xs text-emerald-300'; m.textContent = ok ? 'Liste du matériel copiée.' : t; } });
+        }
+
+        /* ===================== SIGNATURE AU DOIGT ===================== */
+        var SIG = { traits: 0, dessine: false, ctx: null };
+        function ouvrirSignature(pour) {
+            if (!APP.pdf && manques().length) return;
+            arreterEcoute();
+            SIG.pour = pour === 'bon' ? 'bon' : 'devis';
+            var m = document.getElementById('signature-modal');
+            m.classList.remove('hidden');
+            var c = calculerDevis(APP.fiche, devisPourPdf());
+            document.getElementById('sig-resume').textContent = (APP.rep.clientNom || 'Client') + ' – ' + euros(c.ttc) + ' TTC';
+            document.getElementById('sig-anticipe').checked = !!(APP.signature && APP.signature.anticipe);
+            var estPro = APP.rep.pro === 'oui', bon = SIG.pour === 'bon';
+            document.getElementById('sig-retract').style.display = estPro || bon ? 'none' : '';
+            document.getElementById('sig-anticipe-zone').style.display = estPro || bon ? 'none' : '';
+            document.getElementById('sig-pieces-zone').style.display = bon ? 'none' : '';
+            document.getElementById('sig-citation').textContent = bon ? "« Je reconnais que l'intervention a été réalisée. »" : "« Devis reçu avant l'exécution des travaux. Bon pour accord. »";
+            if (bon) document.getElementById('sig-resume').textContent = (APP.rep.clientNom || 'Client') + " – bon d'intervention";
+            if (estPro) document.getElementById('sig-anticipe').checked = false;
+            var pc = APP.signature && APP.signature.pieces;
+            document.getElementById('sig-pieces-oui').checked = pc === 'oui'; document.getElementById('sig-pieces-non').checked = pc === 'non';
+            document.getElementById('sig-erreur').textContent = '';
+            preparerCanvas();
+            try { m.scrollTop = 0; } catch (e) {}
+        }
+        function fermerSignature() { document.getElementById('signature-modal').classList.add('hidden'); }
+        function preparerCanvas() {
+            var cv = document.getElementById('sig-canvas'), cadre = document.getElementById('sig-cadre');
+            var largeur = Math.max(260, cadre.clientWidth || 320), hauteur = Math.round(largeur / 3);
+            var ratio = window.devicePixelRatio || 1;
+            cv.width = Math.round(largeur * ratio); cv.height = Math.round(hauteur * ratio);
+            cv.style.height = hauteur + 'px';
+            SIG.ctx = cv.getContext ? cv.getContext('2d') : null;
+            SIG.traits = 0; majValiderSignature();
+            if (!SIG.ctx) return;
+            SIG.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+            SIG.ctx.lineWidth = 2.6; SIG.ctx.lineCap = 'round'; SIG.ctx.lineJoin = 'round'; SIG.ctx.strokeStyle = '#0b1f3a';
+            SIG.ctx.clearRect(0, 0, largeur, hauteur);
+            if (cv.dataset.pret) return;
+            cv.dataset.pret = '1';
+            var pos = function (e) { var r = cv.getBoundingClientRect(), p = e.touches ? e.touches[0] : e; return { x: p.clientX - r.left, y: p.clientY - r.top }; };
+            var debut = function (e) { e.preventDefault(); SIG.dessine = true; var p = pos(e); SIG.ctx.beginPath(); SIG.ctx.moveTo(p.x, p.y); SIG.ctx.lineTo(p.x + 0.1, p.y + 0.1); SIG.ctx.stroke(); };
+            var trace = function (e) { if (!SIG.dessine) return; e.preventDefault(); var p = pos(e); SIG.ctx.lineTo(p.x, p.y); SIG.ctx.stroke(); SIG.traits++; if (SIG.traits === 8) majValiderSignature(); };
+            var fin = function () { SIG.dessine = false; majValiderSignature(); };
+            if (window.PointerEvent) {
+                cv.addEventListener('pointerdown', function (e) { try { cv.setPointerCapture(e.pointerId); } catch (x) {} debut(e); });
+                cv.addEventListener('pointermove', trace);
+                cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', fin);
+            } else {
+                cv.addEventListener('touchstart', debut, { passive: false }); cv.addEventListener('touchmove', trace, { passive: false }); cv.addEventListener('touchend', fin);
+                cv.addEventListener('mousedown', debut); cv.addEventListener('mousemove', trace); window.addEventListener('mouseup', fin);
+            }
+        }
+        function effacerSignature() { preparerCanvas(); }
+        function majValiderSignature() {
+            var b = document.getElementById('sig-valider'), ok = SIG.traits >= 8;
+            b.disabled = !ok; b.classList.toggle('opacity-40', !ok);
+        }
+        function validerSignature() {
+            if (SIG.traits < 8) { document.getElementById('sig-erreur').textContent = 'Signez dans le cadre blanc.'; return; }
+            var cv = document.getElementById('sig-canvas'), image = '';
+            try { image = cv.toDataURL('image/png'); } catch (e) {}
+            if (!image) { document.getElementById('sig-erreur').textContent = "La signature n'a pas pu être enregistrée. Réessayez."; return; }
+            var pieces = document.getElementById('sig-pieces-oui').checked ? 'oui' : (document.getElementById('sig-pieces-non').checked ? 'non' : '');
+            if (SIG.pour === 'bon') {
+                APP.bon.signature = { image: image, nom: APP.rep.clientNom || '', date: new Date().toISOString() };
+                fermerSignature(); genererBonPdf(); sauverBrouillon(); if (!APP.demo) sauverHistorique(); dessiner();
+                return;
+            }
+            enregistrerSignature(image, document.getElementById('sig-anticipe').checked, pieces);
+            fermerSignature();
+        }
+        function enregistrerSignature(image, anticipe, pieces) {
+            APP.signature = { image: image, anticipe: !!anticipe, pieces: pieces || '', nom: APP.rep.clientNom || '', date: new Date().toISOString() };
+            creerPdf();
+            sauverBrouillon();
+            majBarrePdf();
+        }
         function ouvrirPdf() { if (APP.pdf) window.open(APP.pdf.doc.output('bloburl'), '_blank'); }
 
         demarrer();
