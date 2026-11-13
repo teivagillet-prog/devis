@@ -62,7 +62,7 @@
         <div id="cartes" class="mt-4 space-y-3"></div>
         <div id="fin-zone" class="mt-4"></div>
 
-        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v12</p>
+        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v13</p>
     </main>
     <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-gold-500/30 px-4 pt-3 pb-5">
         <div class="max-w-xl mx-auto">
@@ -128,6 +128,11 @@
             return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         }
 
+        /* Mention obligatoire : assurance, coordonnées de l'assureur, couverture géographique */
+        function assuranceTexte(f) {
+            return 'Assurance décennale : ' + f.decennale + (f.decContrat ? ', contrat n° ' + String(f.decContrat).replace(/^\s*(n°|numéro|numero|no)\s*/i, '') : '') +
+                   (f.decZone ? '. Couverture géographique : ' + f.decZone : '') + '.' + (f.rcpro ? ' RC professionnelle : ' + f.rcpro + '.' : '');
+        }
         function formeAffichee(forme) {
             if (forme === 'Micro-entreprise') return 'EI (micro-entreprise)';
             if (forme === 'Entreprise individuelle (EI)') return 'Entrepreneur individuel (EI)';
@@ -153,6 +158,14 @@
                 lignes.push({ designation: String(l.designation).trim(), qte: q, unite: l.unite || 'u', pu: pu, total: tot });
                 ht += tot;
             }
+            var moHt = 0;
+            for (var mo = 0; mo < lignes.length; mo++) if (/^main.d/i.test(sansAccents(lignes[mo].designation))) moHt += lignes[mo].total;
+            var majPct = Math.min(200, Math.max(0, nombre(devis.majoration))), majoration = 0;
+            if (majPct > 0 && moHt > 0) {
+                majoration = Math.round(moHt * majPct) / 100;
+                lignes.push({ designation: 'Majoration ' + String(majPct).replace('.', ',') + ' % de la main-d\'œuvre (urgence, soir, week-end ou jour férié)', qte: 1, unite: 'forfait', pu: majoration, total: majoration });
+                ht += majoration; moHt += majoration;
+            }
             var htBrut = Math.round(ht * 100) / 100;
             var remisePct = Math.min(100, Math.max(0, nombre(devis.remise)));
             var remise = Math.round(htBrut * remisePct) / 100;
@@ -160,7 +173,8 @@
             var tva = Math.round(ht * taux) / 100;
             var ttc = Math.round((ht + tva) * 100) / 100;
             var acompte = Math.round(ttc * nombre(fiche.acompte)) / 100;
-            return { franchise: franchise, taux: taux, lignes: lignes, htBrut: htBrut, remisePct: remisePct, remise: remise, ht: ht, tva: tva, ttc: ttc, acompte: acompte };
+            return { franchise: franchise, taux: taux, lignes: lignes, htBrut: htBrut, remisePct: remisePct, remise: remise, ht: ht, tva: tva, ttc: ttc, acompte: acompte,
+                     moHt: Math.round(moHt * 100) / 100, majPct: majPct, majoration: majoration };
         }
 
         function genererPdfDevis(JsPDF, fiche, devis, aujourdhui) {
@@ -171,7 +185,7 @@
             var date = aujourdhui || new Date();
             var fin = new Date(date.getTime()); fin.setDate(fin.getDate() + (Math.round(nombre(fiche.validite)) || 30));
             var numero = devis.numero || numeroDevis(date, devis.clientNom);
-            var pro = !!devis.pro;
+            var pro = !!devis.pro, urgence = !pro && !!devis.urgence;
             var type = devis.typeDoc || 'devis', estDevis = type === 'devis', estFacture = type === 'facture', estBon = type === 'bon';
             var y;
 
@@ -291,27 +305,30 @@
             var dechetsLigne = 0;
             for (var dl = 0; dl < c.lignes.length; dl++) if (/d[ée]chet/i.test(c.lignes[dl].designation)) dechetsLigne += c.lignes[dl].total;
             var mentions = estDevis ? [
-                'Conditions : devis gratuit, valable ' + (Math.round(nombre(fiche.validite)) || 30) + ' jours. Paiement par ' + fiche.paiement + '.' +
-                    (nombre(fiche.acompte) > 0 ? ' Acompte de ' + nombre(fiche.acompte) + ' % à la signature' + (pro ? '' : ' (devis signé à votre domicile : acompte réglé au plus tôt 7 jours après la signature)') + ', solde à la fin des travaux.' : '') +
+                'Conditions : ' + (nombre(fiche.prixDevis) > 0 ? 'devis payant (' + euros(nombre(fiche.prixDevis)) + ' TTC)' : 'devis gratuit') + ', valable ' + (Math.round(nombre(fiche.validite)) || 30) + ' jours. Paiement par ' + fiche.paiement + '.' +
+                    (nombre(fiche.acompte) > 0 ? ' Acompte de ' + nombre(fiche.acompte) + ' % à la signature' + (pro || urgence ? '' : ' (devis signé à votre domicile : acompte réglé au plus tôt 7 jours après la signature)') + ', solde à la fin des travaux.' : '') +
                     (devis.debut ? ' Début des travaux : ' + devis.debut.charAt(0).toLowerCase() + devis.debut.slice(1) + '.' : '') +
                     (devis.duree ? ' Durée estimée des travaux : ' + devis.duree.charAt(0).toLowerCase() + devis.duree.slice(1) + '.' : ''),
                 'Déchets : les déchets du chantier sont triés puis déposés par nos soins à : ' + fiche.dechetterie + '. Coût estimé : ' + (dechetsLigne > 0 ? euros(dechetsLigne) + ' HT.' : 'inclus.'),
                 'Taux horaire de main-d\'œuvre : ' + euros(nombre(fiche.tauxHoraire)) + (c.franchise ? ' (TVA non applicable).' : ' HT, soit ' + euros(Math.round(nombre(fiche.tauxHoraire) * (1 + c.taux / 100) * 100) / 100) + ' TTC.') +
                     (fiche.decompte ? ' Temps de main-d\'œuvre décompté ' + fiche.decompte + '.' : '') +
+                    (c.moHt > 0 ? ' Coût de la main-d\'œuvre pour ce devis : ' + euros(c.moHt) + (c.franchise ? '' : ' HT, soit ' + euros(Math.round(c.moHt * (1 + c.taux / 100) * 100) / 100) + ' TTC') + (c.remise > 0 ? ' (avant remise)' : '') + '.' : '') +
                     (nombre(fiche.deplacement) > 0 ? '' : ' Déplacement offert.'),
-                'Assurance décennale : ' + fiche.decennale + '.' + (fiche.rcpro ? ' RC professionnelle : ' + fiche.rcpro + '.' : ''),
+                assuranceTexte(fiche),
             ] : (estFacture ? [
                 'Travaux réalisés le ' + (devis.dateTravaux ? dateFr(new Date(devis.dateTravaux)) : dateFr(date)) + (devis.chantier ? ' au ' + devis.chantier : '') + '.',
                 'Paiement ' + (devis.echeanceTexte || 'à réception de la facture') + ', par ' + fiche.paiement + '. Pas d\'escompte pour paiement anticipé.',
-                'Assurance décennale : ' + fiche.decennale + '.' + (fiche.rcpro ? ' RC professionnelle : ' + fiche.rcpro + '.' : '')
+                assuranceTexte(fiche)
             ] : [
                 'Intervention du ' + dateFr(date) + (devis.horaires ? ' – ' + devis.horaires : '') + '.',
                 devis.observations ? 'Observations : ' + devis.observations : ''
             ].filter(Boolean));
             if (pro && !estBon) mentions.push("Retard de paiement : pénalités au taux de trois fois le taux d'intérêt légal et indemnité forfaitaire pour frais de recouvrement de 40 € (art. L441-10 du Code de commerce).");
             if (fiche.mediateur && !pro && !estBon) mentions.push('Médiateur de la consommation : ' + fiche.mediateur + '.');
-            if (!pro && estDevis) mentions.push("Droit de rétractation : si vous signez ce devis à votre domicile ou à distance, vous disposez de 14 jours à compter de la signature pour vous rétracter, sans avoir à vous justifier, en nous renvoyant le formulaire ci-dessous ou toute déclaration claire (courrier ou e-mail). Si le devis est signé à votre domicile, aucun paiement ne peut être demandé avant 7 jours. Si vous voulez que les travaux commencent avant la fin des 14 jours, cochez la case prévue : en cas de rétractation, vous paierez alors les travaux déjà réalisés (art. L221-18 et suivants du Code de la consommation).");
-            if (!estBon && !c.franchise && c.taux > 0 && c.taux < 20) mentions.push("TVA à taux réduit : le client certifie que les travaux portent sur des locaux à usage d'habitation achevés depuis plus de deux ans, et qu'ils n'ont pas pour effet de rendre l'immeuble neuf ni d'augmenter sa surface de plancher de plus de 10 %.");
+            if (urgence && estDevis) mentions.push("Intervention d'urgence demandée par le client à son domicile : pas de droit de rétractation pour les travaux et les pièces strictement nécessaires pour répondre à l'urgence (art. L221-28, 8° du Code de la consommation).");
+            if (!pro && !urgence && estDevis) mentions.push("Droit de rétractation : si vous signez ce devis à votre domicile ou à distance, vous disposez de 14 jours à compter de la signature pour vous rétracter, sans avoir à vous justifier, en nous renvoyant le formulaire ci-dessous ou toute déclaration claire (courrier ou e-mail). Si le devis est signé à votre domicile, aucun paiement ne peut être demandé avant 7 jours. Si vous voulez que les travaux commencent avant la fin des 14 jours, cochez la case prévue : en cas de rétractation, vous paierez alors les travaux déjà réalisés (art. L221-18 et suivants du Code de la consommation).");
+            if (!estBon && !c.franchise && c.taux > 0 && c.taux < 20) mentions.push("TVA à taux réduit : le client certifie que les travaux portent sur des locaux à usage d'habitation achevés depuis plus de deux ans, et qu'ils n'ont pas pour effet de rendre l'immeuble neuf ni d'augmenter sa surface de plancher de plus de 10 %." +
+                (c.taux === 5.5 ? " Pour le taux de 5,5 % : les travaux améliorent la performance énergétique du logement (chauffage, eau chaude, isolation ou ventilation) et le matériel respecte les critères de performance exigés." : ''));
             for (var m = 0; m < mentions.length; m++) {
                 doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
                 var hm = doc.splitTextToSize(mentions[m], L).length * 3.4;
@@ -334,7 +351,7 @@
             if (!estFacture) {
             place(48);
             // à gauche : demande de début des travaux avant la fin du délai de rétractation
-            if (!pro && estDevis) {
+            if (!pro && !urgence && estDevis) {
                 doc.setDrawColor(GRIS[0], GRIS[1], GRIS[2]); doc.setLineWidth(0.25);
                 doc.rect(G, y + 2, 3, 3);
                 if (sig && sig.anticipe) { doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.4); doc.line(G + 0.5, y + 2.5, G + 2.5, y + 4.5); doc.line(G + 2.5, y + 2.5, G + 0.5, y + 4.5); }
@@ -355,7 +372,7 @@
             }
 
             // Formulaire de rétractation (à découper) : seulement sur le devis d'un particulier
-            if (!pro && estDevis) {
+            if (!pro && !urgence && estDevis) {
             place(58);
             doc.setDrawColor(GRIS[0], GRIS[1], GRIS[2]); doc.setLineWidth(0.25);
             if (doc.setLineDashPattern) doc.setLineDashPattern([1.5, 1.2], 0);
@@ -1063,6 +1080,7 @@
             var v = null;
             if (q.type === 'ouinon') { v = ouiNon(t) || ouiNon(brut); if (v) return { ok: true, valeur: v }; }
             if (q.type === 'nombre' && q.defaut == null && t && nombreFr(t) === null && estZero(t)) return { ok: true, valeur: '0' };
+            if (q.cle === 'prixDevis' && /gratui|offert|rien|zero|aucun|pas payant|^oui|^non\b.*pay/.test(bas(propre(brut)))) return { ok: true, valeur: '0' };
             if (!t || estPasser(t)) {
                 if (q.requis) return { ok: false, erreur: 'Cette information est obligatoire.' };
                 return { ok: true, valeur: q.defaut != null ? q.defaut : '', passe: true };
@@ -1113,7 +1131,9 @@
             { cle: 'regime', texte: 'Facturez-vous la TVA ?', aide: 'Oui ou non (non = micro-entreprise sans TVA)', type: 'ouinon', requis: true },
             { cle: 'tvaNum', texte: 'Votre numéro de TVA intracommunautaire ?', aide: 'Dites « passer » si vous ne l\'avez pas', retirer: /^((mon |le )?(num[ée]ro )?(de )?(tva|t v a)( intra(-| )?communautaire| intracom)?( c'est| est)?\s*:?\s*)/i, si: function (r) { return r.regime === 'oui'; } },
             { cle: 'tauxDefaut', texte: 'Votre taux de TVA habituel ?', aide: '10, 20 ou 5,5', type: 'taux', requis: true, si: function (r) { return r.regime === 'oui'; } },
-            { cle: 'decennale', texte: 'Votre assurance décennale ?', aide: "Le nom de l'assureur, le numéro de contrat et la zone couverte", requis: true, vocab: 'assurance' },
+            { cle: 'decennale', texte: 'Votre assureur décennale : son nom et son adresse ?', aide: 'Écrits sur votre attestation. Ex. : AXA France, 313 Terrasses de l\'Arche, Nanterre', requis: true, vocab: 'assurance' },
+            { cle: 'decContrat', texte: 'Le numéro de votre contrat décennale ?', aide: 'Sur votre attestation, ou « passer »', vocab: 'assurance' },
+            { cle: 'decZone', texte: 'La zone couverte par votre décennale ?', aide: 'Sur votre attestation. Ex. : France métropolitaine', requis: true, vocab: 'assurance' },
             { cle: 'rcpro', texte: 'Votre assurance responsabilité civile pro ?', aide: 'Assureur et numéro, ou « passer »', vocab: 'assurance' },
             { cle: 'mediateur', texte: 'Votre médiateur de la consommation ?', aide: 'Obligatoire pour les particuliers. Nom et site internet, ex. : Médicys, medicys.fr', vocab: 'assurance', requis: true, site: true },
             { cle: 'tauxHoraire', texte: "Votre prix de l'heure, hors taxes ?", aide: 'Ex. : 55', type: 'nombre', requis: true },
@@ -1123,6 +1143,7 @@
             { cle: 'dechetterie', texte: 'Où déposez-vous les déchets ?', aide: 'Ex. : déchetterie professionnelle de Lyon', requis: true, casse: true },
             { cle: 'acompte', texte: 'Quel acompte demandez-vous à la signature, en pourcentage ?', aide: 'Ex. : 30 (dites « zéro » si aucun)', type: 'nombre', requis: true },
             { cle: 'validite', texte: 'Vos devis sont valables combien de jours ?', aide: 'Dites « passer » pour 30 jours', type: 'nombre', defaut: '30' },
+            { cle: 'prixDevis', texte: 'Combien coûtent vos devis ?', aide: 'Dites « gratuit », ou le prix TTC si vous les faites payer', type: 'nombre', defaut: '0' },
             { cle: 'paiement', texte: 'Quels moyens de paiement acceptez-vous ?', aide: 'Ex. : virement ou chèque', requis: true, casse: true }
         ];
 
@@ -1155,7 +1176,7 @@
                 n++;
             }
             if (!('heures' in r)) return { cle: 'heures', texte: "Combien d'heures de main-d'œuvre ?", aide: 'Ex. : 3 (ou « zéro »)', type: 'nombre', requis: true };
-            if (f.regime !== 'franchise' && !('tauxTva' in r)) return { cle: 'tauxTva', texte: 'Quel taux de TVA pour ce devis ?', aide: '10 % (logement de plus de 2 ans), 20 % ou 5,5 %. « Passer » = ' + String(f.tauxDefaut || '10').replace('.', ',') + ' %', type: 'taux', defaut: f.tauxDefaut || '10' };
+            if (f.regime !== 'franchise' && !('tauxTva' in r)) return { cle: 'tauxTva', texte: 'Quel taux de TVA pour ce devis ?', aide: '10 % (logement de plus de 2 ans), 5,5 % (économies d\'énergie), 20 % (neuf, local pro, chaudière gaz ou fioul). « Passer » = ' + String(f.tauxDefaut || '10').replace('.', ',') + ' %', type: 'taux', defaut: f.tauxDefaut || '10' };
             if (!('duree' in r)) return { cle: 'duree', texte: 'Durée estimée des travaux ?', aide: 'Ex. : une demi-journée, ou « passer »', vocab: 'duree' };
             if (!('debut' in r)) return { cle: 'debut', texte: 'Quand pouvez-vous commencer les travaux ?', aide: 'Ex. : « sous 15 jours », « lundi prochain », « le 2 décembre »', vocab: 'duree', date: true, requis: true };
             return null;
@@ -1254,8 +1275,8 @@
             return {
                 nom: r.nom || '', forme: r.forme || '', capital: estSociete(r.forme) ? (r.capital || '') : '', dirigeant: r.dirigeant || '', adresse: r.adresse || '', tel: r.tel || '', email: r.email || '',
                 siret: r.siret || '', rm: r.rm || '', regime: r.regime === 'non' ? 'franchise' : 'assujetti', tvaNum: r.tvaNum || '', tauxDefaut: r.tauxDefaut || '10',
-                decennale: r.decennale || '', rcpro: r.rcpro || '', mediateur: r.mediateur || '', tauxHoraire: r.tauxHoraire || '0', decompte: r.decompte || '', deplacement: r.deplacement || '0',
-                dechetsPrix: r.dechetsPrix || '0', dechetterie: r.dechetterie || '', acompte: r.acompte || '0', validite: r.validite || '30', paiement: r.paiement || ''
+                decennale: r.decennale || '', decContrat: r.decContrat || '', decZone: r.decZone || '', rcpro: r.rcpro || '', mediateur: r.mediateur || '', tauxHoraire: r.tauxHoraire || '0', decompte: r.decompte || '', deplacement: r.deplacement || '0',
+                dechetsPrix: r.dechetsPrix || '0', dechetterie: r.dechetterie || '', acompte: r.acompte || '0', validite: r.validite || '30', prixDevis: r.prixDevis || '0', paiement: r.paiement || ''
             };
         }
 
@@ -1302,7 +1323,7 @@
         /* ===================== ESSAI AVEC UN EXEMPLE (rien à remplir) ===================== */
         var FICHE_DEMO = { demo: true, nom: 'Plomberie Martin', forme: 'SARL', capital: '1000', dirigeant: 'Jean Martin', adresse: '12 rue des Lilas, 33000 Bordeaux',
             tel: '06 12 34 56 78', email: 'contact@plomberie-martin.fr', siret: '123 456 789 00012', rm: '123 456 789', regime: 'assujetti', tvaNum: 'FR 32 123456789', tauxDefaut: '10',
-            decennale: 'Assurance Exemple, contrat n° 000000, France entière', rcpro: '', mediateur: 'Médiateur Exemple – exemple.fr', tauxHoraire: '55',
+            decennale: 'Assurance Exemple, 1 rue de l\'Exemple, 33000 Bordeaux', decContrat: '000000', decZone: 'France métropolitaine', rcpro: '', mediateur: 'Médiateur Exemple – exemple.fr', tauxHoraire: '55',
             decompte: "au quart d'heure entamé", deplacement: '35', dechetsPrix: '20', dechetterie: 'déchetterie professionnelle de Bordeaux', acompte: '30', validite: '30', paiement: 'virement ou chèque' };
         function lancerDemo() {
             arreterEcoute();
@@ -1338,6 +1359,8 @@
             if (manque.length) {
                 /* fiche faite avec une ancienne version : on pose seulement les nouvelles questions obligatoires */
                 APP.mode = 'fiche'; APP.rep = reponsesDepuisFiche(APP.fiche); APP.ordre = []; APP.miseAJour = true; APP.nbMaj = manque.length;
+                /* les nouvelles questions facultatives ne sont pas posées : valeur par défaut */
+                for (var qi = 0; qi < QUESTIONS_FICHE.length; qi++) { var qq = QUESTIONS_FICHE[qi]; if (qq.cle !== 'siretOk' && !(qq.cle in APP.rep) && manque.indexOf(qq.cle) < 0) APP.rep[qq.cle] = qq.defaut != null ? qq.defaut : ''; }
                 for (var mq = 0; mq < manque.length; mq++) delete APP.rep[manque[mq]];
             } else if (ficheValide(APP.fiche)) {
                 var b = stock('va_devis');
@@ -1516,7 +1539,7 @@
             var r = APP.rep;
             return { clientNom: r.clientNom || '', clientAdresse: r.clientAdresse || '', clientContact: r.clientContact || '', chantier: r.chantier || '',
                      objet: r.objet || '', duree: r.duree || '', debut: r.debut || '', signature: APP.signature || null, tauxTva: r.tauxTva || APP.fiche.tauxDefaut || '10', lignes: APP.lignes || [],
-                     pro: r.pro === 'oui', remise: r.remise || '', numero: APP.numero || '' };
+                     pro: r.pro === 'oui', urgence: r.urgence === 'oui', remise: r.remise || '', majoration: r.majoration || '', numero: APP.numero || '' };
         }
 
         function manques() {
@@ -1698,6 +1721,7 @@
         function valeurAffichee(cle, v) {
             if (cle === 'regime') return v === 'non' ? 'Non (TVA non applicable)' : 'Oui';
             if (cle === 'siretOk') return v === 'oui' ? 'Oui' : 'Non';
+            if (cle === 'prixDevis') return nombre(v) > 0 ? 'Payant : ' + euros(nombre(v)) + ' TTC' : 'Gratuit';
             if (cle === 'tauxDefaut' || cle === 'tauxTva') return String(v).replace('.', ',') + ' %';
             if (v === '') return '';
             return v;
@@ -1855,6 +1879,11 @@
             h += '</div><button type="button" onclick="ajouterLigne()" class="mt-2 w-full px-4 py-2.5 rounded-lg border border-white/15 text-slate-200 text-sm">+ Ajouter une ligne</button>';
             h += '<div class="mt-3 grid grid-cols-2 gap-2 items-center text-sm"><label for="remise" class="text-slate-300">Remise (%)</label>' +
                  '<input id="remise" value="' + esc(String(APP.rep.remise || '').replace('.', ',')) + '" inputmode="decimal" placeholder="0" oninput="majRemise(this.value)" class="' + CHAMP + ' !py-1.5"></div>';
+            h += '<div class="mt-2 grid grid-cols-2 gap-2 items-center text-sm"><label for="majoration" class="text-slate-300">Majoration main-d\'œuvre (%)<br><span class="text-xs text-slate-400">soir, week-end, jour férié</span></label>' +
+                 '<input id="majoration" value="' + esc(String(APP.rep.majoration || '').replace('.', ',')) + '" inputmode="decimal" placeholder="0" onchange="majMajoration(this.value)" class="' + CHAMP + ' !py-1.5"></div>';
+            h += '<label class="mt-3 flex items-start gap-3 p-3 rounded-xl border border-white/15 text-sm text-slate-200"><input type="checkbox" ' + (APP.rep.urgence === 'oui' ? 'checked ' : '') +
+                 'onchange="majUrgence(this.checked)" class="mt-1 w-5 h-5 accent-amber-400"><span>Dépannage urgent demandé par le client chez lui : pas de délai de rétractation pour les travaux strictement nécessaires.</span></label>';
+            if (alerteTva()) h += '<p class="mt-3 text-sm text-amber-300">⚠️ ' + esc(alerteTva()) + '</p>';
             h += '<label class="mt-3 flex items-start gap-3 p-3 rounded-xl border border-white/15 text-sm text-slate-200"><input type="checkbox" ' + (APP.rep.pro === 'oui' ? 'checked ' : '') +
                  'onchange="majPro(this.checked)" class="mt-1 w-5 h-5 accent-amber-400"><span>Client professionnel (entreprise, syndic, agence) : pas de droit de rétractation sur le devis.</span></label>';
             h += '<div id="totaux" class="mt-4 p-4 rounded-xl bg-obsidian/70 border border-white/10 text-sm">' + totauxHtml(c) + '</div>';
@@ -1879,7 +1908,8 @@
         }
 
         function totauxHtml(c) {
-            return (c.remise > 0 ? '<div class="flex justify-between text-slate-300"><span>Total HT avant remise</span><span>' + euros(c.htBrut) + '</span></div>' +
+            return (c.majoration > 0 ? '<div class="flex justify-between text-slate-300 mb-1"><span>Majoration ' + String(c.majPct).replace('.', ',') + ' % main-d\'œuvre</span><span>' + euros(c.majoration) + '</span></div>' : '') +
+                   (c.remise > 0 ? '<div class="flex justify-between text-slate-300"><span>Total HT avant remise</span><span>' + euros(c.htBrut) + '</span></div>' +
                                    '<div class="flex justify-between text-slate-300 mt-1"><span>Remise ' + String(c.remisePct).replace('.', ',') + ' %</span><span>' + euros(-c.remise) + '</span></div>' : '') +
                    '<div class="flex justify-between text-slate-300' + (c.remise > 0 ? ' mt-1' : '') + '"><span>Total HT</span><span>' + euros(c.ht) + '</span></div>' +
                    (c.franchise ? '<div class="text-slate-400 text-xs mt-1">TVA non applicable (art. 293 B du CGI)</div>'
@@ -2015,6 +2045,16 @@
             majBarrePdf(); sauverBrouillon();
         }
         function majPro(oui) { APP.rep.pro = oui ? 'oui' : 'non'; rafraichirRecap(); }
+        function majUrgence(oui) { APP.rep.urgence = oui ? 'oui' : 'non'; rafraichirRecap(); }
+        function majMajoration(v) { APP.rep.majoration = propre(v); rafraichirRecap(); }
+        /* Chaudière gaz ou fioul : jamais de TVA réduite */
+        function alerteTva() {
+            var c = calculerDevis(APP.fiche, devisPourPdf());
+            if (c.franchise || c.taux >= 20) return '';
+            for (var i = 0; i < c.lignes.length; i++) if (/chaudi[eè]re/i.test(c.lignes[i].designation) && /gaz|fioul|fuel|mazout/i.test(c.lignes[i].designation))
+                return 'Chaudière gaz ou fioul : la TVA doit être à 20 %, pas à ' + String(c.taux).replace('.', ',') + ' %. Vérifiez avec votre comptable.';
+            return '';
+        }
 
         /* Photos et logo : réduits sur le téléphone avant d'être gardés */
         function compresserImage(fichier, maxDim, garderPng, rappel) {
@@ -2271,7 +2311,7 @@
             var c = calculerDevis(APP.fiche, devisPourPdf());
             document.getElementById('sig-resume').textContent = (APP.rep.clientNom || 'Client') + ' – ' + euros(c.ttc) + ' TTC';
             document.getElementById('sig-anticipe').checked = !!(APP.signature && APP.signature.anticipe);
-            var estPro = APP.rep.pro === 'oui', bon = SIG.pour === 'bon';
+            var estPro = APP.rep.pro === 'oui' || APP.rep.urgence === 'oui', bon = SIG.pour === 'bon';
             document.getElementById('sig-retract').style.display = estPro || bon ? 'none' : '';
             document.getElementById('sig-anticipe-zone').style.display = estPro || bon ? 'none' : '';
             document.getElementById('sig-pieces-zone').style.display = bon ? 'none' : '';
