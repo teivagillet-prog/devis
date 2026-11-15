@@ -62,7 +62,7 @@
         <div id="cartes" class="mt-4 space-y-3"></div>
         <div id="fin-zone" class="mt-4"></div>
 
-        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v17</p>
+        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v18</p>
     </main>
     <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-gold-500/30 px-4 pt-3 pb-5">
         <div class="max-w-xl mx-auto">
@@ -1959,14 +1959,15 @@
             var plus = '';
             if (actif) {
                 var c = APP.courante, P = 'px-2.5 py-1 rounded-full text-xs border border-slate-300 text-slate-700';
-                if (c.aide) plus += '<p class="text-slate-500 text-xs mt-1">' + esc(c.aide) + '</p>';
+                var etroit = /col-span-4/.test(classe || '');
+                if (c.aide && !etroit) plus += '<p class="text-slate-500 text-xs mt-1">' + esc(c.aide) + '</p>';
                 if (c.prixConnu) plus += '<div class="flex gap-2 mt-1.5"><button type="button" onclick="repondre(\'pareil\')" class="px-3 py-1.5 rounded-full text-xs font-bold text-white bg-slate-900">Pareil : ' + euros(nombre(c.prixConnu)) + '</button>' +
                                          '<button type="button" onclick="repondre(\'autre prix\')" class="' + P + ' font-bold">Autre prix</button></div>';
                 if (cle === 'f0_des' && !APP.demo && !(cle in APP.rep)) plus += typesDevis().map(function (t, i) { return '<button type="button" onclick="appliquerTypeNumero(' + i + ')" class="mt-1.5 mr-1.5 ' + P + '">' + esc(t.nom) + '</button>'; }).join('');
                 if (APP.erreur) plus += '<p class="text-red-600 text-xs mt-1">' + esc(APP.erreur) + '</p>';
-                var bt = (APP.ordre.length ? '<button type="button" onclick="allerPrecedente()" aria-label="Question précédente" class="' + P + '">← Retour</button>' : '') +
+                var bt = (APP.ordre.length && !etroit ? '<button type="button" onclick="allerPrecedente()" aria-label="Question précédente" class="' + P + '">← Retour</button>' : '') +
                          (!c.requis && !(cle in APP.rep) ? '<button type="button" onclick="repondre(\'passer\')" class="' + P + '">Passer</button>' : '') +
-                         (APP.cible ? '<button type="button" onclick="APP.cible = null; avancer(true);" class="' + P + '">Case suivante</button>' : '');
+                         (APP.cible && !etroit ? '<button type="button" onclick="APP.cible = null; avancer(true);" class="' + P + '">Case suivante</button>' : '');
                 if (bt) plus += '<div class="flex flex-wrap gap-1.5 mt-1.5">' + bt + '</div>';
             }
             var zp = document.getElementById('plus-' + cle);
