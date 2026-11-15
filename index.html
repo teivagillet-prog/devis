@@ -64,7 +64,7 @@
         <div id="cartes" class="mt-4 space-y-3"></div>
         <div id="fin-zone" class="mt-4"></div>
 
-        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v22</p>
+        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v23</p>
     </main>
     <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-gold-500/30 px-4 pt-3 pb-5">
         <div class="max-w-xl mx-auto">
@@ -2744,6 +2744,18 @@
         function majBarrePdf() {
             var barre = document.getElementById('barre-pdf');
             if (!barre) return;
+            /* devis en cours : le bouton « Créer le devis PDF » est toujours là (sauf pendant l'écoute) */
+            if (APP.mode === 'devis') {
+                if (APP.ecouteLibre || APP.attente) { barre.classList.add('hidden'); return; }
+                barre.classList.remove('hidden');
+                var gardees = APP.lignes; APP.lignes = construireLignes(); var md = manques(); APP.lignes = gardees;
+                var bd = document.getElementById('barre-pdf-bouton'), id = document.getElementById('barre-pdf-info');
+                bd.textContent = '📄 Créer le devis PDF'; bd.disabled = false; bd.className = bd.className.replace(' opacity-40', '') + (md.length ? ' opacity-40' : '');
+                id.textContent = md.length ? 'Pour le PDF, il manque : ' + md.join(', ') + '.' : 'L\'essentiel est rempli : vous pouvez créer le PDF maintenant.';
+                id.className = 'text-xs text-center mb-2 ' + (md.length ? 'text-red-300' : 'text-emerald-300');
+                var bsd = document.getElementById('barre-pdf-signer'); if (bsd) bsd.classList.add('hidden');
+                return;
+            }
             if (APP.mode !== 'recap') { barre.classList.add('hidden'); return; }
             barre.classList.remove('hidden');
             var m = manques(), b = document.getElementById('barre-pdf-bouton'), info = document.getElementById('barre-pdf-info');
@@ -2760,7 +2772,35 @@
             var bs = document.getElementById('barre-pdf-signer');
             if (bs) { bs.classList.toggle('hidden', !APP.pdf); bs.textContent = APP.signature ? '✍️ Re-signer' : '✍️ Faire signer'; }
         }
-        function actionBarrePdf() { if (APP.pdf) partagerPdf(); else creerPdf(); }
+        function actionBarrePdf() { if (APP.mode === 'devis') { creerPdfMaintenant(); return; } if (APP.pdf) partagerPdf(); else creerPdf(); }
+        /* « Créer le devis PDF » pendant le devis : sans attendre les dernières questions */
+        function creerPdfMaintenant() {
+            if (APP.mode !== 'devis' || APP.ecouteLibre || APP.attente) return;
+            APP.lignes = construireLignes();
+            var m = manques();
+            if (m.length) {
+                APP.lignes = null;
+                if (APP.sansFiche) { etat('Pour créer le PDF, remplissez d\'abord votre fiche (bouton « Remplir ma fiche »).', 'text-red-300'); window.scrollTo(0, 0); return; }
+                var r = APP.rep, cle = !r.clientNom ? 'clientNom' : (!r.clientAdresse ? 'clientAdresse' : null);
+                if (!cle) { for (var n = 0; ('f' + n + '_des') in r; n++) { if (r['f' + n + '_des'] && !propre(r['f' + n + '_pu'] || '')) { cle = 'f' + n + '_pu'; break; } } }
+                if (!cle && !('f0_des' in r)) cle = 'f0_des';
+                if (cle) { definirCible(cle); defilerVersCourante(); }
+                etat('Pour créer le PDF, il manque : ' + m.join(', ') + '.', 'text-red-300');
+                return;
+            }
+            arreterEcoute();
+            APP.cible = null; APP.courante = null; APP.erreur = ''; APP.mode = 'recap';
+            dessiner();
+            sauverBrouillon();
+            creerPdf();
+        }
+        /* depuis le récapitulatif : revenir au devis pour compléter (durée, début…) */
+        function revenirAuDevis() {
+            if (APP.facture) return;
+            APP.mode = 'devis'; APP.lignes = null; APP.pdf = null; APP.signature = null; APP.cible = null;
+            avancer(true);
+            window.scrollTo(0, 0);
+        }
 
         function dessinerRecap() {
             var z = document.getElementById('fin');
@@ -2806,6 +2846,7 @@
                     '<button type="button" onclick="ouvrirBon()" class="w-full px-6 py-3 rounded-full text-sm font-semibold text-slate-100 border border-white/20">📋 Bon d\'intervention signé' + (APP.bon && APP.bon.signature ? ' ✓' : '') + '</button>' +
                     '<button type="button" onclick="partagerMateriel()" class="w-full px-6 py-3 rounded-full text-sm font-semibold text-slate-100 border border-white/20">🛒 Liste du matériel à acheter</button></div>' +
                  '</div>' +
+                 (APP.facture ? '' : '<button type="button" onclick="revenirAuDevis()" class="mt-4 w-full text-sm text-gold-400 underline">← Revenir au devis pour le compléter</button>') +
                  '<button type="button" onclick="nouveauDevis()" class="mt-4 w-full text-sm text-slate-400 underline">Commencer un nouveau devis</button></div>';
             z.innerHTML = h;
         }
