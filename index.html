@@ -54,7 +54,7 @@
             <p id="etat" class="mt-3 text-sm font-semibold text-gold-400">Touchez le micro et répondez à la question</p>
             <p id="question-courante" class="mt-1 text-slate-200 text-sm font-semibold"></p>
             <div class="mt-2 mx-auto max-w-xs h-1.5 rounded-full bg-white/10 overflow-hidden"><div id="barre-progression" class="h-full bg-gold-500 rounded-full transition-all" style="width:0%"></div></div>
-            <p class="mt-2 text-xs text-slate-300">Dites « passer » pour sauter, « question précédente » pour revenir. Trompé ? Dites « pardon » puis la bonne réponse.</p>
+            <p class="mt-2 text-xs text-slate-300">Le micro remplit la case en or. Touchez une autre case pour la remplir à la voix ou au clavier. Dites « passer » pour sauter, « pardon » pour vous reprendre.</p>
         </section>
 
         <div id="bandeau-demo" class="mt-4"></div>
@@ -62,7 +62,7 @@
         <div id="cartes" class="mt-4 space-y-3"></div>
         <div id="fin-zone" class="mt-4"></div>
 
-        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v15</p>
+        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v16</p>
     </main>
     <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-gold-500/30 px-4 pt-3 pb-5">
         <div class="max-w-xl mx-auto">
@@ -1437,7 +1437,7 @@
         }
 
         function nouveauDevis(silencieux) {
-            APP.mode = 'devis'; APP.rep = {}; APP.ordre = []; APP.lignes = null; APP.pdf = null; APP.signature = null; APP.erreur = ''; APP.autoQte = {};
+            APP.mode = 'devis'; APP.rep = {}; APP.ordre = []; APP.lignes = null; APP.pdf = null; APP.signature = null; APP.erreur = ''; APP.autoQte = {}; APP.cible = null; APP.tape = {};
             APP.devisId = null; APP.numero = null; APP.dateDevis = null; APP.photos = []; APP.facture = null; APP.bon = null; APP.nouveauPrix = {};
             if (!APP.demo) stock('va_devis', null);
             if (!silencieux) { avancer(true); }
@@ -1457,6 +1457,7 @@
         /* Passe à la question suivante (ou à la fin) */
         function avancer(defiler) {
             APP.erreur = '';
+            if (APP.mode !== 'devis') APP.cible = null;
             /* l'écoute en cours concernait l'ancienne question : on la jette (le micro reste allumé) */
             if (ECOUTE.rec) { var vieux = ECOUTE.rec; ECOUTE.rec = null; try { vieux.abort(); } catch (e) {} }
             if (APP.mode === 'fiche') {
@@ -1473,7 +1474,9 @@
                     APP.mode = 'fiche-ok';
                 }
             } else if (APP.mode === 'devis') {
-                APP.courante = questionDevis(APP.rep, APP.fiche);
+                var suivante = questionDevis(APP.rep, APP.fiche);
+                if (APP.cible && suivante && suivante.cle === APP.cible) APP.cible = null;
+                APP.courante = APP.cible ? questionPour(APP.cible) : suivante;
                 if (!APP.courante) { APP.mode = 'recap'; APP.lignes = APP.lignes || construireLignes(); arreterEcoute(); APP.creerAuto = true; }
             } else {
                 APP.courante = null;
@@ -1486,7 +1489,7 @@
             if (APP.courante && ECOUTE.session) setTimeout(function () { ecouter(true); }, 150);
         }
 
-        function repondre(brut) {
+        function repondre(brut, clavier) {
             var q = APP.courante;
             if (!q || APP.attente) return;
             if (estRetour(brut)) { allerPrecedente(); return; }
@@ -1498,16 +1501,19 @@
             var res = interpreter(q, brut);
             if (!res.ok) {
                 APP.erreur = res.erreur;
+                if (clavier) { APP.tape = APP.tape || {}; APP.tape[q.cle] = brut; }
                 dessiner();
-                defilerVersCourante();
+                if (!clavier) defilerVersCourante();
                 if (ECOUTE.session) setTimeout(function () { ecouter(true); }, 400);
                 return;
             }
+            if (APP.tape) delete APP.tape[q.cle];
             /* montant inhabituel (ex. 10 015 €) : on le fait redire pour être sûr */
             if (q.confirmerAuDela && !res.passe && nombre(res.valeur) > q.confirmerAuDela && APP.aConfirmer !== q.cle + '=' + res.valeur) {
                 APP.aConfirmer = q.cle + '=' + res.valeur;
                 APP.erreur = 'J\'ai compris ' + (/pu$/.test(q.cle) ? euros(nombre(res.valeur)) : chiffre(res.valeur) + (q.heures ? ' heures' : '')) + ' : c\'est beaucoup. Redites-le pour confirmer (ou dites le bon nombre).';
-                dessiner(); defilerVersCourante();
+                if (clavier) { APP.tape = APP.tape || {}; APP.tape[q.cle] = brut; }
+                dessiner(); if (!clavier) defilerVersCourante();
                 if (ECOUTE.session) setTimeout(function () { ecouter(true); }, 400);
                 return;
             }
@@ -1517,10 +1523,15 @@
             var uniteDite = '';
             if (q.fourniture && APP.reinserer == null && valeur) { var xq = extraireQuantite(valeur); if (xq) { valeur = xq.des; qteDite = xq.qte; uniteDite = xq.unite || ''; } }
             if (q.fourniture) APP.rep[q.cle.replace(/des$/, 'unite')] = uniteDite;
+            var deja = (q.cle in APP.rep);
             APP.rep[q.cle] = valeur;
-            if (APP.reinserer != null) { APP.ordre.splice(APP.reinserer, 0, q.cle); APP.reinserer = null; }
+            if (deja && APP.ordre.indexOf(q.cle) >= 0) { /* case déjà remplie, corrigée au doigt : elle garde sa place */ }
+            else if (APP.reinserer != null) { APP.ordre.splice(APP.reinserer, 0, q.cle); APP.reinserer = null; }
             else APP.ordre.push(q.cle);
-            if (qteDite) { var kq = q.cle.replace(/des$/, 'qte'); APP.rep[kq] = qteDite; APP.ordre.push(kq); APP.autoQte = APP.autoQte || {}; APP.autoQte[kq] = true; }
+            if (qteDite) { var kq = q.cle.replace(/des$/, 'qte'); APP.rep[kq] = qteDite; if (APP.ordre.indexOf(kq) < 0) APP.ordre.push(kq); APP.autoQte = APP.autoQte || {}; APP.autoQte[kq] = true; }
+            if (APP.cible === q.cle) APP.cible = null;
+            if (deja) { APP.pdf = null; APP.signature = null; }
+            APP.majForcee = q.cle; if (qteDite) APP.majForcee2 = q.cle.replace(/des$/, 'qte');
             if (q.cle === 'siretOk') APP.auto = (valeur === 'oui' && APP.trouve) ? Object.assign({}, APP.trouve.champs) : null;
             if (q.cle === 'siret' && APP.mode === 'fiche' && !APP.miseAJour) {
                 APP.trouve = null; APP.auto = null; APP.autoCles = {}; APP.attente = true;
@@ -1528,7 +1539,7 @@
                 chercherEntreprise(valeur).then(function (t) { APP.attente = false; APP.trouve = t; avancer(true); });
                 return;
             }
-            avancer(true);
+            avancer(!clavier);
         }
 
         function veutAutrePrix(brut) {
@@ -1538,6 +1549,7 @@
                    /\spas (pareil|pareille|le meme|la meme|ca|ce prix)\s/.test(b) || /^\s*non\s/.test(b);
         }
         function allerPrecedente() {
+            APP.cible = null;
             /* « Retour » sur « Quel est le nouveau prix ? » : on revient à « Pareil ou autre prix ? » */
             if (APP.courante && APP.nouveauPrix && APP.nouveauPrix[APP.courante.cle]) { delete APP.nouveauPrix[APP.courante.cle]; avancer(true); return; }
             if (APP.mode === 'recap') APP.mode = 'devis';
@@ -1690,8 +1702,8 @@
             rec.onresult = function (ev) {
                 var txt = '', fin = false;
                 for (var i = ev.resultIndex || 0; i < ev.results.length; i++) { txt = joindre(txt, ev.results[i][0].transcript); if (ev.results[i].isFinal) fin = true; }
-                var champ = document.getElementById('saisie');
-                if (champ) champ.value = txt;
+                var champ = document.getElementById('saisie') || (APP.courante && document.getElementById('rep-' + APP.courante.cle));
+                if (champ && /^(INPUT|TEXTAREA)$/.test(champ.tagName)) champ.value = txt;
                 if (fin) { ECOUTE.resultat = true; ECOUTE.essais = 0; repondre(meilleureProposition(ev, txt)); }
             };
             rec.onerror = function (ev) {
@@ -1792,7 +1804,7 @@
 
         function defilerVersCourante() {
             setTimeout(function () {
-                var c = document.getElementById('carte-courante') || document.getElementById('fin');
+                var c = document.getElementById('carte-courante') || (APP.courante && (document.getElementById('champ-' + APP.courante.cle) || document.getElementById('bloc-autre'))) || document.getElementById('fin');
                 if (!c) return;
                 /* la question doit apparaître juste sous la zone du micro (qui reste en haut), jamais cachée dessous */
                 var z = document.getElementById('zone-micro');
@@ -1816,6 +1828,214 @@
             return v;
         }
 
+        /* ===================== LE DEVIS EN FORMULAIRE : le micro remplit la case en or, chaque case se touche ===================== */
+        var LIBELLES_DEVIS = { clientNom: 'Nom du client', pro: 'Client professionnel ?', clientAdresse: 'Adresse du client', clientContact: 'Téléphone ou e-mail du client',
+            chantier: 'Adresse du chantier (si différente)', objet: 'Travaux en une phrase', heures: "Heures de main-d'œuvre", tauxTva: 'Taux de TVA',
+            duree: 'Durée estimée des travaux', debut: 'Début des travaux' };
+        var AIDES_DEVIS = { des: 'Ex. : chauffe-eau 200 litres Atlantic', pu: 'Ex. : 450', qte: 'Ex. : 2', heures: 'Ex. : 3 (ou « zéro »)', tauxTva: '10 %, 5,5 % ou 20 %',
+            duree: 'Ex. : une demi-journée', debut: 'Ex. : « sous 15 jours », « lundi prochain »' };
+
+        function libelleChamp(cle) {
+            var m = /^f(\d+)_(des|pu|qte|autre)$/.exec(cle);
+            if (m) return { des: 'Désignation', pu: 'Prix HT (€)', qte: 'Quantité', autre: 'Une autre fourniture ?' }[m[2]];
+            return LIBELLES_DEVIS[cle] || (trouverQuestion(cle) || {}).texte || cle;
+        }
+
+        /* La question complète d'une case, même si ce n'est pas son tour */
+        function questionPour(cle) {
+            var s = questionDevis(APP.rep, APP.fiche);
+            if (s && s.cle === cle) return s;
+            var q = Object.assign({}, trouverQuestion(cle));
+            var m = /^f(\d+)_(des|pu|qte)$/.exec(cle);
+            if (m) { q.aide = AIDES_DEVIS[m[2]]; if (m[2] === 'pu') q.confirmerAuDela = 5000; if (m[2] === 'qte') { q.confirmerAuDela = 100; q.max = 10000; } }
+            if (cle === 'heures') { q.heures = true; q.confirmerAuDela = 40; q.max = 500; }
+            if (!q.aide && AIDES_DEVIS[cle]) q.aide = AIDES_DEVIS[cle];
+            return q;
+        }
+
+        /* Toucher une case : le micro la remplira (et le clavier s'ouvre si c'est un texte) */
+        function definirCible(cle) {
+            if (APP.mode !== 'devis' || APP.attente) return;
+            var s = questionDevis(APP.rep, APP.fiche);
+            var nouvelle = (s && s.cle === cle) ? null : cle;
+            if (APP.cible === nouvelle && APP.courante && APP.courante.cle === cle) return;
+            APP.cible = nouvelle; APP.aConfirmer = null;
+            avancer(false);
+        }
+        function toucherChamp(cle, ev) {
+            if (ev && ev.target && /^(INPUT|BUTTON|TEXTAREA|SELECT)$/.test(ev.target.tagName)) return;
+            var el = document.getElementById('rep-' + cle);
+            if (el && el.tagName === 'INPUT') { el.focus(); return; }
+            definirCible(cle);
+        }
+        /* Ce qui est tapé au clavier */
+        function saisirChamp(cle, valeur) {
+            if (APP.mode !== 'devis' || APP.attente) return;
+            var v = propre(valeur);
+            if (!v) { if ((cle in APP.rep) && APP.rep[cle] !== '') effacerChamp(cle); return; }
+            if ((cle in APP.rep) && v === propre(valeurAffichee(cle, APP.rep[cle])) && !(APP.tape && APP.tape[cle])) return;
+            var s = questionDevis(APP.rep, APP.fiche);
+            APP.cible = (s && s.cle === cle) ? null : cle;
+            APP.courante = APP.cible ? questionPour(cle) : s;
+            if (!APP.courante) return;
+            repondre(v, true);
+        }
+        function choisirChamp(cle, v) { if (APP.tape) delete APP.tape[cle]; saisirChamp(cle, v); }
+        function toucheChamp(cle, ev, el) {
+            if (ev.key !== 'Enter') return;
+            ev.preventDefault();
+            saisirChamp(cle, el.value);
+            var suivant = APP.courante && document.getElementById('rep-' + APP.courante.cle);
+            if (suivant && suivant !== el && suivant.tagName === 'INPUT') suivant.focus(); else el.blur();
+        }
+        function effacerChamp(cle) {
+            delete APP.rep[cle];
+            var i = APP.ordre.indexOf(cle); if (i >= 0) APP.ordre.splice(i, 1);
+            if (APP.autoQte) delete APP.autoQte[cle];
+            if (APP.tape) delete APP.tape[cle];
+            APP.cible = null; APP.pdf = null; APP.signature = null;
+            avancer(false);
+        }
+        function ajouterFourniture() {
+            var r = APP.rep, n = 0;
+            while (('f' + n + '_des') in r && r['f' + n + '_des'] !== '' && r['f' + n + '_autre'] === 'oui') n++;
+            var p = 'f' + n + '_';
+            if (r[p + 'des'] === '') { delete r[p + 'des']; var i = APP.ordre.indexOf(p + 'des'); if (i >= 0) APP.ordre.splice(i, 1); }
+            else if ((p + 'des') in r) { r[p + 'autre'] = 'oui'; if (APP.ordre.indexOf(p + 'autre') < 0) APP.ordre.push(p + 'autre'); }
+            APP.cible = null;
+            avancer(true);
+        }
+
+        /* Les lignes de fournitures et l'état de la liste */
+        function etatFournitures() {
+            var r = APP.rep, lignes = [], n = 0, etat = 'nouvelle';
+            while (true) {
+                var p = 'f' + n + '_';
+                if (!((p + 'des') in r)) { etat = 'nouvelle'; break; }
+                if (r[p + 'des'] === '') { etat = 'fermee'; break; }
+                lignes.push(n);
+                if (!((p + 'autre') in r)) { etat = ((p + 'pu') in r && (p + 'qte') in r) ? 'autre' : 'en-cours'; break; }
+                if (r[p + 'autre'] !== 'oui') { etat = 'fermee'; break; }
+                n++;
+            }
+            return { lignes: lignes, n: n, etat: etat };
+        }
+
+        /* Une case du formulaire */
+        function htmlChamp(cle, choix, pleineLargeur) {
+            var num = /_(pu|qte)$/.test(cle) || cle === 'heures';
+            var saisie = choix ? '<div id="choix-' + cle + '" class="flex flex-wrap gap-2 mt-2"></div>'
+                : '<input id="rep-' + cle + '" type="text"' + (num ? ' inputmode="decimal"' : '') + ' enterkeyhint="next" autocomplete="off" autocapitalize="sentences"' +
+                  ' onfocus="definirCible(\'' + cle + '\')" onchange="saisirChamp(\'' + cle + '\', this.value)" onkeydown="toucheChamp(\'' + cle + '\', event, this)"' +
+                  ' class="mt-1 w-full bg-transparent text-white text-base border-b border-white/15 focus:border-gold-400 focus:outline-none py-1 placeholder-slate-500">';
+            return '<div id="champ-' + cle + '" onclick="toucherChamp(\'' + cle + '\', event)" class="' + (pleineLargeur === false ? '' : '') + 'p-3 rounded-xl">' +
+                   '<label for="rep-' + cle + '" id="lab-' + cle + '" class="block text-xs text-slate-400"></label>' + saisie +
+                   '<div id="plus-' + cle + '"></div></div>';
+        }
+        function majChamp(cle, choix) {
+            var el = document.getElementById('champ-' + cle);
+            if (!el) return;
+            var actif = !!(APP.courante && APP.courante.cle === cle), rempli = (cle in APP.rep) && APP.rep[cle] !== '';
+            var cls = 'p-3 rounded-xl transition ' + (actif ? 'border-2 border-gold-500/80 bg-gold-500/10 shadow-lg shadow-gold-500/10' : (rempli ? 'border border-white/10 bg-obsidian/50' : 'border border-dashed border-white/15'));
+            if (el.className !== cls) el.className = cls;
+            var lab = document.getElementById('lab-' + cle), txtLab = (actif ? '🎙 ' : '') + libelleChamp(cle);
+            if (lab.textContent !== txtLab) { lab.textContent = txtLab; lab.className = 'block text-xs ' + (actif ? 'text-gold-400 font-semibold' : 'text-slate-400'); }
+            var inp = document.getElementById('rep-' + cle);
+            if (inp && (document.activeElement !== inp || APP.majForcee === cle || APP.majForcee2 === cle)) {
+                var v = APP.tape && APP.tape[cle] != null ? APP.tape[cle] : ((cle in APP.rep) ? valeurAffichee(cle, APP.rep[cle]) : '');
+                if (inp.value !== v) inp.value = v;
+                var court = /_(pu|qte)$/.test(cle);
+                inp.placeholder = actif ? (court ? 'Parlez…' : 'Parlez, ou tapez ici…') : ((cle in APP.rep) ? '(passé)' : (court ? '—' : 'À dire ou à taper'));
+            }
+            if (choix) {
+                var val = APP.rep[cle], hc = choix.map(function (c) {
+                    var on = val === c[0];
+                    return '<button type="button" onclick="choisirChamp(\'' + cle + '\', \'' + c[0] + '\')" class="px-4 py-2 rounded-full text-sm font-semibold ' +
+                           (on ? 'text-black bg-gradient-to-r from-gold-400 to-gold-600' : 'text-slate-100 border border-white/25') + '">' + c[1] + '</button>';
+                }).join('');
+                var zc = document.getElementById('choix-' + cle);
+                if (zc.innerHTML !== hc) zc.innerHTML = hc;
+            }
+            var plus = '';
+            if (actif) {
+                var c = APP.courante;
+                if (c.aide) plus += '<p class="text-slate-300 text-sm mt-1">' + esc(c.aide) + '</p>';
+                if (c.prixConnu) plus += '<div class="grid grid-cols-2 gap-2 mt-2"><button type="button" onclick="repondre(\'pareil\')" class="px-3 py-2.5 rounded-full text-sm font-bold text-gold-400 border-2 border-gold-500/70">Pareil : ' + euros(nombre(c.prixConnu)) + '</button>' +
+                                         '<button type="button" onclick="repondre(\'autre prix\')" class="px-3 py-2.5 rounded-full text-sm font-bold text-slate-100 border-2 border-white/30">Autre prix</button></div>';
+                if (cle === 'f0_des' && !APP.demo && !(cle in APP.rep)) plus += typesDevis().map(function (t, i) { return '<button type="button" onclick="appliquerTypeNumero(' + i + ')" class="mt-2 mr-2 px-3 py-2 rounded-full text-xs font-semibold text-gold-400 border border-gold-500/50">' + esc(t.nom) + '</button>'; }).join('');
+                if (APP.erreur) plus += '<p class="text-red-300 text-sm mt-2">' + esc(APP.erreur) + '</p>';
+                plus += '<div class="flex gap-2 mt-2">' +
+                        (APP.ordre.length ? '<button type="button" onclick="allerPrecedente()" aria-label="Question précédente" class="px-3 py-1.5 rounded-full text-xs text-slate-200 border border-white/20">← Retour</button>' : '') +
+                        (!c.requis && !(cle in APP.rep) ? '<button type="button" onclick="repondre(\'passer\')" class="px-3 py-1.5 rounded-full text-xs text-slate-200 border border-white/20">Passer</button>' : '') +
+                        (APP.cible ? '<button type="button" onclick="APP.cible = null; avancer(true);" class="px-3 py-1.5 rounded-full text-xs text-slate-200 border border-white/20">Case suivante</button>' : '') +
+                        '</div>';
+            }
+            var zp = document.getElementById('plus-' + cle);
+            if (zp.innerHTML !== plus) zp.innerHTML = plus;
+        }
+
+        function blocsFormulaire() {
+            var r = APP.rep, b = [];
+            var titre = function (id, t) { b.push({ id: id, html: '<h3 id="' + id + '" class="pt-3 text-gold-400 text-xs font-bold uppercase tracking-widest">' + t + '</h3>' }); };
+            var champ = function (cle, choix) { b.push({ id: 'champ-' + cle, html: htmlChamp(cle, choix), champs: [[cle, choix]] }); };
+            titre('titre-client', 'Le client');
+            QUESTIONS_CLIENT.forEach(function (q) {
+                if (q.cle === 'objet' || (q.si && !q.si(r))) return;
+                champ(q.cle, q.type === 'ouinon' ? [['oui', 'Oui'], ['non', 'Non']] : null);
+            });
+            titre('titre-travaux', 'Les travaux');
+            champ('objet');
+            titre('titre-fournitures', 'Les fournitures');
+            var ef = etatFournitures(), lignesAff = ef.lignes.slice();
+            if (ef.etat === 'nouvelle') lignesAff.push(ef.n);
+            lignesAff.forEach(function (n) {
+                var p = 'f' + n + '_', id = 'ligne-' + n;
+                b.push({ id: id, html: '<div id="' + id + '" class="p-3 rounded-2xl border border-white/10 bg-white/[0.02] space-y-2">' +
+                    '<p class="text-slate-300 text-xs font-semibold">Fourniture ' + (n + 1) + '</p>' + htmlChamp(p + 'des') +
+                    '<div class="grid grid-cols-2 gap-2">' + htmlChamp(p + 'pu') + htmlChamp(p + 'qte') + '</div></div>',
+                    champs: [[p + 'des'], [p + 'pu'], [p + 'qte']] });
+            });
+            if (ef.etat === 'autre') {
+                var ka = 'f' + ef.n + '_autre', act = APP.courante && APP.courante.cle === ka;
+                b.push({ id: 'bloc-autre', html: '<div id="bloc-autre"></div>', maj: function (el) {
+                    var h = '<div class="p-3 rounded-xl ' + (act ? 'border-2 border-gold-500/80 bg-gold-500/10' : 'border border-dashed border-white/15') + '">' +
+                        '<p class="text-xs ' + (act ? 'text-gold-400 font-semibold' : 'text-slate-400') + '">' + (act ? '🎙 ' : '') + 'Une autre fourniture ?</p>' +
+                        '<div class="flex gap-2 mt-2"><button type="button" onclick="choisirChamp(\'' + ka + '\', \'oui\')" class="px-4 py-2 rounded-full text-sm font-semibold text-slate-100 border border-white/25">Oui</button>' +
+                        '<button type="button" onclick="choisirChamp(\'' + ka + '\', \'non\')" class="px-4 py-2 rounded-full text-sm font-semibold text-slate-100 border border-white/25">Non, c\'est tout</button></div>' +
+                        (act && APP.erreur ? '<p class="text-red-300 text-sm mt-2">' + esc(APP.erreur) + '</p>' : '') + '</div>';
+                    if (el.innerHTML !== h) el.innerHTML = h;
+                } });
+            } else if (ef.etat === 'fermee') {
+                b.push({ id: 'bloc-ajout', html: '<button type="button" id="bloc-ajout" onclick="ajouterFourniture()" class="w-full px-4 py-3 rounded-xl border border-dashed border-gold-500/50 text-gold-400 text-sm font-semibold">+ Ajouter une fourniture</button>' });
+            }
+            titre('titre-mo', "Main-d'œuvre et dates");
+            champ('heures');
+            if (!APP.fiche || APP.fiche.regime !== 'franchise') champ('tauxTva', [['5.5', '5,5 %'], ['10', '10 %'], ['20', '20 %']]);
+            champ('duree');
+            champ('debut');
+            return b;
+        }
+
+        /* Met la page à jour sans la redessiner : la case où l'on tape garde le clavier */
+        function dessinerFormulaire() {
+            var cartes = document.getElementById('cartes');
+            if (!cartes.dataset.formulaire) { cartes.innerHTML = ''; cartes.dataset.formulaire = '1'; }
+            var blocs = blocsFormulaire(), voulus = {};
+            blocs.forEach(function (x) { voulus[x.id] = true; });
+            Array.prototype.slice.call(cartes.children).forEach(function (el) { if (!voulus[el.id]) cartes.removeChild(el); });
+            var tmp = document.createElement('div');
+            blocs.forEach(function (x, i) {
+                var el = document.getElementById(x.id);
+                if (!el) { tmp.innerHTML = x.html; el = tmp.firstElementChild; }
+                if (cartes.children[i] !== el) cartes.insertBefore(el, cartes.children[i] || null);
+                if (x.champs) x.champs.forEach(function (c) { majChamp(c[0], c[1]); });
+                if (x.maj) x.maj(el);
+            });
+            APP.majForcee = null; APP.majForcee2 = null;
+            var qc = document.getElementById('question-courante');
+            if (qc && APP.courante) qc.textContent = 'Le micro remplit : ' + libelleChamp(APP.courante.cle);
+        }
+
         function dessiner() {
             var titre = document.getElementById('titre-parcours');
             var sous = document.getElementById('sous-titre');
@@ -1836,6 +2056,10 @@
             dessinerBandeauDemo();
 
             var h = '';
+            var cartesEl = document.getElementById('cartes');
+            if (APP.mode === 'devis') { dessinerFormulaire(); }
+            else {
+            delete cartesEl.dataset.formulaire;
             for (var i = 0; i < APP.ordre.length; i++) {
                 var cle = APP.ordre[i], qq = trouverQuestion(cle);
                 if (APP.mode === 'recap' && /^f\d+_|^heures$/.test(cle)) continue;
@@ -1864,6 +2088,7 @@
                      '</div>';
             }
             document.getElementById('cartes').innerHTML = h;
+            }
 
             var fin = document.getElementById('fin-zone');
             if (APP.mode === 'historique' || APP.mode === 'facture' || APP.mode === 'bon') {
