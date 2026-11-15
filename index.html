@@ -62,7 +62,7 @@
         <div id="cartes" class="mt-4 space-y-3"></div>
         <div id="fin-zone" class="mt-4"></div>
 
-        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v19</p>
+        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v20</p>
     </main>
     <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-gold-500/30 px-4 pt-3 pb-5">
         <div class="max-w-xl mx-auto">
@@ -324,7 +324,7 @@
                 'Taux horaire de main-d\'œuvre : ' + euros(nombre(fiche.tauxHoraire)) + (c.franchise ? ' (TVA non applicable).' : ' HT, soit ' + euros(Math.round(nombre(fiche.tauxHoraire) * (1 + c.taux / 100) * 100) / 100) + ' TTC.') +
                     (fiche.decompte ? ' Temps de main-d\'œuvre décompté ' + fiche.decompte + '.' : '') +
                     (c.moHt > 0 ? ' Coût de la main-d\'œuvre pour ce devis : ' + euros(c.moHt) + (c.franchise ? '' : ' HT, soit ' + euros(Math.round(c.moHt * (1 + c.taux / 100) * 100) / 100) + ' TTC') + (c.remise > 0 ? ' (avant remise)' : '') + '.' : '') +
-                    (nombre(fiche.deplacement) > 0 ? '' : ' Déplacement offert.'),
+                    ((devis.lignes || []).some(function (l) { return /^d[ée]placement/i.test(String(l.designation || '')) && nombre(l.pu) > 0; }) ? '' : ' Déplacement offert.'),
                 assuranceTexte(fiche),
             ] : (estFacture ? [
                 'Travaux réalisés le ' + (devis.dateTravaux ? dateFr(new Date(devis.dateTravaux)) : dateFr(date)) + (devis.chantier ? ' au ' + devis.chantier : '') + '.',
@@ -1643,8 +1643,9 @@
                 if (r[p + 'autre'] !== 'oui') break;
             }
             if (nombre(r.heures) > 0) l.push({ designation: "Main-d'œuvre", qte: r.heures, unite: 'h', pu: f.tauxHoraire });
-            if (nombre(f.deplacement) > 0) l.push({ designation: 'Déplacement', qte: '1', unite: 'forfait', pu: f.deplacement });
-            if (nombre(f.dechetsPrix) > 0) l.push({ designation: 'Gestion et évacuation des déchets', qte: '1', unite: 'forfait', pu: f.dechetsPrix });
+            var dep = prixDuDevis('deplacement'), dech = prixDuDevis('dechetsPrix');
+            if (nombre(dep) > 0) l.push({ designation: 'Déplacement', qte: '1', unite: 'forfait', pu: dep });
+            if (nombre(dech) > 0) l.push({ designation: 'Gestion et évacuation des déchets', qte: '1', unite: 'forfait', pu: dech });
             return l;
         }
 
@@ -1851,7 +1852,7 @@
         /* ===================== LE DEVIS VIDE QUI SE REMPLIT : le micro remplit la case surlignée, chaque case se corrige au clavier ===================== */
         var LIBELLES_DEVIS = { clientNom: 'Nom du client', pro: 'Client professionnel ?', clientAdresse: 'Adresse du client', clientContact: 'Téléphone ou e-mail du client',
             chantier: 'Adresse du chantier (si différente)', objet: 'Travaux en une phrase', heures: 'Heures', tauxTva: 'Taux de TVA',
-            duree: 'Durée estimée des travaux', debut: 'Début des travaux' };
+            duree: 'Durée estimée des travaux', debut: 'Début des travaux', deplacement: 'Prix HT (€)', dechetsPrix: 'Prix HT (€)' };
         var AIDES_DEVIS = { des: 'Ex. : chauffe-eau 200 litres Atlantic', pu: 'Ex. : 450', qte: 'Ex. : 2', heures: 'Ex. : 3 (ou « zéro »)', tauxTva: '10 %, 5,5 % ou 20 %',
             duree: 'Ex. : une demi-journée', debut: 'Ex. : « sous 15 jours », « lundi prochain »' };
 
@@ -1865,6 +1866,8 @@
         function questionPour(cle) {
             var s = questionDevis(APP.rep, APP.fiche);
             if (s && s.cle === cle) return s;
+            if (cle === 'deplacement') return { cle: cle, texte: 'Prix du déplacement pour ce chantier', type: 'nombre', max: 500, aide: 'Selon la distance. Ex. : 35, ou « offert »' };
+            if (cle === 'dechetsPrix') return { cle: cle, texte: 'Prix des déchets pour ce chantier', type: 'nombre', max: 1000, aide: 'Selon le volume (ancien chauffe-eau, gravats…). Ex. : 40, ou « inclus »' };
             var q = Object.assign({}, trouverQuestion(cle));
             var m = /^f(\d+)_(des|pu|qte)$/.exec(cle);
             if (m) { q.aide = AIDES_DEVIS[m[2]]; if (m[2] === 'pu') q.confirmerAuDela = 5000; if (m[2] === 'qte') { q.confirmerAuDela = 100; q.max = 10000; } }
@@ -1943,7 +1946,7 @@
 
         /* Une case du devis (un texte à taper, ou des boutons) */
         function htmlChamp(cle, choix, classe) {
-            var num = /_(pu|qte)$/.test(cle) || cle === 'heures';
+            var num = /_(pu|qte)$/.test(cle) || cle === 'heures' || cle === 'deplacement' || cle === 'dechetsPrix';
             var saisie = choix ? '<div id="choix-' + cle + '" class="flex flex-wrap gap-1.5 mt-1"></div>'
                 : '<input id="rep-' + cle + '" type="text"' + (num ? ' inputmode="decimal"' : '') + ' enterkeyhint="next" autocomplete="off" autocapitalize="sentences"' +
                   ' onfocus="definirCible(\'' + cle + '\')" onchange="saisirChamp(\'' + cle + '\', this.value)" onkeydown="toucheChamp(\'' + cle + '\', event, this)"' +
@@ -1963,8 +1966,9 @@
             var inp = document.getElementById('rep-' + cle);
             if (inp && (document.activeElement !== inp || APP.majForcee === cle || APP.majForcee2 === cle)) {
                 var v = APP.tape && APP.tape[cle] != null ? APP.tape[cle] : ((cle in APP.rep) ? valeurAffichee(cle, APP.rep[cle]) : '');
+                if (!(cle in APP.rep) && (cle === 'deplacement' || cle === 'dechetsPrix')) v = String(nombre(prixDuDevis(cle))).replace('.', ',');
                 if (inp.value !== v) inp.value = v;
-                var court = /_(pu|qte)$/.test(cle) || cle === 'heures';
+                var court = /_(pu|qte)$/.test(cle) || cle === 'heures' || cle === 'deplacement' || cle === 'dechetsPrix';
                 inp.placeholder = actif ? (court ? '…' : 'Parlez, ou tapez ici…') : ((cle in APP.rep) ? '—' : (court ? '' : ''));
             }
             if (choix) {
@@ -1995,6 +1999,11 @@
         }
 
         /* Le devis vide, rempli au fur et à mesure */
+        /* Déplacement et déchets : le prix de ce devis s'il a été dit ou tapé, sinon celui de la fiche */
+        function prixDuDevis(cle) {
+            var r = APP.rep || {}, f = APP.fiche || {};
+            return (cle in r && propre(r[cle]) !== '') ? r[cle] : (f[cle] || '0');
+        }
         function totalLigne(n) {
             var r = APP.rep, p = 'f' + n + '_';
             if (!r[p + 'pu']) return '';
@@ -2057,13 +2066,12 @@
                 '<p id="total-mo" class="col-span-4 text-right text-sm font-semibold text-slate-900 pb-2"></p></div></div>',
                 champs: [['heures', null, 'col-span-4']],
                 maj: function () { var t = document.getElementById('total-mo'), v = r.heures ? euros(cent(nombre(r.heures) * nombre(f.tauxHoraire))) : ''; if (t.textContent !== v) t.textContent = v; } });
-            var fixes = [];
-            if (nombre(f.deplacement) > 0) fixes.push(['Déplacement', nombre(f.deplacement)]);
-            if (nombre(f.dechetsPrix) > 0) fixes.push(['Gestion et évacuation des déchets', nombre(f.dechetsPrix)]);
-            if (fixes.length) b.push({ id: 'lignes-fixes', html: '<div id="lignes-fixes"></div>', maj: function (el) {
-                var h = fixes.map(function (x) { return '<div class="flex justify-between gap-2 px-2 py-2 border-b border-slate-200 text-sm text-slate-900"><span>' + esc(x[0]) + '</span><span class="font-semibold">' + euros(x[1]) + '</span></div>'; }).join('');
-                if (el.innerHTML !== h) el.innerHTML = h;
-            } });
+            [['deplacement', 'Déplacement'], ['dechetsPrix', 'Gestion et évacuation des déchets']].forEach(function (x) {
+                var id = 'ligne-' + x[0];
+                b.push({ id: id, html: '<div id="' + id + '" class="border-b border-slate-200 py-1"><div class="grid grid-cols-12 gap-1 items-end">' +
+                    '<p class="col-span-8 px-2 pb-2 text-sm text-slate-900">' + x[1] + '</p>' + htmlChamp(x[0], null, 'col-span-4') + '</div></div>',
+                    champs: [[x[0], null, 'col-span-4']] });
+            });
             /* TVA et totaux, calculés en direct */
             if (f.regime !== 'franchise') champ('tauxTva', [['5.5', '5,5 %'], ['10', '10 %'], ['20', '20 %']], 'mt-2');
             b.push({ id: 'bloc-totaux', html: '<div id="bloc-totaux"></div>', maj: function (el) {
@@ -2130,7 +2138,7 @@
             delete cartesEl.dataset.formulaire;
             for (var i = 0; i < APP.ordre.length; i++) {
                 var cle = APP.ordre[i], qq = trouverQuestion(cle);
-                if (APP.mode === 'recap' && /^f\d+_|^heures$/.test(cle)) continue;
+                if (APP.mode === 'recap' && /^f\d+_|^heures$|^deplacement$|^dechetsPrix$/.test(cle)) continue;
                 h += '<div class="p-3 rounded-xl bg-obsidian/50 border border-white/10">' +
                         '<div class="flex items-center justify-between gap-2"><p class="text-slate-400 text-xs">' + esc(qq.texte) + '</p>' +
                         (APP.mode === 'fiche-edition' ? '' : '<button type="button" onclick="refaireQuestion(\'' + cle + '\')" class="text-xs text-gold-400 underline flex-shrink-0">Redire</button>') + '</div>' +
