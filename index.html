@@ -51,10 +51,12 @@
                 class="mx-auto w-24 h-24 rounded-full flex items-center justify-center bg-gradient-to-br from-gold-400 via-gold-500 to-gold-600 text-black shadow-xl shadow-gold-500/30 active:scale-95 transition">
                 <i data-lucide="mic" class="w-11 h-11"></i>
             </button>
-            <p id="etat" class="mt-3 text-sm font-semibold text-gold-400">Touchez le micro et répondez à la question</p>
+            <p id="etat" class="mt-3 text-sm font-semibold text-gold-400">Touchez le micro pour commencer</p>
+            <p id="entendu" class="hidden mt-1 text-xs text-slate-400 italic"></p>
             <p id="question-courante" class="mt-1 text-slate-200 text-sm font-semibold"></p>
             <div class="mt-2 mx-auto max-w-xs h-1.5 rounded-full bg-white/10 overflow-hidden"><div id="barre-progression" class="h-full bg-gold-500 rounded-full transition-all" style="width:0%"></div></div>
-            <p class="mt-2 text-xs text-slate-300">Dites tout d'un coup ou case par case : le client, l'adresse, les travaux, les fournitures avec leur prix, les heures, la TVA, le début. Touchez une case pour la corriger au clavier.</p>
+            <p id="aide-micro" class="mt-2 text-xs text-slate-300">Répondez à la question à voix haute. Touchez une case pour la corriger au clavier.</p>
+            <button type="button" id="bouton-libre" onclick="demarrerEcouteLibre()" class="hidden mt-2 text-xs font-semibold text-gold-400 underline">🎧 Écouter une nouvelle discussion</button>
         </section>
 
         <div id="bandeau-demo" class="mt-4"></div>
@@ -62,7 +64,7 @@
         <div id="cartes" class="mt-4 space-y-3"></div>
         <div id="fin-zone" class="mt-4"></div>
 
-        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v21</p>
+        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v22</p>
     </main>
     <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-gold-500/30 px-4 pt-3 pb-5">
         <div class="max-w-xl mx-auto">
@@ -1379,7 +1381,7 @@
             if (!z) return;
             if (APP.demo) {
                 z.innerHTML = '<div class="p-4 rounded-2xl border border-gold-500/50 bg-gold-500/10 text-sm text-slate-100">' +
-                    '<p><strong class="text-gold-400">Essai avec une entreprise fictive.</strong> Dites un client, des fournitures et des prix au hasard : le devis PDF se crée à la fin (marqué « EXEMPLE »).</p>' +
+                    '<p><strong class="text-gold-400">Essai avec une entreprise fictive.</strong> Touchez le micro et parlez comme avec un client (nom, adresse, travaux, fournitures et prix), puis dites « j\'ai fini » : le devis se remplit, et le PDF se crée à la fin (marqué « EXEMPLE »).</p>' +
                     '<button type="button" onclick="quitterDemo()" class="mt-3 w-full px-4 py-3 rounded-full text-sm font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">J\'ai compris : je fais ma vraie fiche</button></div>';
             } else if (APP.sansFiche && (APP.mode === 'devis' || APP.mode === 'recap')) {
                 z.innerHTML = '<div class="p-3 rounded-2xl border border-gold-500/40 bg-gold-500/10 text-sm text-slate-100 flex items-center gap-3">' +
@@ -1692,9 +1694,13 @@
         }
 
         function toucherMicro() {
+            if (APP.ecouteLibre) { finirEcouteLibre(); return; }
+            if (APP.attente) return;
             if (ECOUTE.session) { arreterEcoute(); etat('Micro coupé. Touchez-le pour le rallumer.'); return; }
             if (!APP.courante) { etat('Il n\'y a plus de question : vérifiez le récapitulatif.'); return; }
             if (!SR) { modeClavier(); return; }
+            /* devis vide : le micro écoute toute la discussion, puis remplit le devis */
+            if (APP.mode === 'devis' && !APP.ordre.length) { demarrerEcouteLibre(); return; }
             ECOUTE.session = true;
             ECOUTE.essais = 0;
             ECOUTE.premier = true;
@@ -1705,7 +1711,7 @@
         }
 
         function ecouter(auto) {
-            if (!ECOUTE.session || !APP.courante) return;
+            if (!ECOUTE.session || (!APP.courante && !APP.ecouteLibre)) return;
             if (auto) ECOUTE.parGeste = false;
             try { if (ECOUTE.rec) ECOUTE.rec.abort(); } catch (e) {}
             var rec = new SR();
@@ -1719,11 +1725,18 @@
                 ECOUTE.aMarche = true;
                 stock('va_micro_ok', true);
                 boutonMicroActif(true);
+                if (APP.ecouteLibre) { if (!APP.annonceLibre) { APP.annonceLibre = true; etat(MSG_ECOUTE_LIBRE, 'text-red-300'); } return; }
                 if (ECOUTE.premier) { ECOUTE.premier = false; etat('Micro allumé : répondez aux questions. Touchez-le pour le couper.', 'text-red-300'); }
             };
             rec.onresult = function (ev) {
                 var txt = '', fin = false;
                 for (var i = ev.resultIndex || 0; i < ev.results.length; i++) { txt = joindre(txt, ev.results[i][0].transcript); if (ev.results[i].isFinal) fin = true; }
+                /* écoute de la discussion : rien ne se remplit, on garde le texte */
+                if (APP.ecouteLibre) {
+                    if (rec.fini) return;
+                    if (fin) { rec.fini = true; ECOUTE.essais = 0; ajouterLibre(txt); } else montrerEntendu(txt);
+                    return;
+                }
                 var champ = document.getElementById('saisie') || (APP.courante && document.getElementById('rep-' + APP.courante.cle));
                 if (champ && /^(INPUT|TEXTAREA)$/.test(champ.tagName)) champ.value = txt;
                 if (fin) { ECOUTE.resultat = true; ECOUTE.essais = 0; repondre(meilleureProposition(ev, txt)); }
@@ -1735,10 +1748,19 @@
                     if (ECOUTE.aMarche && !ECOUTE.parGeste) etat('Touchez le micro pour répondre à la question suivante.');
                     else demanderPermissions(ev.error);
                 } else if (ev.error === 'network') {
+                    if (APP.ecouteLibre) { finirEcouteLibre(true); etat('Pas de connexion internet : le micro a besoin du réseau.', 'text-red-300'); return; }
                     arreterEcoute(); etat('Pas de connexion internet : le micro a besoin du réseau.', 'text-red-300');
                 }
             };
             rec.onend = function () {
+                /* écoute de la discussion : on relance tout de suite, jusqu'à « j'ai fini » */
+                if (APP.ecouteLibre) {
+                    if (!ECOUTE.session || ECOUTE.rec !== rec) return;
+                    if (!rec.fini) ECOUTE.essais++;
+                    if (ECOUTE.essais < 400) setTimeout(function () { if (APP.ecouteLibre && ECOUTE.rec === rec) ecouter(true); }, 100);
+                    else finirEcouteLibre();
+                    return;
+                }
                 /* le micro reste allumé : on relance l'écoute sans rien changer à l'écran */
                 if (!ECOUTE.session || ECOUTE.resultat || ECOUTE.rec !== rec) return;
                 ECOUTE.essais++;
@@ -1771,8 +1793,9 @@
 
         function arreterEcoute() {
             ECOUTE.session = false;
-            try { if (ECOUTE.rec) ECOUTE.rec.abort(); } catch (e) {}
-            ECOUTE.rec = null;
+            var vieux = ECOUTE.rec; ECOUTE.rec = null;
+            try { if (vieux) vieux.abort(); } catch (e) {}
+            if (APP.ecouteLibre) { APP.ecouteLibre = false; APP.texteLibre = []; montrerEntendu(); }
             boutonMicroActif(false);
         }
 
@@ -1974,10 +1997,110 @@
             return out.join(' ');
         }
 
-        function comprendreDictee(brut) {
-            var s = ' ' + propre(String(brut || '').replace(/[’‘]/g, "'")) + ' ';
+        /* Les appareils de plomberie : pour écrire l'objet (« Remplacement du chauffe-eau ») */
+        var EQUIP_DICTEE = [
+            ["ballon d'eau chaude", "ballon d'eau chaude", 'm'], ['chauffe-eau thermodynamique', 'chauffe-eau thermodynamique', 'm'], ['chauffe-eau', 'chauffe-eau', 'm'], ['cumulus', 'cumulus', 'm'],
+            ['chaudiere', 'chaudière', 'f'], ['pompe a chaleur', 'pompe à chaleur', 'f'], ['mitigeur', 'mitigeur', 'm'], ['robinets', 'robinets', 'p'], ['robinet', 'robinet', 'm'],
+            ["chasse d'eau", "chasse d'eau", 'f'], ['wc', 'WC', 'p'], ['toilettes', 'toilettes', 'p'], ['cuvette', 'cuvette', 'f'], ['evier', 'évier', 'v'], ['lavabo', 'lavabo', 'm'], ['vasque', 'vasque', 'f'],
+            ['bac a douche', 'bac à douche', 'm'], ['douche', 'douche', 'f'], ['baignoire', 'baignoire', 'f'], ['siphon', 'siphon', 'm'], ['canalisations', 'canalisations', 'p'], ['canalisation', 'canalisation', 'f'],
+            ['tuyaux', 'tuyaux', 'p'], ['tuyau', 'tuyau', 'm'], ['evacuation', 'évacuation', 'v'], ['compteur', 'compteur', 'm'], ['radiateurs', 'radiateurs', 'p'], ['radiateur', 'radiateur', 'm'],
+            ['adoucisseur', 'adoucisseur', 'v'], ['groupe de securite', 'groupe de sécurité', 'm'], ['reducteur de pression', 'réducteur de pression', 'm'], ['vanne', 'vanne', 'f'],
+            ['lave-vaisselle', 'lave-vaisselle', 'm'], ['lave-linge', 'lave-linge', 'm'], ['machine a laver', 'machine à laver', 'f'], ['fosse septique', 'fosse septique', 'f'],
+            ['salle de bains', 'salle de bains', 'f'], ['salle de bain', 'salle de bain', 'f'], ['cuisine', 'cuisine', 'f'], ['plancher chauffant', 'plancher chauffant', 'm'], ['ballon', 'ballon', 'm'],
+            ['thermostat', 'thermostat', 'm'], ['circulateur', 'circulateur', 'm'], ["vase d'expansion", "vase d'expansion", 'm'], ['gouttiere', 'gouttière', 'f'], ['colonne', 'colonne', 'f'], ['joint', 'joint', 'm'],
+            ['mecanisme de chasse', 'mécanisme de chasse', 'm'], ['mecanisme', 'mécanisme', 'm'], ['robinet flotteur', 'robinet flotteur', 'm'], ["robinet d'arret", "robinet d'arrêt", 'm'], ['flotteur', 'flotteur', 'm'],
+            ['ballon thermodynamique', 'ballon thermodynamique', 'm'], ['receveur de douche', 'receveur de douche', 'm'], ['colonne de douche', 'colonne de douche', 'f'], ['meuble vasque', 'meuble vasque', 'm'],
+            ['robinetterie', 'robinetterie', 'f'], ['raccord', 'raccord', 'm'], ['pompe de relevage', 'pompe de relevage', 'f'], ['nourrice', 'nourrice', 'f'], ['purgeur', 'purgeur', 'm']
+        ];
+        function reEquip(e) {
+            return new RegExp("(?:^|[\\s'])" + e[0].replace(/-/g, '[- ]') + "(?=$|[\\s,.;:])" + (e[0] === 'evacuation' ? "(?! (?:de l'ancien|des dechets|des gravats|du vieux|de la vieille))" : ''));
+        }
+        /* le premier appareil cité dans un texte (minuscules sans accents) */
+        function equipDans(t) {
+            var meilleur = null;
+            for (var i = 0; i < EQUIP_DICTEE.length; i++) {
+                var e = EQUIP_DICTEE[i], m = reEquip(e).exec(t);
+                if (m && (!meilleur || m.index < meilleur.i || (m.index === meilleur.i && e[0].length > meilleur.e[0].length))) meilleur = { i: m.index, e: e, fin: m.index + m[0].length };
+            }
+            return meilleur;
+        }
+        function deEquip(e) { return { m: 'du ', f: 'de la ', v: "de l'", p: 'des ' }[e[2]] + e[1]; }
+        function leEquip(e) { return { m: 'le ', f: 'la ', v: "l'", p: 'les ' }[e[2]] + e[1]; }
+        var VERBES_OBJET = { remplacer: 'Remplacement', changer: 'Remplacement', reparer: 'Réparation', installer: 'Installation', poser: 'Pose', deboucher: 'Débouchage', detartrer: 'Détartrage',
+                             desembouer: 'Désembouage', raccorder: 'Raccordement', renover: 'Rénovation', vidanger: 'Vidange', entretenir: 'Entretien', depanner: 'Dépannage', purger: 'Purge', refaire: 'Réfection' };
+        var PROBLEMES_DICTEE = [
+            [/\b(?:fuite|fuites|fuit|fuient|goutte|gouttent|suinte|suintent|degat des eaux)\b/, 'Réparation de fuite', 'sur'],
+            [/\b(?:bouche|bouchee|bouches|bouchees|bouchon|s'evacue (?:pas|plus|mal)|s'ecoule (?:pas|plus|mal)|n'evacue (?:pas|plus))\b/, 'Débouchage', 'de'],
+            [/\b(?:ne chauffe (?:plus|pas)|chauffe plus|pas d'eau chaude|plus d'eau chaude|plus de chauffage|pas de chauffage|en panne|ne marche (?:plus|pas)|marche plus|ne fonctionne (?:plus|pas)|fonctionne plus|hors service|ne s'allume plus|se met en securite)\b/, 'Dépannage', 'de']
+        ];
+
+        /* Un nom de personne dans une discussion : on garde les vrais mots du nom (« Durand », pas « comment » ni « je vois ») */
+        var MOTS_PAS_NOM = /^(je|j'|j'ai|j'habite|tu|il|elle|on|nous|vous|ils|elles|oui|non|ouais|d'accord|merci|bonjour|bonsoir|au|aux|ok|okay|c'est|c'etait|ce|ca|cela|comment|quoi|qui|que|quel|quelle|s'il|si|et|ou|mais|donc|alors|voila|bien|tres|le|la|les|l'|un|une|de|du|des|d'|en|a|est|pour|avec|sans|dans|sur|par|votre|vos|mon|ma|mes|ton|ta|tes|son|sa|ses|notre|nos|leur|leurs|excusez|pardon|attendez|regardez|dites|ne|n'|pas|plus|y|habite|habitez|bonne|bon|super|parfait|exactement|voici|puis|chez|depuis|aussi|encore|deja|juste|vraiment|madame|monsieur|euh|ben|bah|hein|s'il vous plait|enchante|enchantee|entrez|asseyez|installez|desole|desolee|tout|rien|c|qu'est-ce|est-ce|t'inquiete|voyons|regarde|ecoutez|ecoute|remplacement|reparation|installation|pose|depannage|chantier|travaux|devis|telephone|adresse|rue|avenue|boulevard|impasse|allee|chemin|place|route)$/;
+        function nettoyerNom(orig) {
+            var mots = propre(String(orig).replace(/[,.;:!?].*$/, '')).split(' ').filter(Boolean), out = [];
+            if (!mots.length) return '';
+            var maj = /^[A-ZÀ-ÖØ-Þ]/.test(mots[0]);
+            for (var i = 0; i < mots.length && out.length < 3; i++) {
+                var w = mots[i], p = bas(w);
+                if (/\d/.test(p) || MOTS_PAS_NOM.test(p) || equipDans(p)) {
+                    if (maj && out.length && /^(de|du|d'|le|la)$/.test(p) && mots[i + 1] && /^[A-ZÀ-ÖØ-Þ]/.test(mots[i + 1])) { out.push(w); continue; }
+                    break;
+                }
+                if (maj && !/^[A-ZÀ-ÖØ-Þ]/.test(w)) break;
+                out.push(w);
+            }
+            while (out.length && /^(de|du|d'|le|la)$/i.test(out[out.length - 1])) out.pop();
+            return out.join(' ');
+        }
+
+        /* La désignation d'une fourniture : la fin de la phrase juste avant le prix (« je vais vous mettre un chauffe-eau Atlantic, il est à 450 € ») */
+        var RE_DEBUT_DES = /^(?:et|puis|plus|avec|aussi|ensuite|sûrement|surement|probablement|peut-être|peut être|peut-etre|encore|normalement|alors|donc|bon|ok|okay|d'accord|oui|ouais|bien|très bien|tres bien|voilà|voila|en plus|et puis|il y a|y a|il y aura|il faut|il faudra|il faudrait|faudra|faut|il me faut|il vous faut|il va falloir|il va vous falloir|je vais vous|je vais|je vous|on va vous|on va|je mets|je mettrai|on met|on mettra|je compte|je prends|je prendrai|je rajoute|j'ajoute|je rajouterai|vous aurez|je propose|je conseille|je pars sur|on part sur|on peut|je peux|pour|c'est|fournitures?|matériel|materiel|pièces?|pieces?|:|-)\s+/i;
+        var RE_VERBE_DES = /^(?:vous\s+|lui\s+)?(?:mets|met|mettrai|pose|poserai|installe|installerai|change|changerai|remplace|prends|prendrai|rajoute|ajoute|compte|fournis|facture|propose|conseille|mettre|poser|installer|changer|remplacer|prendre|rajouter|ajouter|compter|fournir|facturer|commander|acheter|prévoir|prevoir|utiliser|proposer|conseiller)(?:\s+|$)/i;
+        var RE_POSE_DES = /^(?:pose|fourniture et pose|fourniture|remplacement|installation|changement)\s+(?:d'|de\s+|du\s+|des\s+)/i;
+        var RE_ARTICLE_DES = /^(?:(?:un|une|le|la|les|des|du|de la|d'un|d'une|votre|vos|ce|cet|cette|ces|nouveaux?|nouvelles?|neuf|neuve|petit|petite)\s+|l'|de l'|d')/i;
+        var RE_FIN_DES = /(?:^|\s+)(?:qui est|qui coûte|qui coute|qui fait|qui revient|il est|elle est|ils sont|elles sont|il coûte|il coute|ça fait|ca fait|ça coûte|ca coute|ça vous fait|ca vous fait|ça revient|ca revient|c'est|ce sera|ça sera|ca sera|ça fera|ca fera|je vous le fais|je vous la fais|je vous les fais|je le fais|je la fais|je les fais|je vous le mets|je vous la mets|je vous les mets|je vous le compte|je vous la compte|je le compte|je vous compte|je compte|je vous facture|je facture|je vous prends|je prends|je vous mets|je mets|le prix|prix|au prix de|à un prix de|a un prix de|à|a|au|pour|de|:|=|environ|à peu près|a peu pres|dans les|aux alentours de|autour de|chacun|chacune|l'unité|l'unite)$/i;
+        function nettoyerDes(c) {
+            var d = propre(c), avant, n = 0;
+            do {
+                avant = d;
+                var f0; do { f0 = d; d = propre(d.replace(RE_FIN_DES, '').replace(/^[,;:\-\s]+|[,;:\-\s]+$/g, '')); } while (d !== f0);
+                d = propre(d.replace(RE_DEBUT_DES, '').replace(RE_VERBE_DES, '').replace(RE_POSE_DES, '').replace(RE_ARTICLE_DES, '').replace(/^[,;:\-\s]+|[,;:\-\s]+$/g, ''));
+            } while (d !== avant && ++n < 12);
+            if (d.length < 2 || /^\d+$/.test(d) || /^(il|elle|ils|elles|ça|ca|ce|c'est|on|je|vous|cela|tout ça|tout ca|le tout|celui-ci|celle-ci|celui-là|celle-là|lui|le|la|les|y|ok|oui|non|bon|bien|merci)$/i.test(d)) return '';
+            return d;
+        }
+        function designationDictee(brutDes) {
+            var phrases = String(brutDes).split(/[.;]/);
+            for (var si = phrases.length - 1, essais = 0; si >= 0 && essais < 2; si--, essais++) {
+                var clauses = phrases[si].split(',');
+                for (var ci = clauses.length - 1; ci >= 0; ci--) { var d = nettoyerDes(clauses[ci]); if (d) return d; }
+            }
+            return '';
+        }
+
+        /* La discussion est finie ? (« j'ai fini », « c'est tout », « au revoir »…) : renvoie ce qui a été dit avant */
+        var RE_FIN_LIBRE = new RegExp("(?:^|\\s)(?:(?:bon|ok|okay|alors|voila|eh bien|et bien|bien|parfait|super|tres bien|d'accord|merci|donc|oui|ouais)\\s+)*(?:" +
+            "(?:j'ai|jai|j ai|on a|nous avons|c'est|c est|ca y est c'est|ca y est)\\s+(?:bien\\s+)?(?:fini|finis|termine|terminee|termines|terminees|tout bon|tout)" +
+            "|ce sera tout|ca sera tout|ca va etre tout|rien d'autre|plus rien|fin de (?:la discussion|la conversation|l'enregistrement|l'ecoute|la dictee)" +
+            "|(?:tu peux|vous pouvez|on peut) (?:arreter|couper|remplir le devis|faire le devis)(?: le micro| d'ecouter| l'ecoute)?" +
+            "|(?:arrete|arretez|arreter|coupe|coupez|couper) (?:le micro|d'ecouter|l'ecoute|l'enregistrement)|stop (?:le )?micro" +
+            "|(?:remplis|remplissez|remplir|fais|faites) le devis" +
+            "|au revoir|a bientot|bonne journee|bonne soiree|bonne fin de journee|a la prochaine" +
+            ")(?:\\s+(?:pour (?:moi|aujourd'hui|l'instant)|merci(?: beaucoup)?|madame|monsieur|au revoir|a bientot|bonne journee|bonne soiree|a plus|a demain|a (?:lundi|mardi|mercredi|jeudi|vendredi|samedi)|a la prochaine))*\\s*$");
+        var RE_FIN_SEUL = /^\s*(?:(?:bon|ok|okay|alors|voila|bien|parfait|super|tres bien|donc|oui)\s+)*(?:fini|termine|stop|fin)(?:\s+merci)?\s*$/;
+        function finDeDiscussion(t) {
+            var n = platDictee(String(t).replace(/[’‘]/g, "'")).replace(/[.,!?;:«»"]/g, ' ');
+            if (RE_FIN_SEUL.test(n)) return { avant: '' };
+            var m = RE_FIN_LIBRE.exec(n);
+            return m ? { avant: propre(String(t).slice(0, m.index)) } : null;
+        }
+
+        function comprendreDictee(brut, opt) {
+            opt = opt || {};
+            var discussion = !!opt.discussion, fiche = APP.fiche || {};
+            var s = ' ' + propre(String(brut || '').replace(/[’‘]/g, "'").replace(/[?!]+/g, '.')) + ' ';
             var avant;
-            do { avant = s; s = s.replace(/\s(euh+|heu+|hum+|hm+|bah|ben|bref|en fait|du coup|voila)[,.]?\s/gi, ' '); } while (s !== avant);
+            do { avant = s; s = s.replace(/\s(euh+|heu+|hum+|hm+|mmh+|bah|ben|beh|bref|en fait|du coup|voila|voilà|tu vois|vous voyez|hein)([,.]?)\s/gi, function (x, f, p) { return p === '.' ? '. ' : ' '; }); } while (s !== avant);
             s = ' ' + chiffresDictee(propre(s)).replace(/(\d)\s+(?=\d{3}\b)(?=\d{3}\s+[a-zA-Z])/g, '$1') + ' ';
             var b = platDictee(s), pris = [], res = { champs: {}, lignes: [], indices: {} };
             var libre = function (a, z) { for (var k = 0; k < pris.length; k++) if (a < pris[k][1] && z > pris[k][0]) return false; return true; };
@@ -1991,95 +2114,215 @@
                 }
             };
             var texte = function (m, g) { var i = b.indexOf(m[g], m.index); return propre(s.slice(i, i + m[g].length)); };
-            var FIN = "(?=\\s*(?:$|[,.;]|\\s(?:et|avec|pour|qui|telephone|tel|portable|numero|son|sa|ses|adresse|chantier|le chantier|il faut|fournitures?|je mets|materiel|travaux|objet|tva|deplacement|dechets|debut|je peux|on peut|ca prendra|ca va|duree|main d.?oeuvre|\\d+ (?:heures?|h)\\b)\\s))";
+            var debutPhrase = function (i) { return Math.max(b.lastIndexOf('.', i - 1), b.lastIndexOf(';', i - 1)) + 1; };
+            var PRIX_FIN = "(?:a |au prix de |pour |de )?\\d+(?:[,.]\\d{1,2})? ?(?:€|euros?)(?![a-z])";
+            var FIN = "(?=\\s*(?:$|[,.;]|" + PRIX_FIN + "|\\s(?:et|mais|ou|donc|alors|car|sinon|avec|pour|qui|telephone|tel|portable|numero|son|sa|ses|adresse|chantier|le chantier|il faut|fournitures?|je mets|je vais|je vous|on va|vous|c'est|ca fait|il y a|materiel|travaux|objet|tva|deplacement|dechets|debut|je peux|on peut|ca prendra|ca va|duree|main d.?oeuvre|\\d+ (?:heures?|h)\\b)\\s))";
+            var MONTANT = "(?:(offerts?|offertes?|gratuits?|gratuites?|inclus|incluse|compris|comprise|je vous l'offre|je l'offre|cadeau)|(\\d+(?:[,.]\\d{1,2})?)\\s*(?:€|euros?)(?:\\s*ht)?)";
+            var ECART = "\\s*,?\\s*(?:(?:c'est|ca fait|ca sera|ce sera|ca vous fait|ca vous fera|je vous le compte|je le compte|je vous compte|je compte|comptez|il est|est|sera|fait|coute|ca coute|a|de|pour|:|=)\\s*)*(?:a |de )?";
+            var montant = function (m) { return m[1] ? '0' : m[2].replace(',', '.'); };
 
-            /* 1. e-mail */
+            /* 1. e-mail (pas celui du plombier) */
             chercher(/(?:(?:son |mon |l')?(?:e-?mail|mail|courriel|adresse mail)(?: c'est| est| :)?\s)?((?:[a-z0-9]+[ ._-]?){1,5}?\s?(?:arobase|arrobase|arobas|arrobas|@)\s?[a-z0-9-]+(?:\s?(?:point|\.)\s?[a-z0-9-]+){0,2}?\s?(?:point|\.)\s?(?:fr|com|net|org|eu))/g, function (m) {
-                var e = email(texte(m, 1)); if (!e) return false; res.champs.email = e;
+                var e = email(texte(m, 1)); if (!e) return false;
+                if (fiche.email && bas(e) === bas(fiche.email)) return;
+                if (!res.champs.email) res.champs.email = e;
             });
-            /* 2. téléphone */
-            chercher(/(?:(?:son |mon |le )?(?:telephone|tel|portable|numero)(?: de telephone)?(?: c'est| est| :)?\s*)?((?:\+33\s?|0)[1-9](?:[\s.-]?\d{2}){4})/g, function (m) {
-                var t = telephone(m[1]); if (!t) return false; res.champs.tel = t;
+            /* 2. téléphone (pas celui du plombier) */
+            chercher(/(?:(?:son |mon |le |votre )?(?:telephone|tel|portable|numero)(?: de telephone)?(?: c'est| est| :)?\s*)?((?:\+33\s?|0)[1-9](?:[\s.-]?\d{2}){4})/g, function (m) {
+                var t = telephone(m[1]); if (!t) return false;
+                if (fiche.tel && t.replace(/\D/g, '') === String(fiche.tel).replace(/\D/g, '')) return;
+                if (!res.champs.tel) res.champs.tel = t;
             });
-            /* 3. déplacement et déchets */
-            chercher(/deplacements?\s*(?:a|de|:|pour|=)?\s*(?:(offerts?|gratuits?|inclus|compris)|(\d+(?:[,.]\d{1,2})?)\s*(?:€|euros?)?(?:\s*ht)?)/g, function (m) {
-                res.champs.deplacement = m[1] ? '0' : m[2].replace(',', '.');
-            });
-            chercher(/(?:gestion et evacuation des dechets|evacuation des dechets|gestion des dechets|dechets|evacuation)\s*(?:a|de|:|pour|=)?\s*(?:(offerts?|gratuits?|inclus|compris)|(\d+(?:[,.]\d{1,2})?)\s*(?:€|euros?)?(?:\s*ht)?)/g, function (m) {
-                res.champs.dechetsPrix = m[1] ? '0' : m[2].replace(',', '.');
-            });
+            /* 3. déplacement et déchets (« le déplacement c'est 35 euros », « 40 euros pour l'évacuation de l'ancien ») */
+            chercher(new RegExp("(?:je ne (?:vous )?(?:compte|facture) pas|sans|pas de frais de|je vous offre|j'offre) (?:le |les |de |frais de )?deplacements?", 'g'), function () { res.champs.deplacement = '0'; });
+            chercher(new RegExp("(?:les |le |du )?(?:frais de )?deplacements?" + ECART + MONTANT, 'g'), function (m) { res.champs.deplacement = montant(m); });
+            chercher(new RegExp("(\\d+(?:[,.]\\d{1,2})?)\\s*(?:€|euros?)\\s*(?:ht\\s*)?(?:de|pour le|pour les|pour|du)\\s*(?:frais de )?deplacements?", 'g'), function (m) { res.champs.deplacement = m[1].replace(',', '.'); });
+            var DECH = "(?:(?:la |les |l')?(?:gestion et evacuation des dechets|evacuation des dechets|gestion des dechets|dechets|gravats|mise en decharge|decheterie|recyclage|(?:evacuation|enlevement|reprise|recuperation)(?: de l'ancien(?:ne)?| du vieux| de la vieille| des anciens| des anciennes)(?: [a-z'-]+){0,2}))";
+            chercher(new RegExp(DECH + ECART + MONTANT, 'g'), function (m) { res.champs.dechetsPrix = montant(m); });
+            chercher(new RegExp("(\\d+(?:[,.]\\d{1,2})?)\\s*(?:€|euros?)\\s*(?:ht\\s*)?(?:de|pour|pour la|pour le|pour les|pour l')\\s*" + DECH, 'g'), function (m) { res.champs.dechetsPrix = m[1].replace(',', '.'); });
+            chercher(/(?:evacuation|enlevement|reprise) (?:de l'ancien(?:ne)?|des dechets)(?: [a-z'-]+){0,2},? (?:c'est |est )?(?:offert|offerte|gratuit|gratuite|inclus|incluse|compris|comprise)/g, function () { res.champs.dechetsPrix = '0'; });
             /* 4. TVA */
             chercher(/(?:tva|t v a|taux de tva)\s*(?:a|de|:|=)?\s*(5[,.]5|5 virgule 5|cinq virgule cinq|10|20|dix|vingt)\s*(?:%|pour ?cent)?/g, function (m) {
                 var v = tauxTva(m[1].replace('cinq virgule cinq', '5,5').replace('5 virgule 5', '5,5')); if (!v) return false; res.champs.tauxTva = v;
             });
-            /* 5. durée (« ça prendra une demi-journée », « durée 2 jours ») */
-            var DUREE = "((?:une |1 )?demi[- ]?journee|(?:une |1 )?journee(?: complete)?|\\d+(?:[,.]5)? (?:jours?|journees?|semaines?)|une semaine|\\d+(?:[,.]\\d+)? ?(?:heures?|h)(?: \\d{1,2}| et demie?| et quart)?|une heure(?: et demie)?)";
-            chercher(new RegExp("\\b(?:duree(?: des travaux)?(?: estimee)?|ca (?:va )?(?:prendre|durer)|ca prendra|ca durera|il faut compter|pour une duree d[e']|en)\\s*(?:de |d'environ |environ |a peu pres )?" + DUREE, 'g'), function (m) {
+            chercher(/(?:tva|taux)\s*(?:a taux |au taux )?(reduite?|intermediaire|normale?|plein)/g, function (m) { if (res.champs.tauxTva) return false; res.champs.tauxTva = /^(reduit|reduite|intermediaire)$/.test(m[1]) ? '10' : '20'; });
+            /* 5. durée (« ça prendra une demi-journée », « j'en ai pour 3 heures ») */
+            var DUREE = "((?:une |1 )?demi[- ]?journee|(?:une |1 )?journee(?: complete| entiere)?|la journee|la matinee|une matinee|l'apres-midi|un apres-midi|une apres-midi|une bonne journee|\\d+(?:[,.]5)? (?:a|ou) \\d+(?:[,.]5)? (?:jours?|journees?|heures?)|\\d+(?:[,.]5)? (?:jours?|journees?|semaines?)|une semaine|\\d+(?:[,.]\\d+)? ?(?:heures?|h)(?: \\d{1,2}| et demie?| et quart)?|une heure(?: et demie)?|une petite heure|une bonne heure)";
+            var PREF_DUREE_FORT = "duree(?: des travaux)?(?: estimee)?|ca (?:va )?(?:me |nous )?(?:prendre|durer)|ca (?:me |nous )?prendra|ca durera|pour une duree d[e']|en";
+            var PREF_DUREE_FAIBLE = "il faut compter|comptez|compter|prevoyez|prevoir|j'en ai pour|on en a pour|j'en aurai pour|il me faut|il me faudra|il faudra|faudra";
+            var reDuree = function (pref) { return new RegExp("\\b(?:" + pref + ")\\s*(?:de |d'environ |environ |a peu pres |dans les |facilement |au moins |)" + DUREE + "(?![a-z])", 'g'); };
+            var poserDuree = function (m) {
                 if (/^en$/.test(m[0].split(' ')[0]) && !/journee|jour|semaine/.test(m[1])) return false;
+                if (res.champs.duree) return false;
                 res.champs.duree = texte(m, 1);
-            });
-            /* 6. heures de main-d'œuvre */
+            };
+            chercher(reDuree(PREF_DUREE_FORT), poserDuree);
+            /* « il me faudra 3 heures » : ce sont les heures de main-d'œuvre (la durée, seulement si ce sont des jours) */
+            chercher(reDuree(PREF_DUREE_FAIBLE), function (m) { if (!/jour|semaine|matinee|apres-midi/.test(m[1])) return false; return poserDuree(m); });
+            /* 6. heures de main-d'œuvre (pas « à 9 heures », « depuis 2 heures ») */
             chercher(/(?:main d.?oeuvre\s*(?:de |: |=)?\s*)?(\d+(?:[,.]\d+)?\s?(?:h\b|heures?)(?:\s?\d{1,2}\b| et demie?| et quart)?)(?:\s*(?:de (?:main d.?oeuvre|travail|boulot|mo)))?/g, function (m) {
-                var debutM = b.slice(Math.max(0, m.index - 6), m.index);
-                if (/\b(a|vers|des)\s*$/.test(debutM)) return false;
+                var debutM = b.slice(Math.max(0, m.index - 14), m.index), apres = b.slice(m.index + m[0].length, m.index + m[0].length + 16);
+                if (/\b(a|vers|des|depuis|il y a|y a|ya|pendant|avant|apres|jusqu'a|jusqu a|entre)\s*$/.test(debutM)) return false;
+                if (/^\s*(du matin|du soir|de l'apres|pile|precises?)/.test(apres)) return false;
                 if (res.champs.heures) return false;
                 var n = nombreFr(m[1]); if (n === null) return false; res.champs.heures = String(n);
             });
             /* 7. début des travaux */
             var DATE = "(demain|apres-? ?demain|aujourd'hui|tout de suite|(?:ce |le )?(?:" + JOURS_DICTEE + ")(?: prochain| qui vient)?(?: \\d{1,2}(?: (?:" + MOIS_DICTEE + "))?)?|la semaine prochaine|le mois prochain|(?:le )?(?:\\d{1,2}|1er|premier) (?:" + MOIS_DICTEE + ")(?: \\d{4})?|sous \\d+ (?:jours?|semaines?)|dans \\d+ (?:jours?|semaines?)|d'ici \\d+ (?:jours?|semaines?)|des reception de l'acompte|des que possible)";
-            chercher(new RegExp("(?:(?:debut|demarrage|commencement)(?: des travaux)?(?: prevu)?|(?:je |on )(?:peux|peut|pourrai|pourra|pourrait) (?:commencer|venir|passer|intervenir|demarrer)|commencer|intervention|a partir d[eu]|des)?\\s*(?:le |la |les travaux )?" + DATE, 'g'), function (m) {
-                if (res.champs.debut) return false;
-                res.champs.debut = texte(m, 1);
-            });
-            /* 8. adresses (client, chantier) */
+            if (!discussion) {
+                chercher(new RegExp("(?:(?:debut|demarrage|commencement)(?: des travaux)?(?: prevu)?|(?:je |on )(?:peux|peut|pourrai|pourra|pourrait) (?:commencer|venir|passer|intervenir|demarrer)|commencer|intervention|a partir d[eu]|des)?\\s*(?:le |la |les travaux )?" + DATE, 'g'), function (m) {
+                    if (res.champs.debut) return false;
+                    res.champs.debut = texte(m, 1);
+                });
+            } else {
+                /* dans une discussion : d'abord « je peux passer lundi », sinon la dernière date dite (pas « depuis lundi », ni « pas mardi ») */
+                var PREF = "(?:(?:debut|demarrage|commencement)(?: des travaux)?(?: prevue?)?|(?:je|on|nous)(?: [a-z'-]+){0,3}? (?:commencer|venir|passer|intervenir|demarrer|faire|m'en occuper|etre la|etre chez vous|commence|commencerai|viens|viendrai|passe|passerai|demarre)|(?:vous pouvez|pouvez vous|vous pourriez|vous venez|vous passez|vous commencez)(?: [a-z'-]+){0,2}?|d'accord pour|ok pour|ca marche pour|ca me va|ca vous va|va pour|on dit|on part sur|on se dit|rendez-vous|rdv|disponible|dispo|libre|commencer|intervention|a partir d[eu]|des)";
+                chercher(new RegExp("(" + PREF + ")\\s*(?:le |la |les travaux )?" + DATE, 'g'), function (m) {
+                    if (/(?:^|\s)(ne|n'|pas|plus|jamais)(?:\s|$)/.test(m[1]) || /\bpas$/.test(b.slice(Math.max(0, m.index - 5), m.index))) return false;
+                    if (/^\s*(dernier|derniere|passe|passee)\b/.test(b.slice(m.index + m[0].length, m.index + m[0].length + 12))) return false;
+                    res.champs.debut = texte(m, 2);
+                });
+                if (!res.champs.debut) {
+                    chercher(new RegExp("(?:^|\\s)" + DATE.replace("(demain|apres-? ?demain|aujourd'hui|tout de suite|", "(demain|apres-? ?demain|"), 'g'), function (m) {
+                        var avantD = b.slice(debutPhrase(m.index), m.index).split(/,|\s(?:mais|par contre|sinon|plutot)(?=\s|$)/).pop(), apresD = b.slice(m.index + m[0].length, m.index + m[0].length + 12);
+                        if (/(?:^|\s)(depuis|il y a|y a|ya|pas|plus|jamais|sauf|n'|ne|dernier|derniere|c'etait|a commence)(?:\s|$)/.test(avantD.slice(-30))) return false;
+                        if (/^\s*(dernier|derniere|passe|passee|soir)\b/.test(apresD)) return false;
+                        res.champs.debut = texte(m, 1);
+                    });
+                }
+            }
+            /* 8. adresses (client, chantier) : la même adresse redite n'est comptée qu'une fois */
+            var MOT_VILLE = "(?!(?:mais|et|ou|donc|alors|car|c'est|travaux|chantier|pour|avec|je|j'|il|elle|on|vous|nous|qui|que|chez|telephone|tel|mon|ma|mes|son|sa|ses|votre|au|a|le|la|les|de)(?![a-z]))[a-z][a-z'-]*";
             var VOIE = "(?:rue|avenue|av|boulevard|bd|impasse|allee|chemin|place|route|quai|cours|lotissement|residence|square|passage|lieu-dit|cite|voie|sentier|hameau|chaussee|esplanade|promenade|faubourg|montee|traverse|villa|domaine|clos)";
-            var reAdr = new RegExp("(?:(chantier|le chantier est|travaux|intervention|sur place)[^,.]{0,25}?)?((?:au |a |le )?\\d{1,4}(?: ?(?:bis|ter))?,? " + VOIE + "\\b.*?)" +
-                "(?:(?:,? (\\d{5}|\\d{2} \\d{3}))(?: ([a-z][a-z'-]*(?: (?:sur|sous|en|les|le|la|de|du|des|lès|d'|l')?\\s?[a-z][a-z'-]*){0,3}))?|(?: a ([a-z][a-z'-]*(?: [a-z][a-z'-]*)?)))?" + FIN, 'g');
-            var adresses = [];
+            var reAdr = new RegExp("(?:(chantier|le chantier est|travaux|intervention|sur place|chez (?:ma|mon|mes|sa|son|ses) [a-z'-]+|ma location|mon locataire|maison secondaire|residence secondaire)[^,.]{0,25}?)?((?:au |a |le )?\\d{1,4}(?: ?(?:bis|ter))?,? " + VOIE + "\\b.*?)" +
+                "(?:(?:,? (\\d{5}|\\d{2} \\d{3}))(?: (" + MOT_VILLE + "(?: (?:sur|sous|en|les|le|la|de|du|des|lès|d'|l')?\\s?" + MOT_VILLE + "){0,3}))?|(?: a (" + MOT_VILLE + "(?: " + MOT_VILLE + ")?)))?" + FIN, 'g');
+            var adresses = [], cleAdr = function (t) { var x = platDictee(t).replace(/[^a-z0-9 ]/g, ' ').replace(/\b(au|a|le|bis|ter)\b/g, ' ').split(/\s+/).filter(Boolean); return x.slice(0, 3).join(' '); };
             chercher(reAdr, function (m) {
                 var i = b.indexOf(m[2], m.index), fin = m.index + m[0].length;
                 var t = propre(s.slice(i, fin)).replace(/^(?:au|a|à|le)\s+/i, '');
+                for (var k = 0; k < adresses.length; k++) if (cleAdr(adresses[k].t) === cleAdr(t)) { if (t.length > adresses[k].t.length) adresses[k].t = t; if (m[1]) adresses[k].chantier = true; return; }
                 adresses.push({ t: t, chantier: !!m[1] });
             });
             adresses.forEach(function (a) {
                 var act = APP.courante && APP.courante.cle;
-                var cle = a.chantier ? 'chantier' : ((act === 'chantier' || act === 'clientAdresse') && !res.champs[act] ? act :
+                var cle = a.chantier ? 'chantier' : ((act === 'chantier' || act === 'clientAdresse') && !res.champs[act] && !discussion ? act :
                           (!res.champs.clientAdresse && !(APP.rep.clientAdresse) ? 'clientAdresse' : (!res.champs.chantier ? 'chantier' : 'clientAdresse')));
+                if (res.champs[cle] && cle === 'clientAdresse' && !res.champs.chantier) cle = 'chantier';
                 res.champs[cle] = a.t;
             });
-            /* 9. nom du client */
-            chercher(new RegExp("(?:(?:le client|la cliente|client|cliente|nom du client)(?: c'est| s'appelle| :)?\\s+|(?:pour|chez|de)\\s+)?(?:la |le |l')?((?:madame|monsieur|mme|mr|m\\.|mademoiselle|mlle|famille|madame et monsieur|monsieur et madame|societe|entreprise|syndic|agence|sarl|sas|sasu|eurl|sci|copropriete|residence)\\s+[a-z][a-z'-]*(?: [a-z][a-z'-]*){0,3}?)" + FIN.replace("(?=", "(?=(?:\\s(?:qui|habite|demeurant|domicilie|au|a|le|la)\\s|\\s\\d)|"), 'g'), function (m) {
+            /* 9. nom du client : société, puis personne (« madame Durand », « je m'appelle Claire Durand ») */
+            chercher(new RegExp("(?:(?:le client|la cliente|client|cliente|nom du client)(?: c'est| s'appelle| :)?\\s+|(?:pour|chez|de)\\s+)?(?:la |le |l')?((?:famille|societe|entreprise|syndic|agence|sarl|sas|sasu|eurl|sci|copropriete|residence)\\s+[a-z][a-z'-]*(?: [a-z][a-z'-]*){0,3}?)" + FIN.replace("(?=", "(?=(?:\\s(?:qui|habite|demeurant|domicilie|au|a|le|la)\\s|\\s\\d)|"), 'g'), function (m) {
                 if (res.champs.clientNom) return false;
-                res.champs.clientNom = texte(m, 1);
+                var t = texte(m, 1), mots = t.split(' ');
+                if (/^famille$/i.test(mots[0])) { var nf = nettoyerNom(mots.slice(1).join(' ')); if (!nf) return false; t = 'Famille ' + nf; }
+                else if (/^(je|j'|tu|il|elle|on|nous|vous|ils|elles|qui|que|est|c'est|a|de|pour|avec|et|ou|mais|ne|n'|y)$/.test(bas(mots[1] || ''))) return false;
+                res.champs.clientNom = t;
             });
+            var personnes = [], appel = [];
+            var reCiv = /(?:^|\s)(?:la |le |l')?(madame et monsieur|monsieur et madame|madame|monsieur|mme|mademoiselle|mlle|docteur|maitre)\s+((?:[a-z][a-z'-]*\s*){1,4})/g, mc;
+            while ((mc = reCiv.exec(b))) {
+                var iCiv = mc.index + mc[0].indexOf(mc[1]), i2 = mc.index + mc[0].length - mc[2].length;
+                var nom = nettoyerNom(s.slice(i2, i2 + mc[2].length));
+                reCiv.lastIndex = i2;
+                if (!nom || !libre(iCiv, i2 + nom.length)) continue;
+                personnes.push({ civ: majuscule(propre(s.slice(iCiv, i2))), nom: nom, a: iCiv, z: i2 + nom.length });
+            }
+            var reAppel = /(?:je m'appelle|je me nomme|moi c'est|mon nom c'est|mon nom est|mon nom de famille c'est|c'est au nom de|au nom de|mettez au nom de|mettez le au nom de|je suis)\s+(?:(madame|monsieur|mme|mademoiselle)\s+)?((?:[a-z][a-z'-]*\s*){1,3})/g, ma;
+            while ((ma = reAppel.exec(b))) {
+                var j2 = ma.index + ma[0].length - ma[2].length, brutNom = s.slice(j2, j2 + ma[2].length);
+                if (/^je suis/.test(ma[0]) && !/^[A-ZÀ-ÖØ-Þ]/.test(brutNom)) continue;
+                var nomA = nettoyerNom(brutNom);
+                if (!nomA || !libre(j2, j2 + nomA.length)) continue;
+                appel.push({ civ: ma[1] ? majuscule(ma[1]) : '', nom: nomA, a: j2, z: j2 + nomA.length });
+            }
+            if (!res.champs.clientNom && (personnes.length || appel.length)) {
+                var p0 = personnes[0], a0 = appel[0], choix;
+                if (p0 && a0) {
+                    var nP = p0.nom.split(' '), nA = a0.nom.split(' ');
+                    if (nA.length > nP.length && bas(nA[nA.length - 1]) === bas(nP[nP.length - 1])) choix = { civ: p0.civ, nom: a0.nom };
+                    else choix = { civ: p0.civ, nom: p0.nom };
+                } else choix = p0 || a0;
+                var nm = choix.nom.split(' ');
+                if (nm.length === 1) {
+                    var esc1 = nm[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), mp, rePre = new RegExp("(?:^|[\\s,.])([A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'-]+) " + esc1 + "(?![a-zà-öø-ÿ])", 'g');
+                    while ((mp = rePre.exec(s))) { if (!MOTS_PAS_NOM.test(bas(mp[1]))) { choix = { civ: choix.civ, nom: mp[1] + ' ' + nm[0] }; break; } }
+                }
+                res.champs.clientNom = propre(choix.civ + ' ' + choix.nom);
+                personnes.concat(appel).forEach(function (x) { prendre(x.a, x.z); });
+            }
             chercher(/(?:le client|la cliente|nom du client)(?: c'est| s'appelle| :)?\s+([a-z][a-z'-]*(?: [a-z][a-z'-]*){0,2}?)(?=\s*(?:$|[,.;]|\s(?:qui|au|a|habite|telephone|tel|pour|adresse|\d)))/g, function (m) {
                 if (res.champs.clientNom) return false;
-                res.champs.clientNom = texte(m, 1);
+                var n = nettoyerNom(texte(m, 1)); if (!n) return false;
+                res.champs.clientNom = n;
             });
-            /* 10. objet des travaux */
+            /* 10. objet des travaux : « remplacement du chauffe-eau », sinon « il faut changer le robinet », sinon le problème (« l'évier est bouché ») */
             chercher(new RegExp("(?:c'est |il s'agit d'(?:un |une )?|objet\\s?:?\\s|travaux\\s?:?\\s|intervention |)(?:pour )?(?:un |une |le |la |l'|des )?((?:remplacement|reparation|installation|pose|depannage|recherche de fuite|recherche|debouchage|entretien|changement|creation|renovation|mise en place|raccordement|detartrage|desembouage|fourniture et pose|remise en etat|modification|fuite|vidange|mise en service|mise aux normes)\\b.*?)" + FIN, 'g'), function (m) {
                 if (res.champs.objet) return false;
-                var t = texte(m, 1); if (t.length < 4) return false;
-                res.champs.objet = t;
+                var i1 = b.indexOf(m[1], m.index), t = m[1], coupe = t.length;
+                if (i1 > 0 && /[a-z0-9]/.test(b.charAt(i1 - 1))) return false;   /* « propose » n'est pas « pose » */
+                if (new RegExp('^\\s*' + PRIX_FIN).test(b.slice(i1 + t.length))) return false;   /* « pose d'un mitigeur à 80 € » : c'est une fourniture */
+                if (discussion && /^(fuite|recherche)$/.test(t.split(' ')[0]) && !/^recherche de fuite/.test(t)) return false;
+                var eq = discussion ? equipDans(t) : null;
+                if (eq) {
+                    /* on garde l'appareil et 2 mots qui le décrivent (« WC suspendu », « chauffe-eau électrique »), pas la suite de la phrase */
+                    coupe = eq.fin;
+                    var suite = t.slice(coupe).split(' ').filter(Boolean);
+                    for (var si = 0; si < suite.length && si < 2; si++) {
+                        if (!/^[a-z][a-z-]*$/.test(suite[si]) || MOTS_PAS_NOM.test(suite[si]) || new RegExp('^(?:' + JOURS_DICTEE + '|demain|prochain|ce|cet|qui|il|elle|ca)$').test(suite[si])) break;
+                        coupe = t.indexOf(suite[si], coupe) + suite[si].length;
+                    }
+                }
+                else if (discussion) {
+                    var mots = t.split(' '); if (mots.length < 3) return false;
+                    if (mots.length > 6) coupe = mots.slice(0, 6).join(' ').length;
+                }
+                var o = propre(s.slice(i1, i1 + coupe)); if (o.length < 4) return false;
+                res.champs.objet = o; prendre(i1, i1 + coupe); return false;
             });
-            /* 11. fournitures : ce qui reste, avec un prix */
+            if (discussion && !res.champs.objet) {
+                var reV = /(?:il faut|faut|il faudrait|il faudra|faudra|il va falloir|je vais|on va|je dois|on doit|je peux|on peut|je vous propose de|je propose de|je vous conseille de|je conseille de|vaut mieux|mieux vaut|je recommande de)\s+(?:vous\s+)?(?:tout\s+)?(?:le |la |les |l'|lui )?(remplacer|changer|reparer|installer|poser|deboucher|detartrer|desembouer|raccorder|renover|vidanger|entretenir|depanner|purger|refaire)\b([^.]{0,60})/g, mv;
+                while (!res.champs.objet && (mv = reV.exec(b))) {
+                    var eqv = equipDans(mv[2].slice(0, 40)) || equipDans(b.slice(debutPhrase(mv.index), mv.index)) || equipDans(b);
+                    if (eqv) { var eqx = eqv.e; EQUIP_DICTEE.forEach(function (e) { if (e[0].length > eqx[0].length && e[0].indexOf(eqx[0]) === 0 && reEquip(e).test(b)) eqx = e; }); res.champs.objet = VERBES_OBJET[mv[1]] + ' ' + deEquip(eqx); }
+                }
+            }
+            if (discussion && !res.champs.objet) {
+                var phrases = b.split(/[.;]/);
+                for (var pi = 0; pi < phrases.length && !res.champs.objet; pi++) {
+                    for (var pk = 0; pk < PROBLEMES_DICTEE.length; pk++) {
+                        if (!PROBLEMES_DICTEE[pk][0].test(phrases[pi])) continue;
+                        var eqp = equipDans(phrases[pi]);
+                        res.champs.objet = PROBLEMES_DICTEE[pk][1] + (eqp ? (PROBLEMES_DICTEE[pk][2] === 'sur' ? ' sur ' + leEquip(eqp.e) : ' ' + deEquip(eqp.e)) : '');
+                        break;
+                    }
+                }
+            }
+            /* 11. les prix qui ne sont pas des fournitures : total, taux horaire, acompte, prix d'un autre artisan… */
+            chercher(/(\d+(?:[,.]\d{1,2})?)\s*(?:€|euros?)\s*(?:ht\s*|ttc\s*)?(?:de l'heure|l'heure|par heure|de l heure|\/ ?h\b|ttc|en tout|au total|tout compris|d'acompte|de remise|de reduction|de moins|de plus|par mois|par an)/g, function () {});
+            chercher(/(?:^|\s)(?:en tout|au total|le total|total|tout compris|le tout|budget|acompte|(?:une |la |de )remise|(?:une |la |de )reduction|m'a dit|on m'a dit|m'avait dit|m'a demande|j'ai paye|ca m'a coute|il m'a coute|ca coutait|c'etait|l'autre plombier|un autre plombier|taux horaire|de l'heure)[^.\d]{0,25}?(\d+(?:[,.]\d{1,2})?)\s*(?:€|euros?)/g, function () {});
+            /* 12. fournitures : ce qui reste, avec un prix */
             var reste = '';
             for (var c = 0; c < s.length; c++) { var occupe = false; for (var k = 0; k < pris.length; k++) if (c >= pris[k][0] && c < pris[k][1]) { occupe = true; break; } reste += occupe ? '|' : s.charAt(c); }
             reste.split(/\|+/).forEach(function (seg) {
                 var sb = platDictee(seg), rePrix = /(\d+(?:[,.]\d{1,2})?)\s*(?:€|euros?)(?:\s*(\d{1,2})\b)?(?:\s*(?:ht|hors taxes?))?(?:\s*(?:la piece|piece|l'unite|chacun|chacune|par piece|pieces|le metre|du metre))?/g, m, debut = 0;
                 while ((m = rePrix.exec(sb))) {
-                    var des = propre(seg.slice(debut, m.index)), pu = nombre(m[1].replace(',', '.')) + (m[2] ? nombre(m[2]) / 100 : 0);
+                    var morceau = seg.slice(debut, m.index), pu = nombre(m[1].replace(',', '.')) + (m[2] ? nombre(m[2]) / 100 : 0);
                     debut = m.index + m[0].length;
-                    des = des.replace(/^(?:[,;.]|et|puis|plus|avec|aussi|ensuite|il faut|il me faut|il y a|je mets|on met|fournitures?|materiel|pieces?|:)(?:\s+|$)/gi, '')
-                             .replace(/^(?:et|puis|plus|avec|aussi|ensuite|il faut|il me faut|il y a|je mets|on met|fournitures?|materiel|pieces?|:)(?:\s+|$)/gi, '')
-                             .replace(/\s+(?:a|à|au prix de|pour|de|a un prix de|:|=|qui coute|qui coûte|qui fait|ça fait|ca fait)$/i, '');
-                    des = propre(des.replace(/[,;:]+$/, ''));
-                    if (des.length < 2 || /^\d+$/.test(des)) continue;
+                    var des = nettoyerDes(morceau.split(/[.;]/).pop().split(',').pop());
+                    if (!des) {
+                        var apresP = /^\s*(?:ht\s*)?(?:pour|de)\s+((?:le |la |les |l'|un |une |des |du )?[^,.;]{2,40}?)(?=\s*(?:$|[,.;]|\s(?:et|plus|puis|avec)\s|\s\d))/i.exec(seg.slice(debut));
+                        if (apresP) { des = nettoyerDes(apresP[1]); if (des) { debut += apresP[0].length; rePrix.lastIndex = debut; } }
+                    }
+                    if (!des) des = designationDictee(morceau);
+                    if (!des || /(?:^|\s)(m'a|m'avait|on m'a|j'ai paye|coutait|c'etait|budget|total|en tout|acompte|remise|de l'heure)(?:\s|$)/.test(platDictee(des))) continue;
+                    var motsD = des.split(' '); if (motsD.length > 10) des = motsD.slice(-6).join(' ');
                     var qte = '', mq = /\s(?:x|fois)\s?(\d+)$/i.exec(des);
                     if (mq) { qte = mq[1]; des = propre(des.slice(0, mq.index)); }
                     res.lignes.push({ des: des, pu: String(Math.round(pu * 100) / 100), qte: qte });
                 }
             });
+            /* « ça prendra 3 heures » : ce sont aussi les heures de main-d'œuvre */
+            if (!res.champs.heures && res.champs.duree) { var mh = /\d+(?:[,.]\d+)?\s?(?:h\b|heures?)(?:\s?\d{1,2}\b| et demie?| et quart)?/.exec(platDictee(res.champs.duree).replace(/^\d+(?:[,.]5)? (?:a|ou) /, '')); if (mh) { var nh = nombreFr(mh[0]); if (nh) res.champs.heures = String(nh); } }
             if (res.champs.tel || res.champs.email) res.champs.clientContact = [res.champs.tel, res.champs.email].filter(Boolean).join(' – ');
             delete res.champs.tel; delete res.champs.email;
             res.nb = Object.keys(res.champs).length + res.lignes.length * 2;
@@ -2142,6 +2385,65 @@
             return true;
         }
 
+        /* ===================== ÉCOUTER LA DISCUSSION : rien ne se remplit, puis tout se range d'un coup ===================== */
+        var MSG_ECOUTE_LIBRE = '🎧 J\'écoute la discussion… Dites « j\'ai fini » quand c\'est terminé.';
+        function demarrerEcouteLibre() {
+            if (APP.mode !== 'devis' || APP.attente || APP.ecouteLibre) return;
+            if (!SR) { modeClavier(); return; }
+            var vieux = ECOUTE.rec; ECOUTE.rec = null;
+            try { if (vieux) vieux.abort(); } catch (e) {}
+            APP.ecouteLibre = true; APP.texteLibre = []; APP.motsUtiles = false; APP.annonceLibre = false; APP.cible = null; APP.erreur = '';
+            ECOUTE.session = true; ECOUTE.essais = 0; ECOUTE.premier = false; ECOUTE.parGeste = true;
+            boutonMicroActif(true);
+            etat(stock('va_micro_ok') ? MSG_ECOUTE_LIBRE : 'Votre téléphone va demander l\'accès au micro : touchez « Autoriser ».', 'text-red-300');
+            if (stock('va_micro_ok')) APP.annonceLibre = true;
+            dessiner();
+            montrerEntendu();
+            ecouter();
+        }
+        /* les derniers mots entendus, pour voir que le micro marche */
+        function montrerEntendu(provisoire) {
+            var e = document.getElementById('entendu');
+            if (!e) return;
+            if (!APP.ecouteLibre) { e.classList.add('hidden'); e.textContent = ''; return; }
+            var tout = propre((APP.texteLibre || []).join(' ') + ' ' + (provisoire || '')), mots = tout ? tout.split(' ') : [];
+            e.classList.remove('hidden');
+            e.textContent = mots.length ? '« …' + mots.slice(-12).join(' ') + ' » · ' + mots.length + ' mot' + (mots.length > 1 ? 's' : '') + ' entendu' + (mots.length > 1 ? 's' : '') : 'Rien entendu pour l\'instant : parlez normalement.';
+        }
+        function ajouterLibre(t) {
+            t = propre(t);
+            if (!t) return;
+            var f = finDeDiscussion(t);
+            APP.texteLibre.push(t);
+            if (!f || f.avant) APP.motsUtiles = true;
+            montrerEntendu();
+            if (f) finirEcouteLibre();
+        }
+        /* « j'ai fini » (ou le micro touché) : un instant, puis le devis se remplit et le micro demande ce qui manque */
+        function finirEcouteLibre(sansMicro) {
+            if (!APP.ecouteLibre) return;
+            var texte = APP.texteLibre.join('. ');
+            APP.ecouteLibre = false; APP.texteLibre = [];
+            var vieux = ECOUTE.rec; ECOUTE.rec = null;
+            try { if (vieux) vieux.abort(); } catch (e) {}
+            if (sansMicro) { ECOUTE.session = false; boutonMicroActif(false); }
+            montrerEntendu();
+            APP.attente = true;
+            etat('⏳ Un instant, je remplis le devis…', 'text-slate-200');
+            dessiner();
+            var f = document.getElementById('feuille');
+            if (f) f.classList.add('opacity-50', 'pointer-events-none');
+            setTimeout(function () {
+                var d = comprendreDictee(texte, { discussion: true }), n = d.nb ? appliquerDictee(d) : 0;
+                APP.attente = false;
+                if (f) f.classList.remove('opacity-50', 'pointer-events-none');
+                avancer(true);
+                if (n) etat('✓ ' + n + ' case' + (n > 1 ? 's' : '') + ' remplie' + (n > 1 ? 's' : '') + '. ' + (APP.courante ? (ECOUTE.session ? 'Répondez aux questions du micro pour compléter.' : 'Touchez le micro pour compléter le reste.') : 'Vérifiez le devis.'), 'text-emerald-300');
+                else etat(APP.motsUtiles ? 'Je n\'ai pas trouvé d\'infos pour le devis : répondez aux questions du micro.' : 'Je n\'ai rien entendu : répondez aux questions du micro.', 'text-slate-200');
+                setTimeout(function () { APP.flash = {}; if (APP.mode === 'devis') dessiner(); }, 3000);
+            }, 2000);
+        }
+
         /* Une case du devis (un texte à taper, ou des boutons) */
         function htmlChamp(cle, choix, classe) {
             var num = /_(pu|qte)$/.test(cle) || cle === 'heures' || cle === 'deplacement' || cle === 'dechetsPrix';
@@ -2156,7 +2458,7 @@
         function majChamp(cle, choix, classe) {
             var el = document.getElementById('champ-' + cle);
             if (!el) return;
-            var actif = !!(APP.courante && APP.courante.cle === cle);
+            var actif = !!(APP.courante && APP.courante.cle === cle) && !APP.ecouteLibre && !APP.attente && !!(APP.ordre.length || APP.cible);
             var flash = !!(APP.flash && APP.flash[cle]);
             var cls = (classe || '') + ' rounded-lg px-2 py-1.5 transition ' + (actif ? 'bg-amber-50 ring-2 ring-amber-400' : (flash ? 'bg-emerald-50 ring-1 ring-emerald-400' : ''));
             if (el.className !== cls) el.className = cls;
@@ -2308,7 +2610,9 @@
             });
             APP.majForcee = null; APP.majForcee2 = null;
             var qc = document.getElementById('question-courante');
-            if (qc && APP.courante) qc.textContent = 'Le micro remplit : ' + libelleChamp(APP.courante.cle);
+            if (qc && (APP.ecouteLibre || APP.attente)) qc.textContent = APP.ecouteLibre ? 'Rien ne se remplit pendant l\'écoute.' : '';
+            else if (qc && APP.courante && !APP.ordre.length) qc.textContent = '';
+            else if (qc && APP.courante) qc.textContent = 'Le micro remplit : ' + libelleChamp(APP.courante.cle);
         }
 
         function dessiner() {
@@ -2320,11 +2624,16 @@
             else if (APP.mode === 'facture') { titre.textContent = 'Facture'; sous.textContent = 'Quand le chantier est terminé.'; }
             else if (APP.mode === 'bon') { titre.textContent = "Bon d'intervention"; sous.textContent = 'Le client signe que les travaux sont faits.'; }
             else if (APP.mode === 'historique') { titre.textContent = 'Mes devis'; sous.textContent = 'Gardés sur ce téléphone. Ouvrez-en un pour le renvoyer, le faire signer ou le facturer.'; }
-            else { titre.textContent = 'Nouveau devis'; sous.textContent = 'Touchez le micro et répondez aux questions.'; }
+            else { titre.textContent = 'Nouveau devis'; sous.textContent = APP.mode === 'devis' && !APP.ordre.length ? 'Touchez le micro et parlez avec votre client : le devis se remplit à la fin.' : 'Le micro vous demande ce qui manque.'; }
             barre.innerHTML = APP.demo ? '<span class="text-gold-400 font-semibold">Mode essai</span>' : ficheValide(APP.fiche) && APP.mode !== 'fiche-edition'
                 ? '<button type="button" onclick="ouvrirHistorique()" class="text-gold-400 underline">Mes devis</button><span class="text-slate-300">Ma fiche : <strong class="text-white">' + esc(APP.fiche.nom) + '</strong></span><button type="button" onclick="modifierFiche()" class="text-gold-400 underline">Modifier</button>'
                 : '';
-            document.getElementById('zone-micro').style.display = APP.courante ? '' : 'none';
+            document.getElementById('zone-micro').style.display = APP.courante || APP.ecouteLibre ? '' : 'none';
+            var vide = APP.mode === 'devis' && (!APP.ordre.length || APP.ecouteLibre);
+            document.getElementById('aide-micro').textContent = vide
+                ? 'Le micro écoute toute la discussion avec votre client, sans rien remplir. Dites « j\'ai fini », « c\'est tout » ou « au revoir » : il remplit le devis, puis vous demande ce qui manque. Prévenez votre client que le micro écoute.'
+                : (APP.mode === 'devis' ? 'Répondez aux questions du micro. Touchez une case pour la corriger au clavier.' : 'Répondez à la question à voix haute. Touchez une case pour la corriger au clavier.');
+            document.getElementById('bouton-libre').classList.toggle('hidden', !(APP.mode === 'devis' && APP.ordre.length && !APP.ecouteLibre && !APP.attente && SR));
             var pr = progression();
             document.getElementById('question-courante').textContent = pr ? pr.texte : '';
             document.getElementById('barre-progression').style.width = pr ? Math.round(Math.min(1, pr.part) * 100) + '%' : '0%';
