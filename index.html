@@ -62,7 +62,7 @@
         <div id="cartes" class="mt-4 space-y-3"></div>
         <div id="fin-zone" class="mt-4"></div>
 
-        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v18</p>
+        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v19</p>
     </main>
     <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-gold-500/30 px-4 pt-3 pb-5">
         <div class="max-w-xl mx-auto">
@@ -1369,7 +1369,7 @@
             decompte: "au quart d'heure entamé", deplacement: '35', dechetsPrix: '20', dechetterie: 'déchetterie professionnelle de Bordeaux', acompte: '30', validite: '30', paiement: 'virement ou chèque' };
         function lancerDemo() {
             arreterEcoute();
-            APP.demo = true; APP.fiche = FICHE_DEMO; APP.miseAJour = false; APP.trouve = null; APP.auto = null;
+            APP.demo = true; APP.fiche = FICHE_DEMO; APP.miseAJour = false; APP.trouve = null; APP.auto = null; APP.sansFiche = false;
             nouveauDevis(false);
             window.scrollTo(0, 0);
         }
@@ -1381,6 +1381,10 @@
                 z.innerHTML = '<div class="p-4 rounded-2xl border border-gold-500/50 bg-gold-500/10 text-sm text-slate-100">' +
                     '<p><strong class="text-gold-400">Essai avec une entreprise fictive.</strong> Dites un client, des fournitures et des prix au hasard : le devis PDF se crée à la fin (marqué « EXEMPLE »).</p>' +
                     '<button type="button" onclick="quitterDemo()" class="mt-3 w-full px-4 py-3 rounded-full text-sm font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">J\'ai compris : je fais ma vraie fiche</button></div>';
+            } else if (APP.sansFiche && (APP.mode === 'devis' || APP.mode === 'recap')) {
+                z.innerHTML = '<div class="p-3 rounded-2xl border border-gold-500/40 bg-gold-500/10 text-sm text-slate-100 flex items-center gap-3">' +
+                    '<p class="flex-1">Votre fiche entreprise n\'est pas encore remplie : le PDF se créera une fois qu\'elle est faite (2 minutes, une seule fois).</p>' +
+                    '<button type="button" onclick="remplirFiche()" class="flex-shrink-0 px-4 py-2.5 rounded-full text-xs font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">Remplir ma fiche</button></div>';
             } else if (APP.mode === 'fiche' && !APP.miseAJour && !APP.ordre.length) {
                 z.innerHTML = '<div class="p-4 rounded-2xl border border-white/15 bg-white/5 text-sm text-slate-200">' +
                     '<p>Envie de voir le résultat avant de remplir votre fiche\u00a0?</p>' +
@@ -1390,6 +1394,7 @@
 
         /* ===================== DÉMARRAGE ===================== */
         function demarrer() {
+            APP.sansFiche = false;
             if ((new URLSearchParams(location.search)).get('demo') === '1') { lancerDemo(); afficherAideNavigateur(); return; }
             var deLien = decoderFiche(config('fiche') || (new URLSearchParams(location.search)).get('f') || '');
             var stocke = stock('va_fiche');
@@ -1410,10 +1415,24 @@
             } else if (ficheValide(APP.fiche)) {
                 if (!chargerBrouillon(stock('va_devis'))) nouveauDevis(true);
             } else {
-                APP.mode = 'fiche'; APP.rep = {}; APP.ordre = [];
+                /* pas encore de fiche : le devis vide s'affiche tout de suite, la fiche se remplit quand on veut */
+                APP.fiche = ficheProvisoire(); APP.sansFiche = true;
+                if (!chargerBrouillon(stock('va_devis'))) nouveauDevis(true);
             }
             avancer(false);
             afficherAideNavigateur();
+        }
+        function ficheProvisoire() {
+            return { provisoire: true, nom: '', forme: '', adresse: '', tel: '', email: '', siret: '', regime: 'assujetti', tauxDefaut: '10', tauxHoraire: '0',
+                     deplacement: '0', dechetsPrix: '0', acompte: '0', validite: '30', paiement: '', decennale: '', dechetterie: '' };
+        }
+        function remplirFiche() {
+            arreterEcoute();
+            sauverBrouillon();
+            APP.sansFiche = false; APP.fiche = null; APP.cible = null; APP.demo = false;
+            APP.mode = 'fiche'; APP.rep = {}; APP.ordre = []; APP.lignes = null; APP.pdf = null;
+            avancer(true);
+            window.scrollTo(0, 0);
         }
 
         function brouillonValable(b) { return !!(b && b.rep && /^(devis|recap|facture|bon|historique)$/.test(b.mode || 'devis') && !('nom' in b.rep && 'siret' in b.rep)); }
@@ -1638,6 +1657,7 @@
 
         function manques() {
             var d = devisPourPdf(), m = [], ok = 0, sansPrix = 0, sansNom = 0;
+            if (APP.sansFiche) m.push('votre fiche entreprise (bouton « Remplir ma fiche » en haut)');
             if (!d.clientNom) m.push('le nom du client');
             if (!d.clientAdresse) m.push("l'adresse du client");
             for (var i = 0; i < d.lignes.length; i++) {
@@ -2033,7 +2053,7 @@
             /* Main-d'œuvre, déplacement, déchets */
             b.push({ id: 'ligne-mo', html: '<div id="ligne-mo" class="border-b border-slate-200 py-1"><p class="px-2 pt-1 text-sm text-slate-900">Main-d\'œuvre</p>' +
                 '<div class="grid grid-cols-12 gap-1 items-end">' + htmlChamp('heures', null, 'col-span-4') +
-                '<p class="col-span-4 text-right text-xs text-slate-500 pb-2">× ' + euros(nombre(f.tauxHoraire)) + ' / h</p>' +
+                '<p class="col-span-4 text-right text-xs text-slate-500 pb-2">× ' + (nombre(f.tauxHoraire) > 0 ? euros(nombre(f.tauxHoraire)) : 'votre prix') + ' / h</p>' +
                 '<p id="total-mo" class="col-span-4 text-right text-sm font-semibold text-slate-900 pb-2"></p></div></div>',
                 champs: [['heures', null, 'col-span-4']],
                 maj: function () { var t = document.getElementById('total-mo'), v = r.heures ? euros(cent(nombre(r.heures) * nombre(f.tauxHoraire))) : ''; if (t.textContent !== v) t.textContent = v; } });
