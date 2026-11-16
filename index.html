@@ -65,7 +65,7 @@
         <div id="cartes" class="mt-4 space-y-3"></div>
         <div id="fin-zone" class="mt-4"></div>
 
-        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v24</p>
+        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v25</p>
     </main>
     <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-gold-500/30 px-4 pt-3 pb-5">
         <div class="max-w-xl mx-auto">
@@ -229,6 +229,8 @@
             var ent = [formeAffichee(fiche.forme) + capital + (fiche.dirigeant ? ' – ' + fiche.dirigeant : ''), fiche.adresse,
                        [fiche.tel, fiche.email].filter(Boolean).join(' – '),
                        'SIRET ' + fiche.siret + (fiche.rm ? ' – RM ' + String(fiche.rm).replace(/^\s*(rm|r\.m\.)\s*/i, '') : '')];
+            var siren = String(fiche.siret || '').replace(/\D/g, '').slice(0, 9);
+            if (estSociete(fiche.forme) && fiche.greffe && siren.length === 9) ent.push('RCS ' + String(fiche.greffe).replace(/^\s*(rcs|r\.c\.s\.)\s*/i, '') + ' ' + siren.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3'));
             if (!c.franchise && fiche.tvaNum) ent.push('TVA intracom. ' + fiche.tvaNum);
             for (var e = 0; e < ent.length; e++) { y += texte(ent[e], G, y, { largeur: 110 }); }
             // En-tête devis
@@ -1131,6 +1133,7 @@
                 case 'email': v = email(t); if (!v) return { ok: false, erreur: 'E-mail incompris. Dites par exemple « contact arobase plomberie martin point fr ».' }; return { ok: true, valeur: v };
                 default:
                     if (q.retirer) t = propre(t.replace(q.retirer, '')) || t;
+                    if (q.ville) t = villeGreffe(t) || t;
                     if (q.cle === 'tvaNum') t = t.replace(/^fr\s*/i, 'FR ').replace(/\s+/g, ' ');
                     return { ok: true, valeur: q.casse ? t : majuscule(t) };
             }
@@ -1154,6 +1157,7 @@
             { cle: 'nom', texte: 'Quel est le nom de votre entreprise ?', aide: 'Ex. : Plomberie Martin', requis: true, titre: true },
             { cle: 'forme', texte: 'Quelle est sa forme juridique ?', aide: 'Micro-entreprise, EI, EURL, SARL, SASU ou SAS', type: 'forme', requis: true },
             { cle: 'capital', texte: 'Le capital social de votre société, en euros ?', aide: 'Ex. : 1000 (écrit sur vos statuts et votre Kbis)', type: 'nombre', requis: true, si: function (r) { return estSociete(r.forme); } },
+            { cle: 'greffe', texte: 'La ville du greffe où votre société est inscrite au RCS ?', aide: 'Écrite sur votre Kbis, ex. : « RCS Bordeaux » → dites « Bordeaux »', requis: true, casse: true, ville: true, si: function (r) { return estSociete(r.forme); } },
             { cle: 'dirigeant', texte: 'Quel est votre nom ?', aide: 'Ex. : Jean Martin', titre: true },
             { cle: 'adresse', texte: "Quelle est l'adresse de votre entreprise ?", aide: 'Ex. : 12 rue des Lilas, 69003 Lyon', requis: true, adresse: true },
             { cle: 'tel', texte: 'Votre numéro de téléphone ?', aide: 'Ex. : 06 12 34 56 78', type: 'tel', requis: true },
@@ -1245,6 +1249,28 @@
                 return capitaliser(m.toLowerCase(), i === 0 ? {} : PETITS_MOTS, i === 0);
             }).join(' ');
         }
+        /* « au greffe du tribunal de commerce de la Rochelle » -> « La Rochelle » ; « du Havre » -> « Le Havre » */
+        function villeGreffe(t) {
+            t = propre(String(t || '').toLowerCase().replace(/[.!]+$/, ''));
+            var avant;
+            do {
+                avant = t;
+                t = t.replace(/^(c'est|c est|est|mon|ma|au|à|a|inscrite?|inscrits?|immatricul[ée]e?s?|chez)\s+/, '')
+                     .replace(/^((le|la) )?(greffe|tribunal de commerce|tribunal|rcs|r c s|r\.c\.s\.?|registre du commerce( et des sociétés)?)\s*/, '')
+                     .replace(/^(de |d'|du )(?=commerce|tribunal|greffe|rcs)/, '');
+            } while (t !== avant);
+            t = t.replace(/^du\s+/, 'le ').replace(/^des\s+/, 'les ').replace(/^(de|d')\s*/, '');
+            var petits = { en: 1, sur: 1, de: 1, du: 1, des: 1, la: 1, le: 1, les: 1, et: 1, aux: 1, au: 1, sous: 1, lès: 1, lez: 1 };
+            var mots = t.split(/(\s+|-)/), n = 0;
+            return mots.map(function (m) {
+                if (!m || /^(\s+|-)$/.test(m)) return m;
+                var debut = n++ === 0;
+                if (!debut && petits[m]) return m;
+                var a = m.match(/^([dl])'(.+)$/);
+                if (a) return (debut ? a[1].toUpperCase() : a[1]) + "'" + a[2].charAt(0).toUpperCase() + a[2].slice(1);
+                return m.charAt(0).toUpperCase() + m.slice(1);
+            }).join('');
+        }
         function tvaIntracom(siren) {
             if (!/^\d{9}$/.test(String(siren))) return '';
             var cle = (12 + 3 * (parseInt(siren, 10) % 97)) % 97;
@@ -1305,7 +1331,7 @@
 
         function ficheDepuisReponses(r) {
             return {
-                nom: r.nom || '', forme: r.forme || '', capital: estSociete(r.forme) ? (r.capital || '') : '', dirigeant: r.dirigeant || '', adresse: r.adresse || '', tel: r.tel || '', email: r.email || '',
+                nom: r.nom || '', forme: r.forme || '', capital: estSociete(r.forme) ? (r.capital || '') : '', greffe: estSociete(r.forme) ? (r.greffe || '') : '', dirigeant: r.dirigeant || '', adresse: r.adresse || '', tel: r.tel || '', email: r.email || '',
                 siret: r.siret || '', rm: r.rm || '', regime: r.regime === 'non' ? 'franchise' : 'assujetti', tvaNum: r.tvaNum || '', tauxDefaut: r.tauxDefaut || '10',
                 decennale: r.decennale || '', decContrat: r.decContrat || '', decZone: r.decZone || '', rcpro: r.rcpro || '', mediateur: r.mediateur || '', tauxHoraire: r.tauxHoraire || '0', decompte: r.decompte || '', deplacement: r.deplacement || '0',
                 dechetsPrix: r.dechetsPrix || '0', dechetterie: r.dechetterie || '', acompte: r.acompte || '0', validite: r.validite || '30', prixDevis: r.prixDevis || '0', paiement: r.paiement || ''
@@ -1366,7 +1392,7 @@
         }
 
         /* ===================== ESSAI AVEC UN EXEMPLE (rien à remplir) ===================== */
-        var FICHE_DEMO = { demo: true, nom: 'Plomberie Martin', forme: 'SARL', capital: '1000', dirigeant: 'Jean Martin', adresse: '12 rue des Lilas, 33000 Bordeaux',
+        var FICHE_DEMO = { demo: true, nom: 'Plomberie Martin', forme: 'SARL', capital: '1000', greffe: 'Bordeaux', dirigeant: 'Jean Martin', adresse: '12 rue des Lilas, 33000 Bordeaux',
             tel: '06 12 34 56 78', email: 'contact@plomberie-martin.fr', siret: '123 456 789 00012', rm: '123 456 789', regime: 'assujetti', tvaNum: 'FR 32 123456789', tauxDefaut: '10',
             decennale: 'Assurance Exemple, 1 rue de l\'Exemple, 33000 Bordeaux', decContrat: '000000', decZone: 'France métropolitaine', rcpro: '', mediateur: 'Médiateur Exemple – exemple.fr', tauxHoraire: '55',
             decompte: "au quart d'heure entamé", deplacement: '35', dechetsPrix: '20', dechetterie: 'déchetterie professionnelle de Bordeaux', acompte: '30', validite: '30', paiement: 'virement ou chèque' };
