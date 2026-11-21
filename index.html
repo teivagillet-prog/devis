@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" class="dark">
+<html lang="fr">
 <head>
     <base target="_top">
     <meta charset="UTF-8">
@@ -10,8 +10,8 @@
         tailwind.config = {
             darkMode: 'class',
             theme: { extend: {
-                colors: { obsidian: '#070A0F', charcoal: '#0F1522', cardDark: '#131B2A', gold: { 400: '#E6C687', 500: '#D4AF37', 600: '#AA820A' } },
-                fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'], serif: ['Playfair Display', 'serif'] }
+                colors: { obsidian: '#FFFFFF', charcoal: '#F6F6F4', cardDark: '#FFFFFF', gold: { 400: '#0B0B0B', 500: '#0B0B0B', 600: '#0B0B0B' } },
+                fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'], serif: ['Playfair Display', 'Georgia', 'serif'] }
             } }
         }
     </script>
@@ -19,45 +19,45 @@
     <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #070A0F; color: #E2E8F0; font-family: 'Plus Jakarta Sans', sans-serif; }
-        .gold-gradient-text { background: linear-gradient(135deg, #FFF5D6 0%, #D4AF37 50%, #AA820A 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .glass-panel { background: rgba(19, 27, 42, 0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+        body { background-color: #FFFFFF; color: #0B0B0B; font-family: 'Inter', system-ui, sans-serif; letter-spacing: 0.005em; }
+        .gold-gradient-text { color: #0B0B0B; }
+        .glass-panel { background: #FFFFFF; }
         #micro { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     </style>
 </head>
 <body class="min-h-screen">
 
-    <header class="border-b border-white/10 glass-panel">
+    <header class="border-b border-black/[0.08] glass-panel">
         <div class="max-w-xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
             <!-- Logo : retour à l'accueil du site Vos Automatisations -->
-            <a href="https://sites.google.com/view/vos-automatisations-plateforme" aria-label="Retour à l'accueil" class="flex items-center gap-2 cursor-pointer" style="text-decoration: none; touch-action: manipulation; -webkit-tap-highlight-color: rgba(212,175,55,0.25);">
-                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-gold-400 via-gold-500 to-amber-600 flex items-center justify-center"><i data-lucide="cpu" class="w-5 h-5 text-black"></i></div>
-                <span class="font-bold text-white">Vos <span class="gold-gradient-text font-serif italic">Automatisations</span></span>
+            <a href="https://sites.google.com/view/vos-automatisations-plateforme" aria-label="Retour à l'accueil" class="flex items-center gap-2.5 cursor-pointer" style="text-decoration: none; touch-action: manipulation; -webkit-tap-highlight-color: rgba(198,244,50,0.3);">
+                <span class="w-9 h-9 rounded-lg bg-[#0B0B0B] flex items-center justify-center flex-shrink-0"><svg viewBox="0 0 30 22" class="w-[20px] h-[15px] text-[#C6F432]/45" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M2 3 L9 19 L16 3"/><path d="M14 19 L21 3 L28 19"/><path d="M17.6 12.5 H24.4"/></svg></span>
+                <span class="font-serif text-[16px] sm:text-[18px] font-medium leading-none whitespace-nowrap text-[#0B0B0B]">Vos Automatisations</span>
             </a>
-            <div id="barre-fiche" class="flex items-center gap-2 text-xs"></div>
+            <div id="barre-fiche" class="flex items-center gap-0.5 text-xs flex-shrink-0"></div>
         </div>
     </header>
 
     <main class="max-w-xl mx-auto px-4 pb-48">
         <div class="pt-6 pb-2">
-            <h1 id="titre-parcours" class="text-2xl font-serif font-bold text-white"></h1>
-            <p id="sous-titre" class="text-slate-400 text-sm mt-1"></p>
+            <h1 id="titre-parcours" class="text-[28px] leading-tight font-serif font-medium text-[#0B0B0B]"></h1>
+            <p id="sous-titre" class="text-[#555555] text-sm mt-1"></p>
         </div>
 
         <!-- Le micro unique, toujours visible en haut -->
-        <section id="zone-micro" class="sticky top-0 z-30 -mx-4 px-4 py-4 glass-panel border-b border-gold-500/20 text-center">
+        <section id="zone-micro" class="sticky top-0 z-30 -mx-4 px-4 py-5 glass-panel border-b border-black/[0.08] text-center">
             <button type="button" id="micro" onclick="toucherMicro()" aria-label="Parler"
-                class="mx-auto w-24 h-24 rounded-full flex items-center justify-center bg-gradient-to-br from-gold-400 via-gold-500 to-gold-600 text-black shadow-xl shadow-gold-500/30 active:scale-95 transition">
-                <i data-lucide="mic" class="w-11 h-11"></i>
+                class="mx-auto w-[88px] h-[88px] rounded-full flex items-center justify-center bg-[#0B0B0B] text-[#C6F432]/85 ring-1 ring-[#C6F432]/45 ring-offset-[6px] ring-offset-[#FFFFFF] shadow-[0_10px_30px_-12px_rgba(11,11,11,0.45)] active:scale-95 transition">
+                <i data-lucide="mic" class="w-9 h-9"></i>
             </button>
             <p id="etat" class="mt-3 text-sm font-semibold text-gold-400">Touchez le micro pour commencer</p>
-            <p id="entendu" class="hidden mt-1 text-xs text-slate-400 italic"></p>
-            <p id="question-courante" class="mt-1 text-slate-200 text-sm font-semibold"></p>
-            <div class="mt-2 mx-auto max-w-xs h-1.5 rounded-full bg-white/10 overflow-hidden"><div id="barre-progression" class="h-full bg-gold-500 rounded-full transition-all" style="width:0%"></div></div>
-            <p id="aide-micro" class="mt-2 text-xs text-slate-300">Répondez à la question à voix haute. Touchez une case pour la corriger au clavier.</p>
-            <button type="button" id="bouton-libre" onclick="demarrerEcouteLibre()" class="hidden mt-2 text-xs font-semibold text-gold-400 underline">🎧 Écouter une nouvelle discussion</button>
+            <p id="entendu" class="hidden mt-1 text-xs text-[#555555] italic"></p>
+            <p id="question-courante" class="mt-1 text-[#222222] text-sm font-semibold"></p>
+            <div class="mt-3 mx-auto max-w-xs h-[2px] rounded-full bg-black/[0.05] overflow-hidden"><div id="barre-progression" class="h-full bg-[#C6F432] rounded-full transition-all" style="width:0%"></div></div>
+            <p id="aide-micro" class="mt-2 text-xs text-[#4A4A4A]">Répondez à la question à voix haute. Touchez une case pour la corriger au clavier.</p>
+            <button type="button" id="bouton-libre" onclick="demarrerEcouteLibre()" class="hidden mt-2 text-xs font-semibold text-gold-400 underline underline-offset-4 decoration-[#C6F432] decoration-2">Écouter une nouvelle discussion</button>
         </section>
 
         <div id="bandeau-demo" class="mt-4"></div>
@@ -65,45 +65,46 @@
         <div id="cartes" class="mt-4 space-y-3"></div>
         <div id="fin-zone" class="mt-4"></div>
 
-        <p class="mt-10 text-center text-xs text-slate-400">Vos informations restent sur votre téléphone. · v25</p>
+        <p class="mt-10 text-center text-xs text-[#555555]">Vos informations restent sur votre téléphone. · v26</p>
     </main>
-    <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-gold-500/30 px-4 pt-3 pb-5">
+    <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-black/[0.08] px-4 pt-3 pb-5">
         <div class="max-w-xl mx-auto">
             <p id="barre-pdf-info" class="text-xs text-center mb-2"></p>
             <div class="flex gap-2">
-                <button type="button" id="barre-pdf-signer" onclick="ouvrirSignature()" class="hidden flex-1 px-4 py-4 rounded-full text-sm font-bold text-gold-400 border-2 border-gold-500/70 transition">✍️ Faire signer</button>
-                <button type="button" id="barre-pdf-bouton" onclick="actionBarrePdf()" class="flex-[2] w-full px-6 py-4 rounded-full text-base font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600 transition"></button>
+                <button type="button" id="barre-pdf-signer" onclick="ouvrirSignature()" class="hidden flex-1 px-2 py-4 rounded-lg text-sm font-bold text-gold-400 border border-gold-500/60 transition">Signer</button>
+                <button type="button" id="barre-pdf-facture" onclick="ouvrirFacture()" class="hidden flex-1 px-2 py-4 rounded-lg text-sm font-bold text-gold-400 border border-gold-500/60 transition">Facture</button>
+                <button type="button" id="barre-pdf-bouton" onclick="actionBarrePdf()" class="flex-[2] w-full px-4 py-4 rounded-lg text-base font-semibold text-[#FFFFFF] bg-[#0B0B0B] transition"></button>
             </div>
         </div>
     </div>
     <!-- Signature du client au doigt -->
-    <div id="signature-modal" class="hidden fixed inset-0 z-50 bg-obsidian/95 overflow-y-auto">
+    <div id="signature-modal" class="hidden fixed inset-0 z-50 bg-[#FFFFFF] overflow-y-auto">
         <div class="max-w-xl mx-auto px-4 py-6">
             <p class="text-gold-400 text-xs font-semibold uppercase tracking-wider">Signature du client</p>
-            <p id="sig-resume" class="text-white text-lg font-semibold mt-1"></p>
-            <p id="sig-citation" class="text-slate-300 text-sm mt-2">« Devis reçu avant l'exécution des travaux. Bon pour accord. »</p>
-            <p id="sig-retract" class="text-slate-300 text-xs mt-2">Si vous signez chez vous, vous avez 14 jours pour changer d'avis (formulaire dans le devis).</p>
-            <label id="sig-anticipe-zone" class="flex items-start gap-3 mt-4 p-3 rounded-xl border border-white/15 text-sm text-slate-200">
-                <input type="checkbox" id="sig-anticipe" class="mt-1 w-5 h-5 accent-amber-400">
+            <p id="sig-resume" class="text-[#0B0B0B] text-lg font-semibold mt-1"></p>
+            <p id="sig-citation" class="text-[#4A4A4A] text-sm mt-2">« Devis reçu avant l'exécution des travaux. Bon pour accord. »</p>
+            <p id="sig-retract" class="text-[#4A4A4A] text-xs mt-2">Si vous signez chez vous, vous avez 14 jours pour changer d'avis (formulaire dans le devis).</p>
+            <label id="sig-anticipe-zone" class="flex items-start gap-3 mt-4 p-3 rounded-xl border border-black/[0.12] text-sm text-[#222222]">
+                <input type="checkbox" id="sig-anticipe" class="mt-1 w-5 h-5 accent-[#0B0B0B]">
                 <span>Je demande que les travaux commencent avant la fin des 14 jours.</span>
             </label>
-            <div id="sig-pieces-zone" class="mt-3 p-3 rounded-xl border border-white/15 text-sm text-slate-200">
+            <div id="sig-pieces-zone" class="mt-3 p-3 rounded-xl border border-black/[0.12] text-sm text-[#222222]">
                 <p>Conserver les pièces remplacées ?</p>
                 <div class="flex gap-6 mt-2">
-                    <label class="flex items-center gap-2"><input type="radio" name="sig-pieces" id="sig-pieces-oui" value="oui" class="w-5 h-5 accent-amber-400"> Oui</label>
-                    <label class="flex items-center gap-2"><input type="radio" name="sig-pieces" id="sig-pieces-non" value="non" class="w-5 h-5 accent-amber-400"> Non</label>
+                    <label class="flex items-center gap-2"><input type="radio" name="sig-pieces" id="sig-pieces-oui" value="oui" class="w-5 h-5 accent-[#0B0B0B]"> Oui</label>
+                    <label class="flex items-center gap-2"><input type="radio" name="sig-pieces" id="sig-pieces-non" value="non" class="w-5 h-5 accent-[#0B0B0B]"> Non</label>
                 </div>
             </div>
-            <p class="text-slate-300 text-sm mt-4">Signez avec le doigt dans le cadre blanc :</p>
-            <div id="sig-cadre" class="mt-2 rounded-xl bg-white overflow-hidden" style="touch-action: none;">
+            <p class="text-[#4A4A4A] text-sm mt-4">Signez avec le doigt dans le cadre :</p>
+            <div id="sig-cadre" class="mt-2 rounded-xl bg-white overflow-hidden border-2 border-dashed border-gold-500/60" style="touch-action: none;">
                 <canvas id="sig-canvas" style="display:block; width:100%; touch-action: none;"></canvas>
             </div>
-            <p id="sig-erreur" class="text-red-300 text-xs mt-2"></p>
+            <p id="sig-erreur" class="text-red-700 text-xs mt-2"></p>
             <div class="flex gap-2 mt-3">
-                <button type="button" onclick="effacerSignature()" class="flex-1 px-4 py-3 rounded-full text-sm text-slate-200 border border-white/20">Effacer</button>
-                <button type="button" onclick="fermerSignature()" class="flex-1 px-4 py-3 rounded-full text-sm text-slate-200 border border-white/20">Annuler</button>
+                <button type="button" onclick="effacerSignature()" class="flex-1 px-4 py-3 rounded-lg text-sm text-[#222222] border border-black/15">Effacer</button>
+                <button type="button" onclick="fermerSignature()" class="flex-1 px-4 py-3 rounded-lg text-sm text-[#222222] border border-black/15">Annuler</button>
             </div>
-            <button type="button" id="sig-valider" onclick="validerSignature()" class="mt-3 w-full px-6 py-4 rounded-full text-base font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600 opacity-40" disabled>Valider la signature</button>
+            <button type="button" id="sig-valider" onclick="validerSignature()" class="mt-3 w-full px-6 py-4 rounded-lg text-base font-semibold text-[#FFFFFF] bg-[#0B0B0B] opacity-40" disabled>Valider la signature</button>
         </div>
     </div>
     <main class="hidden">
@@ -1167,7 +1168,7 @@
             { cle: 'tvaNum', texte: 'Votre numéro de TVA intracommunautaire ?', aide: 'Dites « passer » si vous ne l\'avez pas', retirer: /^((mon |le )?(num[ée]ro )?(de )?(tva|t v a)( intra(-| )?communautaire| intracom)?( c'est| est)?\s*:?\s*)/i, si: function (r) { return r.regime === 'oui'; } },
             { cle: 'tauxDefaut', texte: 'Votre taux de TVA habituel ?', aide: '10, 20 ou 5,5', type: 'taux', requis: true, si: function (r) { return r.regime === 'oui'; } },
             { cle: 'decennale', texte: 'Votre assureur décennale : son nom et son adresse ?', aide: 'Écrits sur votre attestation. Ex. : AXA France, 313 Terrasses de l\'Arche, Nanterre', requis: true, vocab: 'assurance' },
-            { cle: 'decContrat', texte: 'Le numéro de votre contrat décennale ?', aide: 'Sur votre attestation, ou « passer »', vocab: 'assurance' },
+            { cle: 'decContrat', texte: 'Le numéro de votre contrat décennale ?', aide: 'Sur votre attestation, ou « passer »', vocab: 'assurance', retirer: /^((le |mon |c'est le )?(num[ée]ro )?(de |du )?(mon )?contrat( d[ée]cennale)?( num[ée]ro| n°| no)?( c'est| est)?\s*:?\s*|(le |mon )?num[ée]ro( c'est| est)?\s+)/i },
             { cle: 'decZone', texte: 'La zone couverte par votre décennale ?', aide: 'Sur votre attestation. Ex. : France métropolitaine', requis: true, vocab: 'assurance' },
             { cle: 'rcpro', texte: 'Votre assurance responsabilité civile pro ?', aide: 'Assureur et numéro, ou « passer »', vocab: 'assurance' },
             { cle: 'mediateur', texte: 'Votre médiateur de la consommation ?', aide: 'Obligatoire pour les particuliers. Nom et site internet, ex. : Médicys, medicys.fr', vocab: 'assurance', requis: true, site: true },
@@ -1407,17 +1408,17 @@
             var z = document.getElementById('bandeau-demo');
             if (!z) return;
             if (APP.demo) {
-                z.innerHTML = '<div class="p-4 rounded-2xl border border-gold-500/50 bg-gold-500/10 text-sm text-slate-100">' +
+                z.innerHTML = '<div class="p-4 rounded-2xl border border-gold-500/50 bg-[#C6F432]/20 text-sm text-[#0B0B0B]">' +
                     '<p><strong class="text-gold-400">Essai avec une entreprise fictive.</strong> Touchez le micro et parlez comme avec un client (nom, adresse, travaux, fournitures et prix), puis dites « j\'ai fini » : le devis se remplit, et le PDF se crée à la fin (marqué « EXEMPLE »).</p>' +
-                    '<button type="button" onclick="quitterDemo()" class="mt-3 w-full px-4 py-3 rounded-full text-sm font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">J\'ai compris : je fais ma vraie fiche</button></div>';
+                    '<button type="button" onclick="quitterDemo()" class="mt-3 w-full px-4 py-3 rounded-lg text-sm font-semibold text-[#FFFFFF] bg-[#0B0B0B]">J\'ai compris : je fais ma vraie fiche</button></div>';
             } else if (APP.sansFiche && (APP.mode === 'devis' || APP.mode === 'recap')) {
-                z.innerHTML = '<div class="p-3 rounded-2xl border border-gold-500/40 bg-gold-500/10 text-sm text-slate-100 flex items-center gap-3">' +
+                z.innerHTML = '<div class="p-3 rounded-2xl border border-gold-500/40 bg-[#C6F432]/20 text-sm text-[#0B0B0B] flex items-center gap-3">' +
                     '<p class="flex-1">Votre fiche entreprise n\'est pas encore remplie : le PDF se créera une fois qu\'elle est faite (2 minutes, une seule fois).</p>' +
-                    '<button type="button" onclick="remplirFiche()" class="flex-shrink-0 px-4 py-2.5 rounded-full text-xs font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">Remplir ma fiche</button></div>';
+                    '<button type="button" onclick="remplirFiche()" class="flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-semibold text-[#FFFFFF] bg-[#0B0B0B]">Remplir ma fiche</button></div>';
             } else if (APP.mode === 'fiche' && !APP.miseAJour && !APP.ordre.length) {
-                z.innerHTML = '<div class="p-4 rounded-2xl border border-white/15 bg-white/5 text-sm text-slate-200">' +
+                z.innerHTML = '<div class="p-4 rounded-2xl border border-black/[0.12] bg-black/[0.03] text-sm text-[#222222]">' +
                     '<p>Envie de voir le résultat avant de remplir votre fiche\u00a0?</p>' +
-                    '<button type="button" onclick="lancerDemo()" class="mt-3 w-full px-4 py-3 rounded-full text-sm font-bold text-gold-400 border-2 border-gold-500/70">Essayer avec un exemple (1 minute)</button></div>';
+                    '<button type="button" onclick="lancerDemo()" class="mt-3 w-full px-4 py-3 rounded-lg text-sm font-bold text-gold-400 border border-gold-500/60">Essayer avec un exemple (1 minute)</button></div>';
             } else z.innerHTML = '';
         }
 
@@ -1505,22 +1506,27 @@
         /* Passe à la question suivante (ou à la fin) */
         function avancer(defiler) {
             APP.erreur = '';
-            if (APP.mode !== 'devis') APP.cible = null;
+            if (!/^(devis|fiche|fiche-edition)$/.test(APP.mode)) APP.cible = null;
             /* l'écoute en cours concernait l'ancienne question : on la jette (le micro reste allumé) */
             if (ECOUTE.rec) { var vieux = ECOUTE.rec; ECOUTE.rec = null; try { vieux.abort(); } catch (e) {} }
             if (APP.mode === 'fiche') {
-                APP.courante = questionFiche(APP.rep);
+                var suivF = questionFiche(APP.rep);
                 /* infos retrouvées grâce au SIRET : remplies toutes seules */
-                while (APP.courante && APP.auto && APP.auto[APP.courante.cle]) {
-                    APP.rep[APP.courante.cle] = APP.auto[APP.courante.cle]; APP.ordre.push(APP.courante.cle);
-                    APP.autoCles = APP.autoCles || {}; APP.autoCles[APP.courante.cle] = true;
-                    APP.courante = questionFiche(APP.rep);
+                while (suivF && APP.auto && APP.auto[suivF.cle]) {
+                    APP.rep[suivF.cle] = APP.auto[suivF.cle]; APP.ordre.push(suivF.cle);
+                    APP.autoCles = APP.autoCles || {}; APP.autoCles[suivF.cle] = true;
+                    APP.flash = APP.flash || {}; APP.flash[suivF.cle] = true;
+                    suivF = questionFiche(APP.rep);
                 }
+                if (APP.cible && suivF && suivF.cle === APP.cible) APP.cible = null;
+                APP.courante = APP.cible ? questionPour(APP.cible) : suivF;
                 if (!APP.courante) {
                     APP.fiche = ficheDepuisReponses(APP.rep);
                     stock('va_fiche', APP.fiche);
                     APP.mode = 'fiche-ok';
                 }
+            } else if (APP.mode === 'fiche-edition') {
+                APP.courante = APP.cible ? questionPour(APP.cible) : null;
             } else if (APP.mode === 'devis') {
                 var suivante = questionDevis(APP.rep, APP.fiche);
                 if (APP.cible && suivante && suivante.cle === APP.cible) APP.cible = null;
@@ -1540,8 +1546,10 @@
         function repondre(brut, clavier) {
             var q = APP.courante;
             if (!q || APP.attente) return;
+            if (!clavier && estArretMicro(brut)) { eteindreMicroVoix(); return; }
             if (estRetour(brut)) { allerPrecedente(); return; }
             if (!clavier && traiterDictee(brut)) return;
+            if (!clavier && traiterDicteeFiche(brut)) return;
             if (q.prixConnu && veutAutrePrix(brut)) {
                 APP.nouveauPrix = APP.nouveauPrix || {}; APP.nouveauPrix[q.cle] = true; APP.erreur = '';
                 avancer(true);
@@ -1584,7 +1592,7 @@
             if (q.cle === 'siretOk') APP.auto = (valeur === 'oui' && APP.trouve) ? Object.assign({}, APP.trouve.champs) : null;
             if (q.cle === 'siret' && APP.mode === 'fiche' && !APP.miseAJour) {
                 APP.trouve = null; APP.auto = null; APP.autoCles = {}; APP.attente = true;
-                etat('Je cherche votre entreprise…', 'text-slate-200');
+                etat('Je cherche votre entreprise…', 'text-[#222222]');
                 chercherEntreprise(valeur).then(function (t) { APP.attente = false; APP.trouve = t; avancer(true); });
                 return;
             }
@@ -1724,10 +1732,11 @@
             if (APP.ecouteLibre) { finirEcouteLibre(); return; }
             if (APP.attente) return;
             if (ECOUTE.session) { arreterEcoute(); etat('Micro coupé. Touchez-le pour le rallumer.'); return; }
-            if (!APP.courante) { etat('Il n\'y a plus de question : vérifiez le récapitulatif.'); return; }
+            if (!APP.courante && APP.mode !== 'fiche-edition') { etat('Il n\'y a plus de question : vérifiez le récapitulatif.'); return; }
             if (!SR) { modeClavier(); return; }
-            /* devis vide : le micro écoute toute la discussion, puis remplit le devis */
-            if (APP.mode === 'devis' && !APP.ordre.length) { demarrerEcouteLibre(); return; }
+            /* devis ou fiche vide : le micro écoute tout ce qui est dit, puis remplit d'un coup */
+            if ((APP.mode === 'devis' || (APP.mode === 'fiche' && !APP.miseAJour)) && !APP.ordre.length) { demarrerEcouteLibre(); return; }
+            if (APP.mode === 'fiche-edition' && !APP.courante) { demarrerEcouteLibre(); return; }
             ECOUTE.session = true;
             ECOUTE.essais = 0;
             ECOUTE.premier = true;
@@ -1752,12 +1761,13 @@
                 ECOUTE.aMarche = true;
                 stock('va_micro_ok', true);
                 boutonMicroActif(true);
-                if (APP.ecouteLibre) { if (!APP.annonceLibre) { APP.annonceLibre = true; etat(MSG_ECOUTE_LIBRE, 'text-red-300'); } return; }
-                if (ECOUTE.premier) { ECOUTE.premier = false; etat('Micro allumé : répondez aux questions. Touchez-le pour le couper.', 'text-red-300'); }
+                if (APP.ecouteLibre) { if (!APP.annonceLibre) { APP.annonceLibre = true; etat(msgEcouteLibre(), 'text-red-700'); } return; }
+                if (ECOUTE.premier) { ECOUTE.premier = false; etat('Micro allumé : répondez aux questions. Touchez-le pour le couper.', 'text-red-700'); }
             };
             rec.onresult = function (ev) {
                 var txt = '', fin = false;
                 for (var i = ev.resultIndex || 0; i < ev.results.length; i++) { txt = joindre(txt, ev.results[i][0].transcript); if (ev.results[i].isFinal) fin = true; }
+                if (fin && !rec.fini && propositions(ev).some(estArretMicro)) { rec.fini = true; ECOUTE.resultat = true; eteindreMicroVoix(); return; }
                 /* écoute de la discussion : rien ne se remplit, on garde le texte */
                 if (APP.ecouteLibre) {
                     if (rec.fini) return;
@@ -1775,8 +1785,8 @@
                     if (ECOUTE.aMarche && !ECOUTE.parGeste) etat('Touchez le micro pour répondre à la question suivante.');
                     else demanderPermissions(ev.error);
                 } else if (ev.error === 'network') {
-                    if (APP.ecouteLibre) { finirEcouteLibre(true); etat('Pas de connexion internet : le micro a besoin du réseau.', 'text-red-300'); return; }
-                    arreterEcoute(); etat('Pas de connexion internet : le micro a besoin du réseau.', 'text-red-300');
+                    if (APP.ecouteLibre) { finirEcouteLibre(true); etat('Pas de connexion internet : le micro a besoin du réseau.', 'text-red-700'); return; }
+                    arreterEcoute(); etat('Pas de connexion internet : le micro a besoin du réseau.', 'text-red-700');
                 }
             };
             rec.onend = function () {
@@ -1796,6 +1806,51 @@
             };
             try { rec.start(); }
             catch (e) { arreterEcoute(); etat('Touchez le micro pour continuer.'); }
+        }
+
+        /* « Éteins-toi », « stop », « arrête le micro », « coupe », « pause », « tais-toi »… : le micro s'éteint.
+           Seulement si la phrase entière est une commande (« robinet d'arrêt » reste une réponse). */
+        var OBJ_ECOUTE = "(?:le micro|ton micro|votre micro|micro|l'ecoute|ecoute|l'enregistrement|enregistrement|la dictee|dictee|l'audio)";
+        var RE_ARRET_MICRO = new RegExp("^(?:(?:bon|ok|okay|alors|allez|merci|c'est bon|ca suffit|oui|non|ecoute|eh|hey|dis|micro|maintenant|voila|bah|ben|euh|parfait|super|d'accord|tres bien|stop)\\s+)*" +
+            "(?:(?:tu peux|vous pouvez|peux tu|pouvez vous|est ce que tu peux|est ce que vous pouvez|je veux que tu|je voudrais que tu|tu pourrais|vous pourriez|il faut|faut|merci de|on peut|on va|vas y|allez y|tu vas)\\s+)*(?:" + [
+            "(?:t'?eteindre|vous eteindre|t'?arreter|vous arreter|te couper|vous couper|te taire|vous taire|te mettre en (?:pause|veille)|vous mettre en (?:pause|veille))",
+            "(?:arreter|couper|eteindre|fermer|desactiver|stopper|terminer|finir|mettre en pause) " + OBJ_ECOUTE,
+            "(?:arreter|stopper) (?:d'ecouter|de m'ecouter|de nous ecouter|d'enregistrer|de m'enregistrer|de nous enregistrer)",
+            "(?:eteins|eteint|eteints|eteignez|eteindre|etein|etains|etain|etaint|et teins|et teint|etends|etant)(?: (?:toi|vous|tout|la|le|" + OBJ_ECOUTE + "))?",
+            "(?:arrete|arretes|arretez|arreter|arret|arrete toi|arretez vous)(?: (?:toi|vous|tout|la|ca|de parler|maintenant|d'ecouter|de m'ecouter|de nous ecouter|d'enregistrer|de m'enregistrer|" + OBJ_ECOUTE + "))?",
+            "(?:coupe|coupez|couper|coupes)(?: (?:toi|vous|tout|la|ca|le son|" + OBJ_ECOUTE + "))?",
+            "(?:stop|stoppe|stopper|stoppez|stops)(?: (?:toi|vous|tout|la|ca|" + OBJ_ECOUTE + "))?",
+            "(?:pause|en pause|mets? toi en pause|mettez vous en pause|mets? en pause|en veille|mets? toi en veille|mettez vous en veille|mode veille|veille)",
+            "(?:tais toi|taisez vous|silence|chut+|ferme la)",
+            "(?:ferme|fermes|fermez|fermer)(?: (?:toi|vous|" + OBJ_ECOUTE + "))",
+            "(?:desactive|desactives|desactivez|desactiver)(?: (?:toi|vous|" + OBJ_ECOUTE + "))?",
+            "(?:termine|termines|terminez|finis|finissez) " + OBJ_ECOUTE,
+            OBJ_ECOUTE + " (?:off|eteint|coupe|stop|arrete|en pause|ferme|termine|fini|desactive)",
+            "(?:n'?ecoute|n'?ecoutez|n'?enregistre|n'?enregistrez|ne m'ecoute|ne m'ecoutez|ne nous ecoute) plus(?: rien)?",
+            "(?:j'ai |je n'ai |on a |on n'a |j'en ai )?plus besoin (?:du micro|de toi|de vous|d'ecouter|de l'ecoute|de m'ecouter|d'enregistrer)",
+            "(?:mute|muet|en muet|mode muet|mets? toi en muet|sourdine|en sourdine|mets? toi en sourdine)",
+            "(?:ca suffit|ca suffira|c'est assez|assez|basta|stop stop)",
+            "(?:on (?:s'arrete|arrete|termine|stoppe|va s'arreter|va arreter|va terminer|en reste|s'en tient)(?: la| ici| maintenant)?|restons en la|on en reste la)",
+            "(?:fin de l'ecoute|fin de l'enregistrement|fin d'enregistrement|fin du micro|fin de la dictee|fin de dictee|plus de micro|c'est fini le micro|ca suffit le micro|c'est la fin)"
+        ].join('|') + ")(?:\\s+(?:s'il te plait|s'il vous plait|stp|svp|merci(?: beaucoup)?|maintenant|tout de suite|micro|la|ici|c'est bon|c'est tout|on a fini|j'ai fini|au revoir))*\\s*$");
+        function estArretMicro(t) {
+            var n = propre(platDictee(String(t || '').replace(/[’‘]/g, "'")).replace(/[.,!?;:«»"]/g, ' ').replace(/-/g, ' '));
+            return !!n && n.split(' ').length <= 12 && RE_ARRET_MICRO.test(n);
+        }
+        /* toutes les phrases proposées par la reconnaissance (pour ne pas rater « éteins-toi ») */
+        function propositions(ev) {
+            var props = [], n = 0;
+            for (var i = 0; i < ev.results.length; i++) n = Math.max(n, ev.results[i].length || 1);
+            for (var k = 0; k < n; k++) { var s = ''; for (var j = 0; j < ev.results.length; j++) { var r = ev.results[j]; s = joindre(s, (r[k] || r[0]).transcript); } props.push(s); }
+            return props;
+        }
+        function eteindreMicroVoix() {
+            if (APP.ecouteLibre) {
+                /* pendant l'écoute de la discussion : ce qui a été dit remplit le devis, puis le micro s'éteint */
+                if ((APP.texteLibre || []).length) { finirEcouteLibre(true); etat('Micro éteint. Je remplis avec ce que j\'ai entendu.', 'text-[#222222]'); return; }
+                arreterEcoute(); dessiner();
+            } else arreterEcoute();
+            etat('Micro éteint. Touchez-le pour le rallumer.', 'text-[#222222]');
         }
 
         /* Pour les gens qui articulent mal : la reconnaissance propose plusieurs phrases, on prend la première qui a du sens */
@@ -1828,7 +1883,7 @@
 
         function modeClavier() {
             var champ = document.getElementById('saisie');
-            etat('Touchez la case, puis le micro 🎤 de votre clavier pour parler. Touchez « Valider » quand c\'est bon.', 'text-slate-200');
+            etat('Touchez la case, puis le micro 🎤 de votre clavier pour parler. Touchez « Valider » quand c\'est bon.', 'text-[#222222]');
             if (champ) champ.focus();
         }
 
@@ -1841,7 +1896,7 @@
             if (/FBAN|FBAV|Instagram|WhatsApp|GSA\//.test(ua)) msg = 'Ouvrez cette page dans Safari (iPhone) ou Chrome (Android) pour utiliser le micro : touchez « ⋯ » puis « Ouvrir dans le navigateur ».';
             else if (estIOS() && /CriOS|FxiOS|EdgiOS/.test(ua)) msg = 'Sur iPhone et iPad, le micro du site marche seulement dans Safari. Ouvrez cette page dans Safari, ou utilisez le micro de votre clavier.';
             else if (!SR) msg = 'Ce navigateur ne permet pas le micro du site : utilisez le micro de votre clavier (ou ouvrez la page dans Chrome ou Safari).';
-            z.innerHTML = msg ? '<div class="p-3 rounded-xl border border-gold-500/40 bg-gold-500/10 text-gold-400 text-xs">' + msg + '</div>' : '';
+            z.innerHTML = msg ? '<div class="p-3 rounded-xl border border-gold-500/40 bg-[#C6F432]/20 text-gold-400 text-xs">' + msg + '</div>' : '';
         }
 
         /* Le micro a été refusé : on fait apparaître la demande d'autorisation du téléphone */
@@ -1854,7 +1909,7 @@
                 if (code === 'service-not-allowed' && ECOUTE.essaisPermission > 1) { afficherAideMicro(code); return; }
                 stock('va_micro_ok', true);
                 var z = document.getElementById('aide-navigateur'); if (z) z.innerHTML = '';
-                etat('Micro autorisé ✓ Touchez le micro pour parler.', 'text-emerald-300');
+                etat('Micro autorisé ✓ Touchez le micro pour parler.', 'text-emerald-700');
             }, function () {
                 afficherAideMicro(code);
             });
@@ -1868,15 +1923,15 @@
                 ? (ios ? 'Activez la dictée : Réglages → Général → Clavier → Activer la dictée. Puis rechargez la page.' : 'La reconnaissance vocale est désactivée sur cet appareil.')
                 : (ios ? 'Dans Safari, touchez « aA » à gauche de l\'adresse → Réglages du site web → Microphone → Autoriser. Puis rechargez la page.'
                        : 'Touchez le cadenas à côté de l\'adresse → Autorisations → Micro → Autoriser. Puis rechargez la page.');
-            if (z) z.innerHTML = '<details class="text-xs text-slate-400"><summary class="cursor-pointer text-gold-400">Le micro ne démarre pas ? Voir comment l\'autoriser</summary><p class="mt-2">' + esc(aide) + '</p><p class="mt-1 text-slate-400">Code : ' + esc(code || ECOUTE.dernierCode || '?') + '</p></details>';
-            etat('Touchez la case de réponse, puis le micro 🎤 du clavier.', 'text-slate-200');
+            if (z) z.innerHTML = '<details class="text-xs text-[#555555]"><summary class="cursor-pointer text-gold-400">Le micro ne démarre pas ? Voir comment l\'autoriser</summary><p class="mt-2">' + esc(aide) + '</p><p class="mt-1 text-[#555555]">Code : ' + esc(code || ECOUTE.dernierCode || '?') + '</p></details>';
+            etat('Touchez la case de réponse, puis le micro 🎤 du clavier.', 'text-[#222222]');
             stock('va_micro_ok', null);
             var champ = document.getElementById('saisie'); if (champ) champ.focus();
         }
 
         function defilerVersCourante() {
             setTimeout(function () {
-                var c = document.getElementById('carte-courante') || (APP.courante && (document.getElementById('champ-' + APP.courante.cle) || document.getElementById('bloc-autre'))) || document.getElementById('fin');
+                var c = document.getElementById('carte-courante') || (APP.courante && (document.getElementById('champ-' + APP.courante.cle) || document.getElementById(APP.courante.cle === 'siretOk' ? 'bloc-siretok' : 'bloc-autre'))) || document.getElementById('fin');
                 if (!c) return;
                 /* la question doit apparaître juste sous la zone du micro (qui reste en haut), jamais cachée dessous */
                 var z = document.getElementById('zone-micro');
@@ -1887,7 +1942,7 @@
         }
 
         /* ===================== AFFICHAGE ===================== */
-        var CHAMP = 'w-full px-3 py-2.5 rounded-lg bg-obsidian/80 border border-white/15 text-slate-100 text-base focus:outline-none focus:border-gold-500/70';
+        var CHAMP = 'w-full px-3 py-2.5 rounded-lg bg-obsidian/80 border border-black/[0.12] text-[#0B0B0B] text-base focus:outline-none focus:border-gold-500/70';
 
         function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
 
@@ -1908,13 +1963,16 @@
             duree: 'Ex. : une demi-journée', debut: 'Ex. : « sous 15 jours », « lundi prochain »' };
 
         function libelleChamp(cle) {
+            if (/^fiche/.test(APP.mode) && LIBELLES_FICHE[cle]) return LIBELLES_FICHE[cle];
             var m = /^f(\d+)_(des|pu|qte|autre)$/.exec(cle);
             if (m) return { des: 'Désignation', pu: 'PU HT (€)', qte: 'Qté', autre: 'Une autre fourniture ?' }[m[2]];
             return LIBELLES_DEVIS[cle] || (trouverQuestion(cle) || {}).texte || cle;
         }
 
         /* La question complète d'une case, même si ce n'est pas son tour */
+        function questionSuivante() { return APP.mode === 'devis' ? questionDevis(APP.rep, APP.fiche) : (APP.mode === 'fiche' ? questionFiche(APP.rep) : null); }
         function questionPour(cle) {
+            if (/^fiche/.test(APP.mode)) { var qf = questionSuivante(); if (qf && qf.cle === cle) return qf; return cle === 'siretOk' && APP.trouve ? questionSiretOk(trouverQuestion(cle)) : Object.assign({}, trouverQuestion(cle)); }
             var s = questionDevis(APP.rep, APP.fiche);
             if (s && s.cle === cle) return s;
             if (cle === 'deplacement') return { cle: cle, texte: 'Prix du déplacement pour ce chantier', type: 'nombre', max: 500, aide: 'Selon la distance. Ex. : 35, ou « offert »' };
@@ -1929,8 +1987,8 @@
 
         /* Toucher une case : le micro la remplira (et le clavier s'ouvre si c'est un texte) */
         function definirCible(cle) {
-            if (APP.mode !== 'devis' || APP.attente) return;
-            var s = questionDevis(APP.rep, APP.fiche);
+            if (!/^(devis|fiche|fiche-edition)$/.test(APP.mode) || APP.attente) return;
+            var s = questionSuivante();
             var nouvelle = (s && s.cle === cle) ? null : cle;
             if (APP.cible === nouvelle && APP.courante && APP.courante.cle === cle) return;
             APP.cible = nouvelle; APP.aConfirmer = null;
@@ -1944,11 +2002,11 @@
         }
         /* Ce qui est tapé au clavier */
         function saisirChamp(cle, valeur) {
-            if (APP.mode !== 'devis' || APP.attente) return;
+            if (!/^(devis|fiche|fiche-edition)$/.test(APP.mode) || APP.attente) return;
             var v = propre(valeur);
             if (!v) { if ((cle in APP.rep) && APP.rep[cle] !== '') effacerChamp(cle); return; }
             if ((cle in APP.rep) && v === propre(valeurAffichee(cle, APP.rep[cle])) && !(APP.tape && APP.tape[cle])) return;
-            var s = questionDevis(APP.rep, APP.fiche);
+            var s = questionSuivante();
             APP.cible = (s && s.cle === cle) ? null : cle;
             APP.courante = APP.cible ? questionPour(cle) : s;
             if (!APP.courante) return;
@@ -2106,17 +2164,19 @@
         }
 
         /* La discussion est finie ? (« j'ai fini », « c'est tout », « au revoir »…) : renvoie ce qui a été dit avant */
-        var RE_FIN_LIBRE = new RegExp("(?:^|\\s)(?:(?:bon|ok|okay|alors|voila|eh bien|et bien|bien|parfait|super|tres bien|d'accord|merci|donc|oui|ouais)\\s+)*(?:" +
-            "(?:j'ai|jai|j ai|on a|nous avons|c'est|c est|ca y est c'est|ca y est)\\s+(?:bien\\s+)?(?:fini|finis|termine|terminee|termines|terminees|tout bon|tout)" +
-            "|ce sera tout|ca sera tout|ca va etre tout|rien d'autre|plus rien|fin de (?:la discussion|la conversation|l'enregistrement|l'ecoute|la dictee)" +
-            "|(?:tu peux|vous pouvez|on peut) (?:arreter|couper|remplir le devis|faire le devis)(?: le micro| d'ecouter| l'ecoute)?" +
-            "|(?:arrete|arretez|arreter|coupe|coupez|couper) (?:le micro|d'ecouter|l'ecoute|l'enregistrement)|stop (?:le )?micro" +
-            "|(?:remplis|remplissez|remplir|fais|faites) le devis" +
-            "|au revoir|a bientot|bonne journee|bonne soiree|bonne fin de journee|a la prochaine" +
-            ")(?:\\s+(?:pour (?:moi|aujourd'hui|l'instant)|merci(?: beaucoup)?|madame|monsieur|au revoir|a bientot|bonne journee|bonne soiree|a plus|a demain|a (?:lundi|mardi|mercredi|jeudi|vendredi|samedi)|a la prochaine))*\\s*$");
-        var RE_FIN_SEUL = /^\s*(?:(?:bon|ok|okay|alors|voila|bien|parfait|super|tres bien|donc|oui)\s+)*(?:fini|termine|stop|fin)(?:\s+merci)?\s*$/;
+        var RE_FIN_LIBRE = new RegExp("(?:^|\\s)(?:(?:bon|ok|okay|alors|voila|eh bien|et bien|bien|parfait|super|tres bien|d'accord|merci|donc|oui|ouais|bah|ben|allez|c'est bon)\\s+)*(?:" +
+            "(?:j'ai|jai|j ai|on a|nous avons|c'est|c est|ca y est c'est|ca y est|je crois que c'est|je pense que c'est)\\s+(?:bien\\s+)?(?:fini|finis|termine|terminee|termines|terminees|tout bon|tout|tout dit|la fin)" +
+            "|ce sera tout|ca sera tout|ca va etre tout|ca ira|ca suffira|ca suffit|rien d'autre|plus rien|rien de plus|fin de (?:la discussion|la conversation|l'enregistrement|l'ecoute|la dictee)" +
+            "|(?:on|nous) (?:s'arrete|arrete|termine|va s'arreter|va arreter|va terminer|en reste|s'en tient)(?: la| ici)?|restons en la" +
+            "|(?:tu peux |vous pouvez |on peut |je vais |on va |il faut )?(?:arreter|arrete|arretez|couper|coupe|coupez|eteindre|eteins|eteignez|stopper|stoppe|stop|fermer|ferme|fermez|terminer|termine|desactiver|desactive) (?:le micro|ton micro|micro|l'ecoute|l'enregistrement|la dictee|d'ecouter|d'enregistrer|de m'ecouter|de nous ecouter|de m'enregistrer)" +
+            "|(?:tu peux|vous pouvez|on peut) (?:arreter|couper|t'arreter|t'eteindre|remplir le devis|faire le devis)" +
+            "|(?:le )?micro (?:off|eteint|coupe|stop)|tais toi|taisez vous|eteins toi|eteignez vous|arrete toi|arretez vous|mets toi en (?:pause|veille)|(?:n'?ecoute|ne m'ecoute) plus|plus besoin du micro" +
+            "|(?:remplis|remplissez|remplir|fais|faites|prepare|preparez|cree|creez|genere|generez) (?:le devis|ma fiche|la fiche)" +
+            "|au revoir|a bientot|a plus tard|a demain|a la semaine prochaine|bonne journee|bonne soiree|bonne fin de journee|bon week end|bonne continuation|a la prochaine|on se rappelle" +
+            ")(?:\\s+(?:pour (?:moi|aujourd'hui|l'instant|le moment)|merci(?: beaucoup)?|madame|monsieur|au revoir|a bientot|bonne journee|bonne soiree|a plus|a demain|a (?:lundi|mardi|mercredi|jeudi|vendredi|samedi)|a la prochaine|s'il te plait|s'il vous plait|stp|svp|maintenant))*\\s*$");
+        var RE_FIN_SEUL = /^\s*(?:(?:bon|ok|okay|alors|voila|bien|parfait|super|tres bien|donc|oui|allez)\s+)*(?:fini|termine|terminee|stop|fin|arret|over)(?:\s+merci)?\s*$/;
         function finDeDiscussion(t) {
-            var n = platDictee(String(t).replace(/[’‘]/g, "'")).replace(/[.,!?;:«»"]/g, ' ');
+            var n = platDictee(String(t).replace(/[’‘]/g, "'")).replace(/[.,!?;:«»"]/g, ' ').replace(/-/g, ' ');
             if (RE_FIN_SEUL.test(n)) return { avant: '' };
             var m = RE_FIN_LIBRE.exec(n);
             return m ? { avant: propre(String(t).slice(0, m.index)) } : null;
@@ -2391,6 +2451,196 @@
             return remplis.length;
         }
 
+
+        /* ===================== LA FICHE DITE D'UN COUP : « Plomberie Martin, SARL, SIRET…, 55 euros de l'heure… » ===================== */
+        var NUMW_FICHE = "(?:\\d+|zero|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|vingts?|trente|quarante|cinquante|soixante|septante|octante|nonante|cents?|mille)(?:-(?:et|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|vingts?))*";
+        var ASSUREURS_FICHE = "axa(?: france)?(?: iard)?|maaf(?: pro| assurances)?|mma(?: iard)?|allianz|generali|smabtp|sma btp|groupama|macif|maif|matmut|hiscox|abeille(?: assurances)?|aviva|swiss ?life|l'auxiliaire|auxiliaire|covea|thelem|gan(?: assurances)?|pacifica|april|axeria|qbe|ami 3f|helvetia|maf|wakam|leader underwriting|acte iard|camacte|smacl";
+        var LIBELLES_FICHE = { siret: 'SIRET', nom: "Nom de l'entreprise", forme: 'Forme juridique', capital: 'Capital social (€)', greffe: 'Ville du greffe (RCS)', dirigeant: 'Votre nom',
+            adresse: 'Adresse', tel: 'Téléphone', email: 'E-mail', rm: 'N° au répertoire des métiers', regime: 'Vous facturez la TVA ?', tvaNum: 'N° de TVA intracommunautaire',
+            tauxDefaut: 'Taux de TVA habituel', decennale: 'Assureur décennale (nom et adresse)', decContrat: 'N° de contrat décennale', decZone: 'Zone couverte par la décennale',
+            rcpro: 'Responsabilité civile pro (assureur, n°)', mediateur: 'Médiateur de la consommation', tauxHoraire: "Prix de l'heure HT (€)", decompte: 'Décompte du temps',
+            deplacement: 'Déplacement HT (€)', dechetsPrix: 'Évacuation des déchets HT (€)', dechetterie: 'Lieu de dépôt des déchets', acompte: 'Acompte à la signature (%)',
+            validite: 'Validité des devis (jours)', prixDevis: 'Prix de vos devis', paiement: 'Moyens de paiement acceptés' };
+        var NUM_FICHE = { capital: 1, tauxHoraire: 1, deplacement: 1, dechetsPrix: 1, acompte: 1, validite: 1, prixDevis: 1 };
+
+        function comprendreFiche(brut) {
+            var s = ' ' + propre(String(brut || '').replace(/[’‘]/g, "'").replace(/[?!]+/g, '.')) + ' ';
+            var avant;
+            do { avant = s; s = s.replace(/\s(euh+|heu+|hum+|hm+|mmh+|bah|ben|beh|bref|en fait|du coup|voila|voilà|hein)([,.]?)\s/gi, function (x, f, p) { return p === '.' ? '. ' : ' '; }); } while (s !== avant);
+            /* les numéros (SIRET, téléphone…) se lisent sur le texte d'origine : les chiffres dits en lettres y restent séparés */
+            var o = platDictee(s);
+            s = ' ' + chiffresDictee(propre(s)) + ' ';
+            var b = platDictee(s), pris = [], res = { champs: {} }, C = res.champs;
+            var libre = function (a, z) { for (var k = 0; k < pris.length; k++) if (a < pris[k][1] && z > pris[k][0]) return false; return true; };
+            var chercher = function (re, f, dans) {
+                var t = dans || b; re.lastIndex = 0; var m;
+                while ((m = re.exec(t))) {
+                    if (!m[0].length) { re.lastIndex++; continue; }
+                    if (dans || libre(m.index, m.index + m[0].length)) { if (f(m) !== false && !dans) pris.push([m.index, m.index + m[0].length]); }
+                    if (!re.global) break;
+                }
+            };
+            var texte = function (m, g) { var i = b.indexOf(m[g], m.index); return propre(s.slice(i, i + m[g].length)); };
+            var STOP = "et|mais|ou|donc|alors|puis|mon|ma|mes|le|la|les|je|j'|on|nous|c'est|siret|siren|numero|telephone|tel|portable|adresse|e-?mail|mail|courriel|capital|tva|decennale|assurance|assure|assureur|mediateur|mediation|prix|taux|tarif|deplacements?|dechets?|acompte|devis|paiement|reglement|rcs|greffe|forme|sarl|sas|sasu|eurl|micro|basee?|situee?|depuis|qui|avec|pour|euros?|contrat|zone|repertoire|virement|cheques?|especes|carte|valables?|validite|garantie|responsabilite|rc|dirigeant|gerant";
+            var FIN = "(?=\\s*(?:$|[,.;]|\\s(?:" + STOP + ")(?![a-z'])))";
+            /* mots qui terminent un nom d'assureur ou de médiateur (« de », « la » restent : « 313 terrasses de l'Arche ») */
+            var STOP2 = "(?!(?:et|mais|donc|alors|puis|mon|ma|mes|je|j'|on|nous|c'est|siret|siren|numero|telephone|tel|portable|adresse|e-?mail|mail|courriel|capital|tva|decennale|assurance|assure|mediateur|mediation|prix|taux|tarif|deplacements?|dechets?|acompte|devis|paiement|reglement|rcs|greffe|forme|sarl|sas|sasu|eurl|micro|contrat|zone|repertoire|virements?|cheques?|especes|carte|valables?|validite|garantie|responsabilite|rc|dirigeant|gerant|toute|partout|couvert|couverte|couverture|pour|je)(?![a-z']))";
+            var NB = "(\\d+(?:[,.]\\d{1,2})?)";
+            var ECART = "\\s*,?\\s*(?:(?:c'est|ca fait|ce sera|je le compte|je le facture|je compte|je facture|je le fais|je fais|il est|est|sera|a|de|d'|pour|fixe a|:|=)\\s*)*";
+            var nombreDit = function (t) { return String(t).replace(/\s/g, '').replace(',', '.'); };
+            var finMots = function (t) { return propre(String(t).replace(/(?:\s+(?:et|de|du|des|la|le|les|a|au|en|sur|pour|avec|c'est|est))+\s*$/i, '')); };
+
+            /* 1. SIRET (14 chiffres, dits en chiffres ou en lettres) */
+            chercher(new RegExp("(?:siret|numero de siret|n° siret)\\s*(?:c'est|est|:|=|le|numero)?\\s*((?:" + NUMW_FICHE + ")(?:[\\s.,-]+(?:" + NUMW_FICHE + ")){0,30})", 'g'), function (m) { var v = siret(m[1]); if (v) C.siret = v; }, o);
+            if (!C.siret) chercher(/(?:^|\s)(\d{3}[\s.]?\d{3}[\s.]?\d{3}[\s.]?\d{5})(?!\d)/g, function (m) { var v = siret(m[1]); if (!v) return false; C.siret = v; });
+            /* 2. téléphone */
+            chercher(new RegExp("(?:telephone|tel|portable|mobile|numero de (?:telephone|portable|tel)|joignable au)\\s*(?:pro|professionnel)?\\s*(?:c'est|est|:|=|le)?\\s*((?:\\+33|" + NUMW_FICHE + ")(?:[\\s.-]+(?:" + NUMW_FICHE + ")){0,14})", 'g'), function (m) {
+                var v = telephone(m[1]); if (v && /^0\d( \d\d){4}$/.test(v)) C.tel = v;
+            }, o);
+            if (!C.tel) chercher(/((?:\+33\s?|0)[1-9](?:[\s.-]?\d{2}){4})(?!\d)/g, function (m) { var v = telephone(m[1]); if (!v) return false; C.tel = v; });
+            /* 3. e-mail */
+            chercher(/(?:(?:mon |l')?(?:e-?mail|mail|courriel|adresse mail)(?: pro)?(?: c'est| est| :)?\s)?((?:[a-z0-9]+[ ._-]?){1,5}?\s?(?:arobase|arrobase|arobas|arrobas|@)\s?[a-z0-9-]+(?:\s?(?:point|\.)\s?[a-z0-9-]+){0,2}?\s?(?:point|\.)\s?(?:fr|com|net|org|eu|pro))(?![a-z])/g, function (m) {
+                var e = email(texte(m, 1)); if (!e) return false; C.email = e;
+            });
+            /* 4. forme, capital, greffe */
+            chercher(/(?:^|\s)(micro[- ]?entreprise|micro[- ]?entrepreneur|auto[- ]?entrepreneur|entreprise individuelle|eurl|sarl|sasu|sas|e i)(?![a-z])/g, function (m) {
+                if (C.forme) return false;
+                var v = formeJuridique(m[1]); if (!v) return false; C.forme = v;
+            });
+            chercher(new RegExp("capital(?: social)?(?: de la societe)?" + ECART + "(\\d[\\d ]*(?:[,.]\\d{1,2})?)\\s*(?:€|euros?)?", 'g'), function (m) { C.capital = nombreDit(m[1]); });
+            chercher(/(?:^|\s)(?:inscrite? |immatriculee? )?(?:au |a |le )?(?:rcs|r c s|greffe(?: du tribunal de commerce)?|tribunal de commerce|registre du commerce(?: et des societes)?)(?: de | d'| du |\s)\s*([a-z][a-z'-]+(?:[ -](?:sur|sous|en|les|le|la|de|du|lès|d'|l')?[ -]?[a-z][a-z'-]+)?)/g, function (m) {
+                var v = villeGreffe(texte(m, 1).replace(/\s+(?:et|mon|ma|le|la|siret|capital|numero|tva)(?:\s.*)?$/i, '')); if (!v || /^\d/.test(v)) return false; C.greffe = v;
+            });
+            /* 5. nom de l'entreprise */
+            chercher(new RegExp("(?:mon entreprise|ma societe|ma boite|ma structure|l'entreprise|la societe|le nom de (?:mon |l'|la |ma )?(?:entreprise|societe|boite)|nom de (?:mon |l'|la |ma )?(?:entreprise|societe)|raison sociale)\\s*(?:s'appelle|se nomme|c'est|est|:|=)\\s*((?:la |le |les |l')?[a-z0-9][a-z0-9&'-]*(?:\\s(?!(?:" + STOP + ")(?![a-z']))[a-z0-9&'-]+){0,4})", 'g'), function (m) {
+                var t = finMots(texte(m, 1)); if (t.length < 2) return false; C.nom = t;
+            });
+            if (!C.nom) chercher(/(?:^|\s)((?:plomberie|plombier chauffagiste|chauffage|sanitaires?|depannage|ets|etablissements|entreprise)\s+(?:et\s+(?:chauffage|sanitaires?)\s+)?[a-z][a-z'-]+(?:\s(?:et|&)\s(?:fils|freres|associes|cie)|\s(?:fils|freres|pere)|\s[a-z][a-z'-]+)?)/g, function (m) {
+                var t = finMots(texte(m, 1)), dernier = bas(t.split(' ').pop());
+                if (new RegExp('^(?:' + STOP + '|a|au|de|du|des|en|sur|chez|d|l)$').test(dernier)) t = finMots(t.split(' ').slice(0, -1).join(' '));
+                if (t.split(' ').length < 2) return false;
+                C.nom = t;
+            });
+            /* 6. votre nom */
+            chercher(/(?:je m'appelle|je me nomme|mon nom (?:c'est|est)|moi c'est|le gerant (?:c'est|est)|le dirigeant (?:c'est|est)|je suis le gerant,?)\s+((?:monsieur |madame )?[a-z][a-z'-]+(?:\s[a-z][a-z'-]+){0,2})/g, function (m) {
+                var t = texte(m, 1).replace(/^(monsieur|madame)\s+/i, '');
+                var mots = t.split(' '), garde = [];
+                for (var i = 0; i < mots.length; i++) { if (new RegExp('^(?:' + STOP + '|a|au|de|du|en|sur|chez|plombier|artisan)$').test(bas(mots[i])) && i > 0) break; garde.push(mots[i]); }
+                if (!garde.length || new RegExp('^(?:' + STOP + ')$').test(bas(garde[0]))) return false;
+                C.dirigeant = garde.join(' ');
+            });
+            /* 7. adresse (« 12 rue des Lilas 69003 Lyon ») */
+            var VOIE = "(?:rue|avenue|av|boulevard|bd|impasse|allee|chemin|place|route|quai|cours|lotissement|residence|square|passage|lieu-dit|cite|voie|sentier|hameau|chaussee|esplanade|promenade|faubourg|montee|traverse|villa|domaine|clos|zone|za|zi|parc)";
+            chercher(new RegExp("((?:au |le )?\\d{1,4}(?: ?(?:bis|ter))?,? " + VOIE + " [a-z0-9' -]{2,45}?,? (?:\\d{5}|\\d{2} \\d{3})(?: [a-z][a-z'-]+(?:[ -](?:sur|sous|en|les|le|la|de|du|d'|l')?[ -]?[a-z][a-z'-]+){0,2})?)(?=\\s*(?:$|[,.;]|\\s(?:" + STOP + ")(?![a-z'])))", 'g'), function (m) {
+                if (C.adresse) return false;
+                C.adresse = texte(m, 1).replace(/^(?:au|le)\s+/i, '');
+            });
+            /* 8. répertoire des métiers, TVA */
+            chercher(new RegExp("(?:repertoire des metiers|numero rm|n° rm|rm)\\s*(?:numero|c'est|est|:)?\\s*((?:" + NUMW_FICHE + "|[a-z]{1,3})(?:[\\s.-]+(?:" + NUMW_FICHE + ")){1,14})", 'g'), function (m) { var d = chiffresSeuls(m[1]); if (d.length < 6) return false; C.rm = d; }, o);
+            chercher(/(?:tva|taux de tva)\s*(?:habituel(?:le)?|normal(?:e)?|courant|le plus souvent|en general)?\s*(?:a|de|c'est|est|:|=)?\s*(5[,.]5|5 virgule 5|10|20)\s*(?:%|pour ?cent)?(?!\d)/g, function (m) {
+                var v = tauxTva(m[1].replace(' virgule ', ',')); if (!v) return false; C.tauxDefaut = v; if (C.regime !== 'non') C.regime = 'oui';
+            });
+            chercher(/(?:pas de tva|sans tva|sans la tva|je ne (?:facture|fais|prends|compte|mets|factures) pas (?:de |la )?tva|tva non applicable|franchise(?: en base)?(?: de tva)?|pas assujetti|non assujetti|293 ?b)/g, function () { C.regime = 'non'; });
+            chercher(/(?:je facture la tva|avec (?:la )?tva|assujetti(?:e)? a la tva|je suis assujetti|je fais payer la tva)/g, function () { if (C.regime !== 'non') C.regime = 'oui'; }, b);
+            chercher(/(?:tva intra(?:-?communautaire)?|numero de tva|n° de tva|numero tva)\s*(?:c'est|est|:)?\s*(fr\s?[\d\s]{11,17})(?!\d)/g, function (m) {
+                var d = m[1].replace(/\D/g, ''); if (d.length !== 11) return false; C.tvaNum = 'FR ' + d.slice(0, 2) + ' ' + d.slice(2); if (C.regime !== 'non') C.regime = 'oui';
+            });
+            /* 9. assurances, médiateur */
+            chercher(new RegExp("(?:(?:assurance |garantie )?decennale|assure(?:e)?(?: en decennale)?|assureur(?: decennale)?)\\s*(?:c'est|est|chez|avec|aupres de|par|:|=)*\\s*((?:" + ASSUREURS_FICHE + ")(?:(?:\\s+|,\\s*(?=\\d))" + STOP2 + "[a-z0-9'-]+){0,8})", 'g'), function (m) {
+                C.decennale = finMots(texte(m, 1).replace(/,\s*$/, ''));
+            });
+            if (!C.decennale) chercher(new RegExp("(?:assurance |garantie )?decennale\\s*(?:c'est|est|chez|avec|aupres de|par|:)+\\s*([a-z][a-z0-9'&-]+(?:\\s[a-z0-9'&-]+){0,3})" + FIN, 'g'), function (m) { C.decennale = finMots(texte(m, 1)); });
+            chercher(/(?:numero de contrat|contrat(?: decennale)?(?: numero| n°)?)\s*(?:c'est|est|:)?\s*([a-z]{0,4}\s?\d[\d\s/-]{2,24})(?!\d)/g, function (m) { C.decContrat = propre(texte(m, 1)).toUpperCase(); });
+            chercher(/(?:toute la france|partout en france|france entiere|france metropolitaine|metropole|france (?:et|plus) (?:les )?dom(?: tom)?)/g, function (m) {
+                C.decZone = /dom/.test(m[0]) ? 'France métropolitaine et DOM' : (/entiere/.test(m[0]) ? 'France entière' : 'France métropolitaine');
+            });
+            chercher(new RegExp("(?:rc pro|r c pro|rcp|responsabilite civile(?: pro(?:fessionnelle)?)?)\\s*(?:c'est|est|chez|avec|aupres de|:)*\\s*((?:" + ASSUREURS_FICHE + "|" + STOP2 + "[a-z][a-z0-9'&-]+)(?:\\s" + STOP2 + "[a-z0-9'-]+){0,5})", 'g'), function (m) { C.rcpro = finMots(texte(m, 1)); });
+            chercher(new RegExp("(?:mediateur(?: de la consommation)?|mediation)\\s*(?:c'est|est|chez|:)*\\s*(" + STOP2 + "[a-z][a-z0-9'-]*(?:\\.(?:fr|com|net|org|eu))?(?:\\s" + STOP2 + "(?:point\\s)?[a-z0-9'-]+(?:\\.(?:fr|com|net|org|eu))?){0,4})", 'g'), function (m) {
+                var t = bas(m[1]);
+                if (/medicys|medi cys|medisys/.test(t)) C.mediateur = 'Médicys – medicys.fr';
+                else if (/cm2c|c m 2 c|cm deux c/.test(t)) C.mediateur = 'CM2C – cm2c.net';
+                else C.mediateur = finMots(texte(m, 1));
+            });
+            if (!C.mediateur && /medicys|medisys/.test(b)) C.mediateur = 'Médicys – medicys.fr';
+            /* 10. tarifs */
+            chercher(new RegExp("(?:taux horaire|prix de (?:l'|mon )heure|tarif horaire|prix horaire|l'heure de main d.?oeuvre|ma main d.?oeuvre|main d.?oeuvre)" + ECART + NB + "\\s*(?:€|euros?)?", 'g'), function (m) { C.tauxHoraire = nombreDit(m[1]); });
+            chercher(new RegExp(NB + "\\s*(?:€|euros?)\\s*(?:ht\\s*)?(?:de l'heure|l'heure|par heure|de l'h|la heure|de taux horaire|de main d.?oeuvre)", 'g'), function (m) { if (!C.tauxHoraire) C.tauxHoraire = nombreDit(m[1]); });
+            chercher(/(?:deplacement (?:offert|gratuit|inclus|compris)|je ne (?:compte|facture|fais payer) pas (?:le |les )?deplacements?|pas de (?:frais de )?deplacement|deplacements? (?:sont |est )?(?:offerts?|gratuits?))/g, function () { C.deplacement = '0'; });
+            chercher(new RegExp("(?:frais de )?deplacements?" + ECART + NB + "\\s*(?:€|euros?)", 'g'), function (m) { if (C.deplacement == null) C.deplacement = nombreDit(m[1]); });
+            chercher(new RegExp(NB + "\\s*(?:€|euros?)\\s*(?:ht\\s*)?(?:de|pour le|le|du)\\s*(?:frais de )?deplacements?", 'g'), function (m) { if (C.deplacement == null) C.deplacement = nombreDit(m[1]); });
+            chercher(/(?:dechets?|evacuation|gravats)(?: des dechets)?\s*(?:c'est |sont |est )?(?:offerts?|gratuits?|inclus|compris)|(?:je ne (?:compte|facture) pas|pas de frais pour) (?:les )?dechets/g, function () { C.dechetsPrix = '0'; });
+            chercher(new RegExp("(?:evacuation des dechets|dechets|gravats)" + ECART + NB + "\\s*(?:€|euros?)", 'g'), function (m) { if (C.dechetsPrix == null) C.dechetsPrix = nombreDit(m[1]); });
+            chercher(/((?:decheterie|dechetterie|decharge|point de collecte)(?: (?:professionnelle|pro))?(?: (?:de|d'|du|des|a)\s?[a-z][a-z'-]+(?:[ -](?:sur|sous|en|les|le|la|de|du)?[ -]?[a-z][a-z'-]+)?)?)/g, function (m) {
+                var t = texte(m, 1).replace(/\s+(?:et|mon|ma|le|la|pour|prix)(?:\s.*)?$/i, ''); C.dechetterie = majuscule(t.replace(/^dechet+erie/i, 'déchetterie').replace(/^decharge/i, 'décharge'));
+            });
+            chercher(/(?:au quart d'heure|a la demi[- ]?heure|au temps (?:reel|passe)|a la minute|au reel)/g, function (m) { if (!C.decompte) C.decompte = decompte(m[0].replace('minute', 'reel')); });
+            chercher(/(?:je (?:compte|facture|decompte)(?: le temps| la main d.?oeuvre| les heures)?|decompte(?: du temps)?|temps compte)\s*(?:c'est|est|:)?\s*(a l'heure|par heure|a l'heure entamee)/g, function () { C.decompte = decompte('heure'); });
+            chercher(/(?:pas d'acompte|sans acompte|aucun acompte|acompte (?:de )?zero)/g, function () { C.acompte = '0'; });
+            chercher(new RegExp("acompte" + ECART + "(\\d+(?:[,.]\\d+)?)\\s*(?:%|pour ?cent)", 'g'), function (m) { C.acompte = nombreDit(m[1]); });
+            chercher(/(\d+(?:[,.]\d+)?)\s*(?:%|pour ?cent)\s*(?:d'acompte|a la signature|a la commande|de l'acompte)/g, function (m) { if (C.acompte == null) C.acompte = nombreDit(m[1]); });
+            chercher(/(?:valables?|validite(?: de mes devis| des devis)?|valide)\s*(?:de|pendant|:|c'est)?\s*(\d+)\s*(jours|mois)/g, function (m) { C.validite = String(parseInt(m[1], 10) * (m[2] === 'mois' ? 30 : 1)); });
+            chercher(/(?:devis (?:sont |est )?(?:gratuits?|offerts?)|devis (?:gratuit|offert)|je ne fais pas payer (?:les |mes )?devis)/g, function () { C.prixDevis = '0'; });
+            chercher(/(?:devis (?:sont |est )?payants?|je fais payer (?:les |mes )?devis|devis a)\s*(?:a |de |:)?\s*(\d+(?:[,.]\d{1,2})?)\s*(?:€|euros?)/g, function (m) { C.prixDevis = nombreDit(m[1]); });
+            /* 11. moyens de paiement */
+            var moyens = [];
+            if (/(?:^|\s)virements?(?![a-z])/.test(b)) moyens.push('virement');
+            if (/(?:^|\s)cheques?(?![a-z])/.test(b)) moyens.push('chèque');
+            if (/(?:^|\s)(?:especes|liquide|cash)(?![a-z])/.test(b)) moyens.push('espèces');
+            if (/(?:^|\s)(?:carte bancaire|carte bleue|par carte|en carte|cb|terminal de paiement|tpe)(?![a-z])/.test(b)) moyens.push('carte bancaire');
+            if (/(?:^|\s)paypal(?![a-z])/.test(b)) moyens.push('PayPal');
+            if (/(?:^|\s)(?:lydia|wero)(?![a-z])/.test(b)) moyens.push(/wero/.test(b) ? 'Wero' : 'Lydia');
+            if (moyens.length) C.paiement = moyens.length === 1 ? moyens[0] : moyens.slice(0, -1).join(', ') + ' ou ' + moyens[moyens.length - 1];
+            res.nb = Object.keys(C).length;
+            return res;
+        }
+
+        /* Range ce qui a été compris dans la fiche (en mode « Modifier », remplace l'ancienne valeur) */
+        function appliquerFiche(d) {
+            var r = APP.rep, remplis = [], siretAvant = r.siret;
+            Object.keys(d.champs).forEach(function (cle) {
+                var q = trouverQuestion(cle), v = d.champs[cle], res;
+                if (cle === 'regime') res = { ok: true, valeur: v };
+                else if (cle === 'mediateur' || cle === 'decZone' || cle === 'paiement' || cle === 'decContrat') res = { ok: true, valeur: v };
+                else res = interpreter(q, v);
+                if (!res.ok || res.passe || res.valeur === '') return;
+                r[cle] = res.valeur;
+                if (APP.ordre.indexOf(cle) < 0) APP.ordre.push(cle);
+                remplis.push(cle);
+            });
+            /* micro-entreprise : souvent sans TVA, mais on le demande */
+            if (r.forme && !estSociete(r.forme)) { delete r.capital; delete r.greffe; }
+            APP.cible = null;
+            APP.flash = {}; remplis.forEach(function (k) { APP.flash[k] = true; });
+            return { n: remplis.length, siretNouveau: !!(r.siret && r.siret !== siretAvant && APP.mode === 'fiche' && !APP.miseAJour) };
+        }
+
+        /* Après un SIRET dit dans une phrase : on cherche l'entreprise, puis on continue */
+        function apresDicteeFiche(a, message, couleur) {
+            var finir = function () {
+                APP.attente = false;
+                var f = document.getElementById('feuille'); if (f) f.classList.remove('opacity-50', 'pointer-events-none');
+                avancer(true);
+                etat(message, couleur || 'text-emerald-700');
+                setTimeout(function () { APP.flash = {}; if (/^fiche/.test(APP.mode)) dessiner(); }, 3000);
+            };
+            if (!a.siretNouveau) { finir(); return; }
+            APP.trouve = null; APP.auto = null; APP.autoCles = {};
+            etat('Je cherche votre entreprise…', 'text-[#222222]');
+            chercherEntreprise(APP.rep.siret).then(function (t) { APP.trouve = t; finir(); });
+        }
+
+        /* Pendant les questions : une réponse qui contient plusieurs informations remplit tout d'un coup */
+        function traiterDicteeFiche(brut) {
+            if (APP.mode !== 'fiche' && APP.mode !== 'fiche-edition') return false;
+            var d = comprendreFiche(brut), act = APP.courante && APP.courante.cle;
+            if (d.nb < 2 || !(act in d.champs)) return false;
+            APP.attente = true;
+            etat('Un instant, je remplis votre fiche…', 'text-[#222222]');
+            var a = appliquerFiche(d);
+            apresDicteeFiche(a, '✓ ' + a.n + ' cases remplies. Vérifiez, et touchez une case pour la corriger.');
+            return true;
+        }
+
         /* Le micro a entendu plusieurs informations : « Un instant… », puis le devis se remplit */
         function traiterDictee(brut) {
             if (APP.mode !== 'devis') return false;
@@ -2398,7 +2648,7 @@
             if (!d.nb) return false;
             if (!d.lignes.length && cles.length === 1 && (cles[0] === act || (act === 'duree' && cles[0] === 'heures'))) return false;
             APP.attente = true;
-            etat('⏳ Un instant, je remplis le devis…', 'text-slate-200');
+            etat('Un instant, je remplis le devis…', 'text-[#222222]');
             var f = document.getElementById('feuille');
             if (f) f.classList.add('opacity-50', 'pointer-events-none');
             setTimeout(function () {
@@ -2406,23 +2656,28 @@
                 APP.attente = false;
                 if (f) f.classList.remove('opacity-50', 'pointer-events-none');
                 avancer(true);
-                etat('✓ ' + n + ' case' + (n > 1 ? 's' : '') + ' remplie' + (n > 1 ? 's' : '') + '. Vérifiez, et touchez une case pour la corriger.', 'text-emerald-300');
+                etat('✓ ' + n + ' case' + (n > 1 ? 's' : '') + ' remplie' + (n > 1 ? 's' : '') + '. Vérifiez, et touchez une case pour la corriger.', 'text-emerald-700');
                 setTimeout(function () { APP.flash = {}; if (APP.mode === 'devis') dessiner(); }, 2500);
             }, 1200);
             return true;
         }
 
         /* ===================== ÉCOUTER LA DISCUSSION : rien ne se remplit, puis tout se range d'un coup ===================== */
-        var MSG_ECOUTE_LIBRE = '🎧 J\'écoute la discussion… Dites « j\'ai fini » quand c\'est terminé.';
+        var MSG_ECOUTE_LIBRE = 'J\'écoute la discussion… Dites « j\'ai fini » quand c\'est terminé.';
+        function msgEcouteLibre() {
+            if (APP.mode === 'fiche') return 'J\'écoute… Dites tout sur votre entreprise, puis « j\'ai fini ».';
+            if (APP.mode === 'fiche-edition') return 'J\'écoute… Dites ce qui a changé, puis « j\'ai fini ».';
+            return MSG_ECOUTE_LIBRE;
+        }
         function demarrerEcouteLibre() {
-            if (APP.mode !== 'devis' || APP.attente || APP.ecouteLibre) return;
+            if (!/^(devis|fiche|fiche-edition)$/.test(APP.mode) || APP.attente || APP.ecouteLibre) return;
             if (!SR) { modeClavier(); return; }
             var vieux = ECOUTE.rec; ECOUTE.rec = null;
             try { if (vieux) vieux.abort(); } catch (e) {}
             APP.ecouteLibre = true; APP.texteLibre = []; APP.motsUtiles = false; APP.annonceLibre = false; APP.cible = null; APP.erreur = '';
             ECOUTE.session = true; ECOUTE.essais = 0; ECOUTE.premier = false; ECOUTE.parGeste = true;
             boutonMicroActif(true);
-            etat(stock('va_micro_ok') ? MSG_ECOUTE_LIBRE : 'Votre téléphone va demander l\'accès au micro : touchez « Autoriser ».', 'text-red-300');
+            etat(stock('va_micro_ok') ? msgEcouteLibre() : 'Votre téléphone va demander l\'accès au micro : touchez « Autoriser ».', 'text-red-700');
             if (stock('va_micro_ok')) APP.annonceLibre = true;
             dessiner();
             montrerEntendu();
@@ -2456,64 +2711,75 @@
             if (sansMicro) { ECOUTE.session = false; boutonMicroActif(false); }
             montrerEntendu();
             APP.attente = true;
-            etat('⏳ Un instant, je remplis le devis…', 'text-slate-200');
+            var enFiche = /^fiche/.test(APP.mode);
+            etat(enFiche ? 'Un instant, je remplis votre fiche…' : 'Un instant, je remplis le devis…', 'text-[#222222]');
             dessiner();
             var f = document.getElementById('feuille');
             if (f) f.classList.add('opacity-50', 'pointer-events-none');
+            if (enFiche) {
+                var motsUtiles = APP.motsUtiles;
+                setTimeout(function () {
+                    var df = comprendreFiche(texte), a = df.nb ? appliquerFiche(df) : { n: 0 };
+                    var msg = a.n ? '✓ ' + a.n + ' case' + (a.n > 1 ? 's' : '') + ' remplie' + (a.n > 1 ? 's' : '') + '. ' + (APP.mode === 'fiche' ? (ECOUTE.session ? 'Répondez aux questions du micro pour compléter.' : 'Touchez le micro pour compléter le reste.') : 'Vérifiez, puis enregistrez.')
+                        : (motsUtiles ? 'Je n\'ai pas reconnu d\'informations : ' + (APP.mode === 'fiche' ? 'répondez aux questions du micro.' : 'touchez une case pour la changer.') : 'Je n\'ai rien entendu.');
+                    apresDicteeFiche(a, msg, a.n ? 'text-emerald-700' : 'text-[#222222]');
+                }, 1200);
+                return;
+            }
             setTimeout(function () {
                 var d = comprendreDictee(texte, { discussion: true }), n = d.nb ? appliquerDictee(d) : 0;
                 APP.attente = false;
                 if (f) f.classList.remove('opacity-50', 'pointer-events-none');
                 avancer(true);
-                if (n) etat('✓ ' + n + ' case' + (n > 1 ? 's' : '') + ' remplie' + (n > 1 ? 's' : '') + '. ' + (APP.courante ? (ECOUTE.session ? 'Répondez aux questions du micro pour compléter.' : 'Touchez le micro pour compléter le reste.') : 'Vérifiez le devis.'), 'text-emerald-300');
-                else etat(APP.motsUtiles ? 'Je n\'ai pas trouvé d\'infos pour le devis : répondez aux questions du micro.' : 'Je n\'ai rien entendu : répondez aux questions du micro.', 'text-slate-200');
+                if (n) etat('✓ ' + n + ' case' + (n > 1 ? 's' : '') + ' remplie' + (n > 1 ? 's' : '') + '. ' + (APP.courante ? (ECOUTE.session ? 'Répondez aux questions du micro pour compléter.' : 'Touchez le micro pour compléter le reste.') : 'Vérifiez le devis.'), 'text-emerald-700');
+                else etat(APP.motsUtiles ? 'Je n\'ai pas trouvé d\'infos pour le devis : répondez aux questions du micro.' : 'Je n\'ai rien entendu : répondez aux questions du micro.', 'text-[#222222]');
                 setTimeout(function () { APP.flash = {}; if (APP.mode === 'devis') dessiner(); }, 3000);
             }, 2000);
         }
 
         /* Une case du devis (un texte à taper, ou des boutons) */
         function htmlChamp(cle, choix, classe) {
-            var num = /_(pu|qte)$/.test(cle) || cle === 'heures' || cle === 'deplacement' || cle === 'dechetsPrix';
+            var num = /_(pu|qte)$/.test(cle) || cle === 'heures' || cle === 'deplacement' || cle === 'dechetsPrix' || (/^fiche/.test(APP.mode) && NUM_FICHE[cle]);
             var saisie = choix ? '<div id="choix-' + cle + '" class="flex flex-wrap gap-1.5 mt-1"></div>'
                 : '<input id="rep-' + cle + '" type="text"' + (num ? ' inputmode="decimal"' : '') + ' enterkeyhint="next" autocomplete="off" autocapitalize="sentences"' +
                   ' onfocus="definirCible(\'' + cle + '\')" onchange="saisirChamp(\'' + cle + '\', this.value)" onkeydown="toucheChamp(\'' + cle + '\', event, this)"' +
-                  ' class="w-full bg-transparent text-slate-900 text-base border-b border-slate-300 focus:border-amber-500 focus:outline-none py-0.5 placeholder-slate-400' + (num ? ' text-right' : '') + '">';
+                  ' class="w-full bg-transparent text-stone-900 text-base border-b border-stone-300 focus:border-gold-500 focus:outline-none py-0.5 placeholder-stone-400' + (num ? ' text-right' : '') + '">';
             return '<div id="champ-' + cle + '" onclick="toucherChamp(\'' + cle + '\', event)" class="' + (classe || '') + '">' +
-                   '<label for="rep-' + cle + '" id="lab-' + cle + '" class="block text-[11px] text-slate-500"></label>' + saisie +
+                   '<label for="rep-' + cle + '" id="lab-' + cle + '" class="block text-[11px] text-stone-500"></label>' + saisie +
                    '<div id="plus-' + cle + '"></div></div>';
         }
         function majChamp(cle, choix, classe) {
             var el = document.getElementById('champ-' + cle);
             if (!el) return;
-            var actif = !!(APP.courante && APP.courante.cle === cle) && !APP.ecouteLibre && !APP.attente && !!(APP.ordre.length || APP.cible);
+            var actif = !!(APP.courante && APP.courante.cle === cle) && !APP.ecouteLibre && !APP.attente && !!(APP.ordre.length || APP.cible || (APP.mode === 'fiche' && APP.miseAJour));
             var flash = !!(APP.flash && APP.flash[cle]);
-            var cls = (classe || '') + ' rounded-lg px-2 py-1.5 transition ' + (actif ? 'bg-amber-50 ring-2 ring-amber-400' : (flash ? 'bg-emerald-50 ring-1 ring-emerald-400' : ''));
+            var cls = (classe || '') + ' rounded-lg px-2 py-1.5 transition ' + (actif ? 'bg-[#C6F432]/20 ring-1 ring-black/30' : (flash ? 'bg-emerald-50 ring-1 ring-emerald-600' : ''));
             if (el.className !== cls) el.className = cls;
-            var lab = document.getElementById('lab-' + cle), txtLab = (actif ? '🎙 ' : '') + libelleChamp(cle);
-            if (lab.textContent !== txtLab) { lab.textContent = txtLab; lab.className = 'block text-[11px] ' + (actif ? 'text-amber-700 font-semibold' : 'text-slate-500'); }
+            var lab = document.getElementById('lab-' + cle), txtLab = (actif ? '● ' : '') + libelleChamp(cle);
+            if (lab.textContent !== txtLab) { lab.textContent = txtLab; lab.className = 'block text-[11px] ' + (actif ? 'text-[#0B0B0B] font-semibold' : 'text-stone-500'); }
             var inp = document.getElementById('rep-' + cle);
             if (inp && (document.activeElement !== inp || APP.majForcee === cle || APP.majForcee2 === cle || flash)) {
                 var v = APP.tape && APP.tape[cle] != null ? APP.tape[cle] : ((cle in APP.rep) ? valeurAffichee(cle, APP.rep[cle]) : '');
-                if (!(cle in APP.rep) && (cle === 'deplacement' || cle === 'dechetsPrix')) v = String(nombre(prixDuDevis(cle))).replace('.', ',');
+                if (!(cle in APP.rep) && APP.mode === 'devis' && (cle === 'deplacement' || cle === 'dechetsPrix')) v = String(nombre(prixDuDevis(cle))).replace('.', ',');
                 if (inp.value !== v) inp.value = v;
-                var court = /_(pu|qte)$/.test(cle) || cle === 'heures' || cle === 'deplacement' || cle === 'dechetsPrix';
+                var court = /_(pu|qte)$/.test(cle) || cle === 'heures' || (APP.mode === 'devis' && (cle === 'deplacement' || cle === 'dechetsPrix'));
                 inp.placeholder = actif ? (court ? '…' : 'Parlez, ou tapez ici…') : ((cle in APP.rep) ? '—' : (court ? '' : ''));
             }
             if (choix) {
                 var val = APP.rep[cle], hc = choix.map(function (c) {
                     var on = val === c[0];
-                    return '<button type="button" onclick="choisirChamp(\'' + cle + '\', \'' + c[0] + '\')" class="px-3 py-1 rounded-full text-xs font-semibold ' +
-                           (on ? 'text-white bg-slate-900' : 'text-slate-700 border border-slate-300') + '">' + c[1] + '</button>';
+                    return '<button type="button" onclick="choisirChamp(\'' + cle + '\', \'' + String(c[0]).replace(/'/g, '\\\'') + '\')" class="px-3 py-1 rounded-full text-xs font-semibold ' +
+                           (on ? 'text-white bg-stone-900' : 'text-stone-700 border border-stone-300') + '">' + c[1] + '</button>';
                 }).join('');
                 var zc = document.getElementById('choix-' + cle);
                 if (zc.innerHTML !== hc) zc.innerHTML = hc;
             }
             var plus = '';
             if (actif) {
-                var c = APP.courante, P = 'px-2.5 py-1 rounded-full text-xs border border-slate-300 text-slate-700';
+                var c = APP.courante, P = 'px-2.5 py-1 rounded-full text-xs border border-stone-300 text-stone-700';
                 var etroit = /col-span-4/.test(classe || '');
-                if (c.aide && !etroit) plus += '<p class="text-slate-500 text-xs mt-1">' + esc(c.aide) + '</p>';
-                if (c.prixConnu) plus += '<div class="flex gap-2 mt-1.5"><button type="button" onclick="repondre(\'pareil\')" class="px-3 py-1.5 rounded-full text-xs font-bold text-white bg-slate-900">Pareil : ' + euros(nombre(c.prixConnu)) + '</button>' +
+                if (c.aide && !etroit) plus += '<p class="text-stone-500 text-xs mt-1">' + esc(c.aide) + '</p>';
+                if (c.prixConnu) plus += '<div class="flex gap-2 mt-1.5"><button type="button" onclick="repondre(\'pareil\')" class="px-3 py-1.5 rounded-full text-xs font-bold text-white bg-stone-900">Pareil : ' + euros(nombre(c.prixConnu)) + '</button>' +
                                          '<button type="button" onclick="repondre(\'autre prix\')" class="' + P + ' font-bold">Autre prix</button></div>';
                 if (cle === 'f0_des' && !APP.demo && !(cle in APP.rep)) plus += typesDevis().map(function (t, i) { return '<button type="button" onclick="appliquerTypeNumero(' + i + ')" class="mt-1.5 mr-1.5 ' + P + '">' + esc(t.nom) + '</button>'; }).join('');
                 if (APP.erreur) plus += '<p class="text-red-600 text-xs mt-1">' + esc(APP.erreur) + '</p>';
@@ -2539,18 +2805,18 @@
         }
         function blocsFormulaire() {
             var r = APP.rep, f = APP.fiche || {}, b = [];
-            var T = 'pt-3 pb-1 text-[11px] font-bold uppercase tracking-widest text-slate-500';
+            var T = 'pt-3 pb-1 text-[11px] font-bold uppercase tracking-widest text-stone-500';
             var titre = function (id, t) { b.push({ id: id, html: '<p id="' + id + '" class="' + T + '">' + t + '</p>' }); };
             var champ = function (cle, choix, classe) { b.push({ id: 'champ-' + cle, html: htmlChamp(cle, choix, classe), champs: [[cle, choix, classe]] }); };
             /* En-tête comme sur le PDF */
             b.push({ id: 'bloc-entete', html: '<div id="bloc-entete"></div>', maj: function (el) {
                 var logo = APP.demo ? '' : (stock('va_logo') || '');
-                var h = '<div class="flex items-start justify-between gap-3 pb-3 border-b-2 border-slate-900">' +
+                var h = '<div class="flex items-start justify-between gap-3 pb-3 border-b-2 border-stone-900">' +
                     '<div class="min-w-0">' + (logo ? '<img src="' + esc(logo) + '" alt="" class="h-10 mb-1 object-contain">' : '') +
-                    '<p class="font-bold text-slate-900 leading-tight">' + esc(f.nom || 'Votre entreprise') + '</p>' +
-                    '<p class="text-[11px] text-slate-500 leading-snug">' + esc([f.adresse, f.tel, f.email].filter(Boolean).join(' · ')) + '</p></div>' +
-                    '<div class="text-right flex-shrink-0"><p class="text-xl font-bold tracking-wide text-slate-900">DEVIS</p>' +
-                    '<p class="text-[11px] text-slate-500">' + dateFr(new Date()) + '</p></div></div>';
+                    '<p class="font-bold text-stone-900 leading-tight">' + esc(f.nom || 'Votre entreprise') + '</p>' +
+                    '<p class="text-[11px] text-stone-500 leading-snug">' + esc([f.adresse, f.tel, f.email].filter(Boolean).join(' · ')) + '</p></div>' +
+                    '<div class="text-right flex-shrink-0"><p class="font-serif text-[22px] leading-none font-medium tracking-[0.16em] text-stone-900">DEVIS</p>' +
+                    '<p class="text-[11px] text-stone-500">' + dateFr(new Date()) + '</p></div></div>';
                 if (el.innerHTML !== h) el.innerHTML = h;
             } });
             titre('titre-client', 'Client');
@@ -2561,15 +2827,15 @@
             titre('titre-travaux', 'Objet');
             champ('objet');
             /* Le tableau des lignes */
-            b.push({ id: 'titre-fournitures', html: '<div id="titre-fournitures" class="mt-3 grid grid-cols-12 gap-1 px-2 py-1.5 rounded bg-slate-900 text-white text-[11px] font-semibold">' +
+            b.push({ id: 'titre-fournitures', html: '<div id="titre-fournitures" class="mt-3 grid grid-cols-12 gap-1 px-2 py-1.5 rounded bg-stone-900 text-white text-[11px] font-semibold">' +
                 '<span class="col-span-8">Désignation · Qté × PU HT</span><span class="col-span-4 text-right">Total HT</span></div>' });
             var ef = etatFournitures(), lignesAff = ef.lignes.slice();
             if (ef.etat === 'nouvelle') lignesAff.push(ef.n);
             lignesAff.forEach(function (n) {
                 var p = 'f' + n + '_', id = 'ligne-' + n;
-                b.push({ id: id, html: '<div id="' + id + '" class="border-b border-slate-200 py-1">' + htmlChamp(p + 'des') +
+                b.push({ id: id, html: '<div id="' + id + '" class="border-b border-stone-200 py-1">' + htmlChamp(p + 'des') +
                     '<div class="grid grid-cols-12 gap-1 items-end">' + htmlChamp(p + 'qte', null, 'col-span-4') + htmlChamp(p + 'pu', null, 'col-span-4') +
-                    '<p id="total-' + n + '" class="col-span-4 text-right text-sm font-semibold text-slate-900 pb-2"></p></div></div>',
+                    '<p id="total-' + n + '" class="col-span-4 text-right text-sm font-semibold text-stone-900 pb-2"></p></div></div>',
                     champs: [[p + 'des'], [p + 'qte', null, 'col-span-4'], [p + 'pu', null, 'col-span-4']],
                     maj: function () { var t = document.getElementById('total-' + n), v = totalLigne(n); if (t.textContent !== v) t.textContent = v; } });
             });
@@ -2577,36 +2843,36 @@
                 var ka = 'f' + ef.n + '_autre', act = APP.courante && APP.courante.cle === ka;
                 b.push({ id: 'bloc-autre', html: '<div id="bloc-autre"></div>', maj: function (el) {
                     var P = 'px-3 py-1.5 rounded-full text-xs font-semibold ';
-                    var h = '<div class="mt-1 px-2 py-2 rounded-lg ' + (act ? 'bg-amber-50 ring-2 ring-amber-400' : '') + '">' +
-                        '<p class="text-[11px] ' + (act ? 'text-amber-700 font-semibold' : 'text-slate-500') + '">' + (act ? '🎙 ' : '') + 'Une autre fourniture ?</p>' +
-                        '<div class="flex gap-2 mt-1"><button type="button" onclick="choisirChamp(\'' + ka + '\', \'oui\')" class="' + P + 'text-slate-700 border border-slate-300">Oui</button>' +
-                        '<button type="button" onclick="choisirChamp(\'' + ka + '\', \'non\')" class="' + P + 'text-slate-700 border border-slate-300">Non, c\'est tout</button></div>' +
+                    var h = '<div class="mt-1 px-2 py-2 rounded-lg ' + (act ? 'bg-[#C6F432]/20 ring-1 ring-black/30' : '') + '">' +
+                        '<p class="text-[11px] ' + (act ? 'text-[#0B0B0B] font-semibold' : 'text-stone-500') + '">' + (act ? '● ' : '') + 'Une autre fourniture ?</p>' +
+                        '<div class="flex gap-2 mt-1"><button type="button" onclick="choisirChamp(\'' + ka + '\', \'oui\')" class="' + P + 'text-stone-700 border border-stone-300">Oui</button>' +
+                        '<button type="button" onclick="choisirChamp(\'' + ka + '\', \'non\')" class="' + P + 'text-stone-700 border border-stone-300">Non, c\'est tout</button></div>' +
                         (act && APP.erreur ? '<p class="text-red-600 text-xs mt-1">' + esc(APP.erreur) + '</p>' : '') + '</div>';
                     if (el.innerHTML !== h) el.innerHTML = h;
                 } });
             } else if (ef.etat === 'fermee') {
-                b.push({ id: 'bloc-ajout', html: '<button type="button" id="bloc-ajout" onclick="ajouterFourniture()" class="mt-1 w-full px-3 py-2 rounded-lg border border-dashed border-slate-300 text-slate-600 text-xs font-semibold">+ Ajouter une fourniture</button>' });
+                b.push({ id: 'bloc-ajout', html: '<button type="button" id="bloc-ajout" onclick="ajouterFourniture()" class="mt-1 w-full px-3 py-2 rounded-lg border border-dashed border-stone-300 text-stone-600 text-xs font-semibold">+ Ajouter une fourniture</button>' });
             }
             /* Main-d'œuvre, déplacement, déchets */
-            b.push({ id: 'ligne-mo', html: '<div id="ligne-mo" class="border-b border-slate-200 py-1"><p class="px-2 pt-1 text-sm text-slate-900">Main-d\'œuvre</p>' +
+            b.push({ id: 'ligne-mo', html: '<div id="ligne-mo" class="border-b border-stone-200 py-1"><p class="px-2 pt-1 text-sm text-stone-900">Main-d\'œuvre</p>' +
                 '<div class="grid grid-cols-12 gap-1 items-end">' + htmlChamp('heures', null, 'col-span-4') +
-                '<p class="col-span-4 text-right text-xs text-slate-500 pb-2">× ' + (nombre(f.tauxHoraire) > 0 ? euros(nombre(f.tauxHoraire)) : 'votre prix') + ' / h</p>' +
-                '<p id="total-mo" class="col-span-4 text-right text-sm font-semibold text-slate-900 pb-2"></p></div></div>',
+                '<p class="col-span-4 text-right text-xs text-stone-500 pb-2">× ' + (nombre(f.tauxHoraire) > 0 ? euros(nombre(f.tauxHoraire)) : 'votre prix') + ' / h</p>' +
+                '<p id="total-mo" class="col-span-4 text-right text-sm font-semibold text-stone-900 pb-2"></p></div></div>',
                 champs: [['heures', null, 'col-span-4']],
                 maj: function () { var t = document.getElementById('total-mo'), v = r.heures ? euros(cent(nombre(r.heures) * nombre(f.tauxHoraire))) : ''; if (t.textContent !== v) t.textContent = v; } });
             [['deplacement', 'Déplacement'], ['dechetsPrix', 'Gestion et évacuation des déchets']].forEach(function (x) {
                 var id = 'ligne-' + x[0];
-                b.push({ id: id, html: '<div id="' + id + '" class="border-b border-slate-200 py-1"><div class="grid grid-cols-12 gap-1 items-end">' +
-                    '<p class="col-span-8 px-2 pb-2 text-sm text-slate-900">' + x[1] + '</p>' + htmlChamp(x[0], null, 'col-span-4') + '</div></div>',
+                b.push({ id: id, html: '<div id="' + id + '" class="border-b border-stone-200 py-1"><div class="grid grid-cols-12 gap-1 items-end">' +
+                    '<p class="col-span-8 px-2 pb-2 text-sm text-stone-900">' + x[1] + '</p>' + htmlChamp(x[0], null, 'col-span-4') + '</div></div>',
                     champs: [[x[0], null, 'col-span-4']] });
             });
             /* TVA et totaux, calculés en direct */
             if (f.regime !== 'franchise') champ('tauxTva', [['5.5', '5,5 %'], ['10', '10 %'], ['20', '20 %']], 'mt-2');
             b.push({ id: 'bloc-totaux', html: '<div id="bloc-totaux"></div>', maj: function (el) {
                 var d = devisPourPdf(); d.lignes = construireLignes(); if (!r.tauxTva) d.tauxTva = f.tauxDefaut || '10';
-                var c = calculerDevis(f, d), L = function (a, v, fort) { return '<div class="flex justify-between gap-2 ' + (fort ? 'pt-1.5 mt-1 border-t-2 border-slate-900 text-base font-bold' : 'text-sm') + '"><span>' + a + '</span><span>' + v + '</span></div>'; };
-                var h = '<div class="mt-2 ml-auto max-w-[70%] px-2 py-2 text-slate-900">' + L('Total HT', euros(c.ht)) +
-                    (c.franchise ? '<p class="text-[11px] text-slate-500">TVA non applicable, art. 293 B du CGI</p>' + L('Total', euros(c.ttc), true)
+                var c = calculerDevis(f, d), L = function (a, v, fort) { return '<div class="flex justify-between gap-2 ' + (fort ? 'pt-1.5 mt-1 border-t-2 border-stone-900 text-base font-bold' : 'text-sm') + '"><span>' + a + '</span><span>' + v + '</span></div>'; };
+                var h = '<div class="mt-2 ml-auto max-w-[70%] px-2 py-2 text-stone-900">' + L('Total HT', euros(c.ht)) +
+                    (c.franchise ? '<p class="text-[11px] text-stone-500">TVA non applicable, art. 293 B du CGI</p>' + L('Total', euros(c.ttc), true)
                                  : L('TVA ' + String(c.taux).replace('.', ',') + ' %', euros(c.tva)) + L('Total TTC', euros(c.ttc), true)) + '</div>';
                 if (el.innerHTML !== h) el.innerHTML = h;
             } });
@@ -2616,15 +2882,53 @@
             return b;
         }
 
+        var FORMES_CHOIX = [['Micro-entreprise', 'Micro'], ['Entreprise individuelle (EI)', 'EI'], ['EURL', 'EURL'], ['SARL', 'SARL'], ['SASU', 'SASU'], ['SAS', 'SAS']];
+        var DECOMPTE_CHOIX = [["au quart d'heure entamé", "Quart d'heure"], ['à la demi-heure entamée', 'Demi-heure'], ["à l'heure entamée", 'Heure'], ['au temps réellement passé', 'Temps réel']];
+        function blocsFiche() {
+            var r = APP.rep, b = [];
+            var T = 'pt-3 pb-1 text-[11px] font-bold uppercase tracking-widest text-stone-500';
+            var titre = function (id, t) { b.push({ id: id, html: '<p id="' + id + '" class="' + T + '">' + t + '</p>' }); };
+            var champ = function (cle, choix, classe) { b.push({ id: 'champ-' + cle, html: htmlChamp(cle, choix, classe), champs: [[cle, choix, classe]] }); };
+            var si = function (cle) { var q = trouverQuestion(cle); return !q.si || q.si(r); };
+            b.push({ id: 'bloc-entete-fiche', html: '<div id="bloc-entete-fiche" class="flex items-start justify-between gap-3 pb-3 border-b-2 border-stone-900"><div class="min-w-0">' +
+                '<p class="font-semibold text-stone-900 leading-tight">Ma fiche entreprise</p><p class="text-[11px] text-stone-500 leading-snug">Une seule fois : elle est reprise sur tous vos devis et factures.</p></div>' +
+                '<p class="font-serif text-[22px] leading-none font-medium tracking-[0.16em] text-stone-900 flex-shrink-0">FICHE</p></div>' });
+            titre('tf-entreprise', 'Entreprise');
+            champ('siret');
+            if (APP.mode === 'fiche' && APP.trouve && !('siretOk' in r)) b.push({ id: 'bloc-siretok', html: '<div id="bloc-siretok"></div>', maj: function (el) {
+                var c = APP.trouve.champs, act = !!(APP.courante && APP.courante.cle === 'siretOk') && !APP.attente && !APP.ecouteLibre, P = 'px-3 py-1.5 rounded-full text-xs font-semibold ';
+                var h = '<div class="mt-1 px-2 py-2 rounded-lg ' + (act ? 'bg-[#C6F432]/20 ring-1 ring-black/30' : 'bg-stone-50') + '">' +
+                    '<p class="text-[11px] ' + (act ? 'text-[#0B0B0B] font-semibold' : 'text-stone-500') + '">' + (act ? '● ' : '') + 'Entreprise trouvée grâce au SIRET : c\'est bien vous ?</p>' +
+                    '<p class="text-sm text-stone-900 mt-0.5 leading-snug">' + esc(c.nom) + (c.forme ? ' (' + esc(c.forme) + ')' : '') + (c.adresse ? '<br>' + esc(c.adresse) : '') + (c.dirigeant ? '<br>' + esc(c.dirigeant) : '') + '</p>' +
+                    (APP.trouve.ferme ? '<p class="text-xs text-red-600 mt-0.5">Attention : établissement indiqué fermé.</p>' : '') +
+                    '<div class="flex gap-2 mt-1.5"><button type="button" onclick="choisirChamp(\'siretOk\', \'oui\')" class="' + P + 'text-white bg-stone-900">Oui, c\'est moi</button>' +
+                    '<button type="button" onclick="choisirChamp(\'siretOk\', \'non\')" class="' + P + 'text-stone-700 border border-stone-300">Non</button></div>' +
+                    (act && APP.erreur ? '<p class="text-red-600 text-xs mt-1">' + esc(APP.erreur) + '</p>' : '') + '</div>';
+                if (el.innerHTML !== h) el.innerHTML = h;
+            } });
+            champ('nom'); champ('forme', FORMES_CHOIX);
+            if (si('capital')) champ('capital');
+            if (si('greffe')) champ('greffe');
+            champ('dirigeant');
+            titre('tf-coord', 'Coordonnées'); champ('adresse'); champ('tel'); champ('email');
+            titre('tf-num', 'Numéros et TVA'); champ('rm'); champ('regime', [['oui', 'Oui'], ['non', 'Non']]);
+            if (si('tvaNum')) champ('tvaNum');
+            if (si('tauxDefaut')) champ('tauxDefaut', [['5.5', '5,5 %'], ['10', '10 %'], ['20', '20 %']]);
+            titre('tf-assur', 'Assurances'); champ('decennale'); champ('decContrat'); champ('decZone'); champ('rcpro'); champ('mediateur');
+            titre('tf-prix', 'Vos prix'); champ('tauxHoraire'); champ('decompte', DECOMPTE_CHOIX); champ('deplacement'); champ('dechetsPrix'); champ('dechetterie');
+            titre('tf-cond', 'Conditions'); champ('acompte'); champ('validite'); champ('prixDevis'); champ('paiement');
+            return b;
+        }
+
         /* Met le devis à jour sans le redessiner : la case où l'on tape garde le clavier */
         function dessinerFormulaire() {
-            var cartes = document.getElementById('cartes');
-            if (!cartes.dataset.formulaire) {
-                cartes.innerHTML = '<div id="feuille" class="bg-white text-slate-900 rounded-xl shadow-2xl shadow-black/40 p-3 sm:p-5"></div>';
-                cartes.dataset.formulaire = '1';
+            var cartes = document.getElementById('cartes'), genre = /^fiche/.test(APP.mode) ? 'fiche' : 'devis';
+            if (cartes.dataset.formulaire !== genre) {
+                cartes.innerHTML = '<div id="feuille" class="bg-white text-stone-900 rounded-md border border-black/[0.08] shadow-[0_1px_3px_rgba(11,11,11,0.05)] p-3 sm:p-5"></div>';
+                cartes.dataset.formulaire = genre;
             }
             var feuille = document.getElementById('feuille');
-            var blocs = blocsFormulaire(), voulus = {};
+            var blocs = genre === 'fiche' ? blocsFiche() : blocsFormulaire(), voulus = {};
             blocs.forEach(function (x) { voulus[x.id] = true; });
             Array.prototype.slice.call(feuille.children).forEach(function (el) { if (!voulus[el.id]) feuille.removeChild(el); });
             var tmp = document.createElement('div');
@@ -2638,7 +2942,8 @@
             APP.majForcee = null; APP.majForcee2 = null;
             var qc = document.getElementById('question-courante');
             if (qc && (APP.ecouteLibre || APP.attente)) qc.textContent = APP.ecouteLibre ? 'Rien ne se remplit pendant l\'écoute.' : '';
-            else if (qc && APP.courante && !APP.ordre.length) qc.textContent = '';
+            else if (qc && APP.courante && !APP.ordre.length && !(APP.mode === 'fiche' && APP.miseAJour)) qc.textContent = '';
+            else if (qc && APP.mode === 'fiche-edition' && !APP.courante) qc.textContent = 'Touchez une case pour la changer.';
             else if (qc && APP.courante) qc.textContent = 'Le micro remplit : ' + libelleChamp(APP.courante.cle);
         }
 
@@ -2646,21 +2951,26 @@
             var titre = document.getElementById('titre-parcours');
             var sous = document.getElementById('sous-titre');
             var barre = document.getElementById('barre-fiche');
-            if (APP.mode === 'fiche' || APP.mode === 'fiche-edition') { titre.textContent = 'Ma fiche'; sous.textContent = APP.mode === 'fiche' ? (APP.miseAJour ? (APP.correction ? 'Une réponse de votre fiche semble fausse : redites-la.' : 'Nouvelle information obligatoire sur les devis : répondez à la question.') : 'Une seule fois : répondez aux questions à voix haute.') : 'Corrigez ce qui a changé, puis enregistrez.'; }
+            if (APP.mode === 'fiche' || APP.mode === 'fiche-edition') { titre.textContent = 'Ma fiche'; sous.textContent = APP.mode === 'fiche' ? (APP.miseAJour ? (APP.correction ? 'Une réponse de votre fiche semble fausse : redites-la.' : 'Nouvelle information obligatoire sur les devis : répondez à la question.') : 'Une seule fois : touchez le micro et dites tout, ou touchez une case.') : 'Corrigez ce qui a changé, puis enregistrez.'; }
             else if (APP.mode === 'fiche-ok') { titre.textContent = 'Fiche enregistrée'; sous.textContent = ''; }
             else if (APP.mode === 'facture') { titre.textContent = 'Facture'; sous.textContent = 'Quand le chantier est terminé.'; }
             else if (APP.mode === 'bon') { titre.textContent = "Bon d'intervention"; sous.textContent = 'Le client signe que les travaux sont faits.'; }
             else if (APP.mode === 'historique') { titre.textContent = 'Mes devis'; sous.textContent = 'Gardés sur ce téléphone. Ouvrez-en un pour le renvoyer, le faire signer ou le facturer.'; }
             else { titre.textContent = 'Nouveau devis'; sous.textContent = APP.mode === 'devis' && !APP.ordre.length ? 'Touchez le micro et parlez avec votre client : le devis se remplit à la fin.' : 'Le micro vous demande ce qui manque.'; }
             barre.innerHTML = APP.demo ? '<span class="text-gold-400 font-semibold">Mode essai</span>' : ficheValide(APP.fiche) && APP.mode !== 'fiche-edition'
-                ? '<button type="button" onclick="ouvrirHistorique()" class="text-gold-400 underline">Mes devis</button><span class="text-slate-300">Ma fiche : <strong class="text-white">' + esc(APP.fiche.nom) + '</strong></span><button type="button" onclick="modifierFiche()" class="text-gold-400 underline">Modifier</button>'
+                ? '<button type="button" onclick="ouvrirHistorique()" class="px-1.5 py-1.5 text-[12.5px] text-[#4A4A4A] hover:text-gold-400 whitespace-nowrap">Mes devis</button><span class="text-stone-600">·</span><button type="button" onclick="modifierFiche()" aria-label="Ma fiche : ' + esc(APP.fiche.nom) + '" class="px-1.5 py-1.5 text-[12.5px] text-[#4A4A4A] hover:text-gold-400 whitespace-nowrap">Ma fiche</button>'
                 : '';
-            document.getElementById('zone-micro').style.display = APP.courante || APP.ecouteLibre ? '' : 'none';
+            document.getElementById('zone-micro').style.display = APP.courante || APP.ecouteLibre || APP.mode === 'fiche-edition' ? '' : 'none';
             var vide = APP.mode === 'devis' && (!APP.ordre.length || APP.ecouteLibre);
+            var videFiche = APP.mode === 'fiche' && !APP.miseAJour && (!APP.ordre.length || APP.ecouteLibre);
             document.getElementById('aide-micro').textContent = vide
-                ? 'Le micro écoute toute la discussion avec votre client, sans rien remplir. Dites « j\'ai fini », « c\'est tout » ou « au revoir » : il remplit le devis, puis vous demande ce qui manque. Prévenez votre client que le micro écoute.'
+                ? 'Le micro écoute toute la discussion avec votre client, sans rien remplir. Dites « j\'ai fini », « c\'est tout », « stop » ou « arrête le micro » : il remplit le devis, puis vous demande ce qui manque. Prévenez votre client que le micro écoute.'
+                : videFiche ? 'Dites d\'un coup ce que vous savez : nom de l\'entreprise, SIRET, adresse, téléphone, prix de l\'heure, déplacement… Dites « j\'ai fini » : le micro remplit votre fiche, puis vous demande ce qui manque.'
+                : APP.mode === 'fiche-edition' ? (APP.ecouteLibre ? 'Dites ce qui a changé, par exemple « mon prix de l\'heure c\'est 60 euros », puis « j\'ai fini ».' : 'Touchez une case puis parlez, ou touchez le micro et dites ce qui a changé.')
                 : (APP.mode === 'devis' ? 'Répondez aux questions du micro. Touchez une case pour la corriger au clavier.' : 'Répondez à la question à voix haute. Touchez une case pour la corriger au clavier.');
-            document.getElementById('bouton-libre').classList.toggle('hidden', !(APP.mode === 'devis' && APP.ordre.length && !APP.ecouteLibre && !APP.attente && SR));
+            var bl = document.getElementById('bouton-libre');
+            bl.classList.toggle('hidden', !((APP.mode === 'devis' || (APP.mode === 'fiche' && !APP.miseAJour)) && APP.ordre.length && !APP.ecouteLibre && !APP.attente && SR));
+            bl.textContent = APP.mode === 'fiche' ? 'Dire plusieurs infos d\'un coup' : 'Écouter une nouvelle discussion';
             var pr = progression();
             document.getElementById('question-courante').textContent = pr ? pr.texte : '';
             document.getElementById('barre-progression').style.width = pr ? Math.round(Math.min(1, pr.part) * 100) + '%' : '0%';
@@ -2668,33 +2978,33 @@
 
             var h = '';
             var cartesEl = document.getElementById('cartes');
-            if (APP.mode === 'devis') { dessinerFormulaire(); }
+            if (/^(devis|fiche|fiche-edition)$/.test(APP.mode)) { dessinerFormulaire(); }
             else {
             delete cartesEl.dataset.formulaire;
             for (var i = 0; i < APP.ordre.length; i++) {
                 var cle = APP.ordre[i], qq = trouverQuestion(cle);
                 if (APP.mode === 'recap' && /^f\d+_|^heures$|^deplacement$|^dechetsPrix$/.test(cle)) continue;
-                h += '<div class="p-3 rounded-xl bg-obsidian/50 border border-white/10">' +
-                        '<div class="flex items-center justify-between gap-2"><p class="text-slate-400 text-xs">' + esc(qq.texte) + '</p>' +
-                        (APP.mode === 'fiche-edition' ? '' : '<button type="button" onclick="refaireQuestion(\'' + cle + '\')" class="text-xs text-gold-400 underline flex-shrink-0">Redire</button>') + '</div>' +
-                        '<input id="rep-' + cle + '" value="' + esc(valeurAffichee(cle, APP.rep[cle])) + '" placeholder="(passé)" onchange="corriger(\'' + cle + '\', this.value)" class="mt-1 w-full bg-transparent text-white text-sm border-b border-transparent focus:border-gold-500/60 focus:outline-none">' +
+                h += '<div class="p-3 rounded-xl bg-obsidian/50 border border-black/10">' +
+                        '<div class="flex items-center justify-between gap-2"><p class="text-[#555555] text-xs">' + esc(qq.texte) + '</p>' +
+                        (APP.mode === 'fiche-edition' ? '' : '<button type="button" onclick="refaireQuestion(\'' + cle + '\')" class="text-xs text-gold-400 underline underline-offset-4 decoration-[#C6F432] decoration-2 flex-shrink-0">Redire</button>') + '</div>' +
+                        '<input id="rep-' + cle + '" value="' + esc(valeurAffichee(cle, APP.rep[cle])) + '" placeholder="(passé)" onchange="corriger(\'' + cle + '\', this.value)" class="mt-1 w-full bg-transparent text-[#0B0B0B] text-sm border-b border-transparent focus:border-gold-500/60 focus:outline-none">' +
                      '</div>';
             }
             if (APP.courante) {
                 var c = APP.courante;
-                h += '<div id="carte-courante" class="p-4 rounded-2xl border-2 border-gold-500/70 bg-gold-500/10 shadow-lg shadow-gold-500/10">' +
+                h += '<div id="carte-courante" class="p-4 rounded-xl border border-gold-500/50 bg-[#C6F432]/10">' +
                         '<p class="text-gold-400 text-xs font-semibold uppercase tracking-wider">À dire maintenant</p>' +
-                        '<p class="text-white text-lg font-semibold mt-1">' + esc(c.texte) + '</p>' +
-                        (c.aide ? '<p class="text-slate-300 text-base mt-1">' + esc(c.aide) + '</p>' : '') +
-                        (c.prixConnu ? '<div class="grid grid-cols-2 gap-2 mt-3"><button type="button" onclick="repondre(\'pareil\')" class="px-3 py-3 rounded-full text-sm font-bold text-gold-400 border-2 border-gold-500/70">Pareil : ' + euros(nombre(c.prixConnu)) + '</button>' +
-                                       '<button type="button" onclick="repondre(\'autre prix\')" class="px-3 py-3 rounded-full text-sm font-bold text-slate-100 border-2 border-white/30">Autre prix</button></div>' : '') +
+                        '<p class="text-[#0B0B0B] text-lg font-semibold mt-1">' + esc(c.texte) + '</p>' +
+                        (c.aide ? '<p class="text-[#4A4A4A] text-base mt-1">' + esc(c.aide) + '</p>' : '') +
+                        (c.prixConnu ? '<div class="grid grid-cols-2 gap-2 mt-3"><button type="button" onclick="repondre(\'pareil\')" class="px-3 py-3 rounded-lg text-sm font-bold text-gold-400 border border-gold-500/60">Pareil : ' + euros(nombre(c.prixConnu)) + '</button>' +
+                                       '<button type="button" onclick="repondre(\'autre prix\')" class="px-3 py-3 rounded-lg text-sm font-bold text-[#0B0B0B] border-2 border-black/20">Autre prix</button></div>' : '') +
                         (c.cle === 'f0_des' && !APP.demo ? typesDevis().map(function (t, i) { return '<button type="button" onclick="appliquerTypeNumero(' + i + ')" class="mt-2 mr-2 px-3 py-2 rounded-full text-xs font-semibold text-gold-400 border border-gold-500/50">Devis type : ' + esc(t.nom) + '</button>'; }).join('') : '') +
                         '<textarea id="saisie" rows="2" placeholder="Votre réponse s\'écrit ici…" class="' + CHAMP + ' mt-3"></textarea>' +
-                        (APP.erreur ? '<p class="text-red-300 text-sm mt-2">' + esc(APP.erreur) + '</p>' : '') +
+                        (APP.erreur ? '<p class="text-red-700 text-sm mt-2">' + esc(APP.erreur) + '</p>' : '') +
                         '<div class="flex gap-2 mt-3">' +
-                            (APP.ordre.length ? '<button type="button" onclick="allerPrecedente()" aria-label="Question précédente" class="px-4 py-3 rounded-full text-sm text-slate-200 border border-white/20">←</button>' : '') +
-                            '<button type="button" onclick="validerSaisie()" class="flex-1 px-4 py-3 rounded-full text-sm font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">Valider</button>' +
-                            (!c.requis ? '<button type="button" onclick="repondre(\'passer\')" class="px-4 py-3 rounded-full text-sm text-slate-200 border border-white/20">Passer</button>' : '') +
+                            (APP.ordre.length ? '<button type="button" onclick="allerPrecedente()" aria-label="Question précédente" class="px-4 py-3 rounded-lg text-sm text-[#222222] border border-black/15">←</button>' : '') +
+                            '<button type="button" onclick="validerSaisie()" class="flex-1 px-4 py-3 rounded-lg text-sm font-semibold text-[#FFFFFF] bg-[#0B0B0B]">Valider</button>' +
+                            (!c.requis ? '<button type="button" onclick="repondre(\'passer\')" class="px-4 py-3 rounded-lg text-sm text-[#222222] border border-black/15">Passer</button>' : '') +
                         '</div>' +
                      '</div>';
             }
@@ -2708,20 +3018,20 @@
             } else if (APP.mode === 'fiche-edition') {
                 var cpt = stock('va_factures');
                 fin.innerHTML = '<div id="fin" class="mt-4 space-y-3">' + logoHtml() +
-                    (cpt && cpt.n > 0 ? '<button type="button" onclick="remettreFacturesAZero()" class="w-full px-4 py-2.5 rounded-lg border border-red-400/40 text-red-200 text-sm">Remettre les numéros de facture à zéro (dernière : ' + cpt.annee + '-' + ('000' + cpt.n).slice(-4) + ')</button>' : '') + (APP.erreur ? '<p class="text-red-300 text-sm mb-2">' + esc(APP.erreur) + '</p>' : '') +
-                    '<button type="button" onclick="enregistrerFicheModifiee()" class="w-full px-6 py-4 rounded-full font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">Enregistrer ma fiche</button></div>';
+                    (cpt && cpt.n > 0 ? '<button type="button" onclick="remettreFacturesAZero()" class="w-full px-4 py-2.5 rounded-lg border border-red-600/40 text-red-800 text-sm">Remettre les numéros de facture à zéro (dernière : ' + cpt.annee + '-' + ('000' + cpt.n).slice(-4) + ')</button>' : '') + (APP.erreur ? '<p class="text-red-700 text-sm mb-2">' + esc(APP.erreur) + '</p>' : '') +
+                    '<button type="button" onclick="enregistrerFicheModifiee()" class="w-full px-6 py-4 rounded-lg font-semibold text-[#FFFFFF] bg-[#0B0B0B]">Enregistrer ma fiche</button></div>';
             } else if (APP.mode === 'fiche-ok') {
                 var lien = lienPersonnel(APP.fiche);
-                fin.innerHTML = '<div id="fin" class="p-5 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 space-y-3">' +
-                    '<p class="text-emerald-300 font-semibold">C\'est enregistré sur ce téléphone.</p>' +
-                    '<p class="text-slate-300 text-sm">Gardez aussi votre <strong>lien personnel</strong> : il contient votre fiche. Ouvrez-le puis ajoutez-le à vos favoris, vous n\'aurez jamais à refaire la fiche.' + (APP.miseAJour ? ' <strong>Remplacez l\'ancien lien de vos favoris par celui-ci.</strong>' : '') + '</p>' +
+                fin.innerHTML = '<div id="fin" class="p-5 rounded-2xl border border-emerald-600/40 bg-emerald-500/10 space-y-3">' +
+                    '<p class="text-emerald-700 font-semibold">C\'est enregistré sur ce téléphone.</p>' +
+                    '<p class="text-[#4A4A4A] text-sm">Gardez aussi votre <strong>lien personnel</strong> : il contient votre fiche. Ouvrez-le puis ajoutez-le à vos favoris, vous n\'aurez jamais à refaire la fiche.' + (APP.miseAJour ? ' <strong>Remplacez l\'ancien lien de vos favoris par celui-ci.</strong>' : '') + '</p>' +
                     '<input id="lien-perso" readonly value="' + esc(lien) + '" class="' + CHAMP + ' text-xs">' +
-                    '<div class="flex gap-2"><button type="button" onclick="copierLien()" class="flex-1 px-4 py-3 rounded-full text-sm font-semibold text-emerald-200 border border-emerald-400/50">Copier le lien</button>' +
-                    '<a href="' + esc(lien) + '" target="_top" class="flex-1 text-center px-4 py-3 rounded-full text-sm font-semibold text-emerald-200 border border-emerald-400/50">Ouvrir le lien</a></div>' +
-                    '<p id="lien-msg" class="text-xs text-slate-400"></p>' + logoHtml() +
-                    (brouillonValable(stock('va_devis')) && stock('va_devis').rep.clientNom ? '<button type="button" onclick="reprendreDevis()" class="w-full px-6 py-4 rounded-full font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">Reprendre mon devis en cours (' + esc(stock('va_devis').rep.clientNom) + ')</button>' +
-                        '<button type="button" onclick="nouveauDevis()" class="w-full px-6 py-3 rounded-full font-semibold text-gold-400 border-2 border-gold-500/70">Faire un nouveau devis</button></div>'
-                    : '<button type="button" onclick="nouveauDevis()" class="w-full px-6 py-4 rounded-full font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">Faire mon premier devis</button></div>');
+                    '<div class="flex gap-2"><button type="button" onclick="copierLien()" class="flex-1 px-4 py-3 rounded-lg text-sm font-semibold text-emerald-800 border border-emerald-600/40">Copier le lien</button>' +
+                    '<a href="' + esc(lien) + '" target="_top" class="flex-1 text-center px-4 py-3 rounded-lg text-sm font-semibold text-emerald-800 border border-emerald-600/40">Ouvrir le lien</a></div>' +
+                    '<p id="lien-msg" class="text-xs text-[#555555]"></p>' + logoHtml() +
+                    (brouillonValable(stock('va_devis')) && stock('va_devis').rep.clientNom ? '<button type="button" onclick="reprendreDevis()" class="w-full px-6 py-4 rounded-lg font-semibold text-[#FFFFFF] bg-[#0B0B0B]">Reprendre mon devis en cours (' + esc(stock('va_devis').rep.clientNom) + ')</button>' +
+                        '<button type="button" onclick="nouveauDevis()" class="w-full px-6 py-3 rounded-lg font-semibold text-gold-400 border border-gold-500/60">Faire un nouveau devis</button></div>'
+                    : '<button type="button" onclick="nouveauDevis()" class="w-full px-6 py-4 rounded-lg font-semibold text-[#FFFFFF] bg-[#0B0B0B]">Faire mon premier devis</button></div>');
             } else if (APP.mode === 'recap') {
                 fin.innerHTML = '<div id="fin"></div>';
                 dessinerRecap();
@@ -2735,6 +3045,7 @@
         /* « Question 4 sur 22 » */
         function progression() {
             var c = APP.courante;
+            if (APP.mode === 'fiche-edition') return { texte: 'Modifier ma fiche', part: 1 };
             if (!c) return null;
             if (APP.mode === 'fiche') {
                 var tot = 0, faits = 0;
@@ -2777,10 +3088,11 @@
                 barre.classList.remove('hidden');
                 var gardees = APP.lignes; APP.lignes = construireLignes(); var md = manques(); APP.lignes = gardees;
                 var bd = document.getElementById('barre-pdf-bouton'), id = document.getElementById('barre-pdf-info');
-                bd.textContent = '📄 Créer le devis PDF'; bd.disabled = false; bd.className = bd.className.replace(' opacity-40', '') + (md.length ? ' opacity-40' : '');
+                bd.textContent = 'Créer le devis PDF'; bd.disabled = false; bd.className = bd.className.replace(' opacity-40', '') + (md.length ? ' opacity-40' : '');
                 id.textContent = md.length ? 'Pour le PDF, il manque : ' + md.join(', ') + '.' : 'L\'essentiel est rempli : vous pouvez créer le PDF maintenant.';
-                id.className = 'text-xs text-center mb-2 ' + (md.length ? 'text-red-300' : 'text-emerald-300');
+                id.className = 'text-xs text-center mb-2 ' + (md.length ? 'text-red-700' : 'text-emerald-700');
                 var bsd = document.getElementById('barre-pdf-signer'); if (bsd) bsd.classList.add('hidden');
+                var bfd = document.getElementById('barre-pdf-facture'); if (bfd) bfd.classList.add('hidden');
                 return;
             }
             if (APP.mode !== 'recap') { barre.classList.add('hidden'); return; }
@@ -2788,16 +3100,21 @@
             var m = manques(), b = document.getElementById('barre-pdf-bouton'), info = document.getElementById('barre-pdf-info');
             if (m.length) {
                 b.textContent = 'Créer le devis PDF'; b.disabled = true; b.className = b.className.replace(' opacity-40', '') + ' opacity-40';
-                info.textContent = 'Il manque : ' + m.join(', ') + '.'; info.className = 'text-xs text-center mb-2 text-red-300';
+                info.textContent = 'Il manque : ' + m.join(', ') + '.'; info.className = 'text-xs text-center mb-2 text-red-700';
             } else if (!APP.pdf) {
                 b.textContent = 'Créer le devis PDF'; b.disabled = false; b.className = b.className.replace(' opacity-40', '');
-                info.textContent = 'Tout est prêt.'; info.className = 'text-xs text-center mb-2 text-emerald-300';
+                info.textContent = 'Tout est prêt.'; info.className = 'text-xs text-center mb-2 text-emerald-700';
             } else {
                 b.textContent = 'Envoyer au client'; b.disabled = false; b.className = b.className.replace(' opacity-40', '');
-                info.textContent = 'Devis ' + APP.pdf.numero + ' prêt en PDF' + (APP.signature ? ' – signé ✓' : ' – pas encore signé') + '.'; info.className = 'text-xs text-center mb-2 text-emerald-300';
+                info.textContent = 'Devis ' + APP.pdf.numero + ' prêt en PDF' + (APP.signature ? ' – signé ✓' : ' – pas encore signé') + '.'; info.className = 'text-xs text-center mb-2 text-emerald-700';
             }
             var bs = document.getElementById('barre-pdf-signer');
-            if (bs) { bs.classList.toggle('hidden', !APP.pdf); bs.textContent = APP.signature ? '✍️ Re-signer' : '✍️ Faire signer'; }
+            if (bs) { bs.classList.toggle('hidden', !APP.pdf); bs.textContent = APP.signature ? 'Re-signer' : 'Signer'; }
+            /* la facture, toujours à portée de main une fois le devis en PDF */
+            var bf = document.getElementById('barre-pdf-facture');
+            if (bf) { bf.classList.toggle('hidden', !APP.pdf); bf.textContent = APP.facture ? 'Facture ✓' : 'Facture'; }
+            if (APP.pdf) { b.textContent = 'Envoyer'; b.className = b.className.replace('flex-[2]', 'flex-1'); }
+            else b.className = b.className.replace('flex-1', 'flex-[2]');
         }
         function actionBarrePdf() { if (APP.mode === 'devis') { creerPdfMaintenant(); return; } if (APP.pdf) partagerPdf(); else creerPdf(); }
         /* « Créer le devis PDF » pendant le devis : sans attendre les dernières questions */
@@ -2807,12 +3124,12 @@
             var m = manques();
             if (m.length) {
                 APP.lignes = null;
-                if (APP.sansFiche) { etat('Pour créer le PDF, remplissez d\'abord votre fiche (bouton « Remplir ma fiche »).', 'text-red-300'); window.scrollTo(0, 0); return; }
+                if (APP.sansFiche) { etat('Pour créer le PDF, remplissez d\'abord votre fiche (bouton « Remplir ma fiche »).', 'text-red-700'); window.scrollTo(0, 0); return; }
                 var r = APP.rep, cle = !r.clientNom ? 'clientNom' : (!r.clientAdresse ? 'clientAdresse' : null);
                 if (!cle) { for (var n = 0; ('f' + n + '_des') in r; n++) { if (r['f' + n + '_des'] && !propre(r['f' + n + '_pu'] || '')) { cle = 'f' + n + '_pu'; break; } } }
                 if (!cle && !('f0_des' in r)) cle = 'f0_des';
                 if (cle) { definirCible(cle); defilerVersCourante(); }
-                etat('Pour créer le PDF, il manque : ' + m.join(', ') + '.', 'text-red-300');
+                etat('Pour créer le PDF, il manque : ' + m.join(', ') + '.', 'text-red-700');
                 return;
             }
             arreterEcoute();
@@ -2833,59 +3150,60 @@
             var z = document.getElementById('fin');
             if (!z) return;
             var l = APP.lignes || [], c = calculerDevis(APP.fiche, devisPourPdf()), m = manques();
-            var h = '<div class="p-4 sm:p-5 rounded-2xl border-2 border-gold-500/60 bg-gold-500/5">' +
-                    '<p class="text-white text-lg font-semibold">Vérifiez le devis</p><p class="text-slate-400 text-xs mb-3">Touchez un texte ou un prix pour le corriger.</p><div class="space-y-2">';
+            var h = '<div class="p-4 sm:p-5 rounded-xl border border-black/10 bg-white">' +
+                    '<p class="text-[#0B0B0B] text-lg font-semibold">Vérifiez le devis</p><p class="text-[#555555] text-xs mb-3">Touchez un texte ou un prix pour le corriger.</p><div class="space-y-2">';
             for (var i = 0; i < l.length; i++) {
-                h += '<div class="p-3 rounded-xl bg-obsidian/60 border border-white/10">' +
-                        '<input value="' + esc(l[i].designation) + '" oninput="majLigne(' + i + ',\'designation\',this.value)" class="w-full bg-transparent text-white text-sm focus:outline-none border-b border-white/10 pb-1">' +
+                h += '<div class="p-3 rounded-xl bg-obsidian/60 border border-black/10">' +
+                        '<input value="' + esc(l[i].designation) + '" oninput="majLigne(' + i + ',\'designation\',this.value)" class="w-full bg-transparent text-[#0B0B0B] text-sm focus:outline-none border-b border-black/10 pb-1">' +
                         '<div class="grid grid-cols-12 gap-2 mt-2 items-center text-sm">' +
                             '<input value="' + esc(String(l[i].qte).replace('.', ',')) + '" inputmode="decimal" oninput="majLigne(' + i + ',\'qte\',this.value)" aria-label="Quantité" class="col-span-3 ' + CHAMP + ' !py-1.5">' +
-                            '<select onchange="majLigne(' + i + ',\'unite\',this.value)" aria-label="Unité" class="col-span-2 bg-obsidian/80 border border-white/15 rounded-lg text-slate-100 text-xs py-1.5">' + optionsUnite(l[i].unite) + '</select>' +
+                            '<select onchange="majLigne(' + i + ',\'unite\',this.value)" aria-label="Unité" class="col-span-2 bg-obsidian/80 border border-black/[0.12] rounded-lg text-[#0B0B0B] text-xs py-1.5">' + optionsUnite(l[i].unite) + '</select>' +
                             '<input value="' + esc(String(l[i].pu).replace('.', ',')) + '" inputmode="decimal" placeholder="Prix HT" oninput="majLigne(' + i + ',\'pu\',this.value)" aria-label="Prix HT" class="col-span-4 ' + CHAMP + ' !py-1.5">' +
-                            '<span id="tot-' + i + '" class="col-span-2 text-right text-slate-300 text-xs">' + euros(nombre(l[i].qte) * nombre(l[i].pu)) + '</span>' +
-                            '<button type="button" onclick="supprimerLigne(' + i + ')" aria-label="Supprimer" class="col-span-1 text-red-300 text-lg leading-none">×</button>' +
+                            '<span id="tot-' + i + '" class="col-span-2 text-right text-[#4A4A4A] text-xs">' + euros(nombre(l[i].qte) * nombre(l[i].pu)) + '</span>' +
+                            '<button type="button" onclick="supprimerLigne(' + i + ')" aria-label="Supprimer" class="col-span-1 text-red-700 text-lg leading-none">×</button>' +
                         '</div></div>';
             }
-            h += '</div><button type="button" onclick="ajouterLigne()" class="mt-2 w-full px-4 py-2.5 rounded-lg border border-white/15 text-slate-200 text-sm">+ Ajouter une ligne</button>';
-            h += '<div class="mt-3 grid grid-cols-2 gap-2 items-center text-sm"><label for="remise" class="text-slate-300">Remise (%)</label>' +
+            h += '</div><button type="button" onclick="ajouterLigne()" class="mt-2 w-full px-4 py-2.5 rounded-lg border border-black/[0.12] text-[#222222] text-sm">+ Ajouter une ligne</button>';
+            h += '<div class="mt-3 grid grid-cols-2 gap-2 items-center text-sm"><label for="remise" class="text-[#4A4A4A]">Remise (%)</label>' +
                  '<input id="remise" value="' + esc(String(APP.rep.remise || '').replace('.', ',')) + '" inputmode="decimal" placeholder="0" oninput="majRemise(this.value)" class="' + CHAMP + ' !py-1.5"></div>';
-            h += '<div class="mt-2 grid grid-cols-2 gap-2 items-center text-sm"><label for="majoration" class="text-slate-300">Majoration main-d\'œuvre (%)<br><span class="text-xs text-slate-400">soir, week-end, jour férié</span></label>' +
+            h += '<div class="mt-2 grid grid-cols-2 gap-2 items-center text-sm"><label for="majoration" class="text-[#4A4A4A]">Majoration main-d\'œuvre (%)<br><span class="text-xs text-[#555555]">soir, week-end, jour férié</span></label>' +
                  '<input id="majoration" value="' + esc(String(APP.rep.majoration || '').replace('.', ',')) + '" inputmode="decimal" placeholder="0" onchange="majMajoration(this.value)" class="' + CHAMP + ' !py-1.5"></div>';
-            h += '<label class="mt-3 flex items-start gap-3 p-3 rounded-xl border border-white/15 text-sm text-slate-200"><input type="checkbox" ' + (APP.rep.urgence === 'oui' ? 'checked ' : '') +
-                 'onchange="majUrgence(this.checked)" class="mt-1 w-5 h-5 accent-amber-400"><span>Dépannage urgent demandé par le client chez lui : pas de délai de rétractation pour les travaux strictement nécessaires.</span></label>';
-            if (alerteTva()) h += '<p class="mt-3 text-sm text-amber-300">⚠️ ' + esc(alerteTva()) + '</p>';
-            h += '<label class="mt-3 flex items-start gap-3 p-3 rounded-xl border border-white/15 text-sm text-slate-200"><input type="checkbox" ' + (APP.rep.pro === 'oui' ? 'checked ' : '') +
-                 'onchange="majPro(this.checked)" class="mt-1 w-5 h-5 accent-amber-400"><span>Client professionnel (entreprise, syndic, agence) : pas de droit de rétractation sur le devis.</span></label>';
-            h += '<div id="totaux" class="mt-4 p-4 rounded-xl bg-obsidian/70 border border-white/10 text-sm">' + totauxHtml(c) + '</div>';
+            h += '<label class="mt-3 flex items-start gap-3 p-3 rounded-xl border border-black/[0.12] text-sm text-[#222222]"><input type="checkbox" ' + (APP.rep.urgence === 'oui' ? 'checked ' : '') +
+                 'onchange="majUrgence(this.checked)" class="mt-1 w-5 h-5 accent-[#0B0B0B]"><span>Dépannage urgent demandé par le client chez lui : pas de délai de rétractation pour les travaux strictement nécessaires.</span></label>';
+            if (alerteTva()) h += '<p class="mt-3 text-sm text-amber-700">' + esc(alerteTva()) + '</p>';
+            h += '<label class="mt-3 flex items-start gap-3 p-3 rounded-xl border border-black/[0.12] text-sm text-[#222222]"><input type="checkbox" ' + (APP.rep.pro === 'oui' ? 'checked ' : '') +
+                 'onchange="majPro(this.checked)" class="mt-1 w-5 h-5 accent-[#0B0B0B]"><span>Client professionnel (entreprise, syndic, agence) : pas de droit de rétractation sur le devis.</span></label>';
+            h += '<div id="totaux" class="mt-4 p-4 rounded-xl bg-obsidian/70 border border-black/10 text-sm">' + totauxHtml(c) + '</div>';
             h += photosHtml();
-            h += '<p id="manque" class="mt-3 text-xs text-red-300">' + (m.length ? 'Pour créer le PDF, il manque : ' + esc(m.join(', ')) + '.' : '') + '</p>' +
-                 '<button type="button" id="creer" onclick="creerPdf()" ' + (m.length ? 'disabled ' : '') + 'class="mt-2 w-full px-6 py-4 rounded-full text-base font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600 ' + (m.length ? 'opacity-40 cursor-not-allowed' : '') + '">Créer le PDF</button>' +
+            h += '<p id="manque" class="mt-3 text-xs text-red-700">' + (m.length ? 'Pour créer le PDF, il manque : ' + esc(m.join(', ')) + '.' : '') + '</p>' +
+                 '<button type="button" id="creer" onclick="creerPdf()" ' + (m.length ? 'disabled ' : '') + 'class="mt-2 w-full px-6 py-4 rounded-lg text-base font-semibold text-[#FFFFFF] bg-[#0B0B0B] ' + (m.length ? 'opacity-40 cursor-not-allowed' : '') + '">Créer le PDF</button>' +
                  '<div id="resultat" class="' + (APP.pdf ? '' : 'hidden ') + 'mt-3 space-y-2">' +
-                    '<p class="text-emerald-300 text-sm">' + (APP.signature ? 'Devis signé par le client ✓' : 'Devis prêt en PDF. Relisez-le avant de l\'envoyer.') + '</p>' +
-                    '<button type="button" onclick="ouvrirSignature()" class="w-full px-6 py-4 rounded-full text-base font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">' + (APP.signature ? '✍️ Refaire la signature' : '✍️ Faire signer le client au doigt') + '</button>' +
-                    '<button type="button" onclick="partagerPdf()" class="w-full px-6 py-4 rounded-full text-base font-bold text-black bg-emerald-400">Envoyer au client (Mail, WhatsApp, SMS…)</button>' +
-                    '<button type="button" onclick="telechargerPdf()" class="w-full px-6 py-3 rounded-full text-sm font-semibold text-emerald-300 border border-emerald-400/50">Enregistrer le PDF</button>' +
-                    '<button type="button" onclick="ouvrirPdf()" class="w-full px-6 py-3 rounded-full text-sm text-slate-300 border border-white/15">Voir le PDF</button>' +
-                    (APP.demo ? '' : '<button type="button" onclick="enregistrerType()" class="w-full px-6 py-3 rounded-full text-sm text-gold-400 border border-gold-500/40">Garder comme devis type (pour le refaire en 1 mot)</button>' +
-                        '<button type="button" onclick="copierLigneDevis()" class="w-full px-6 py-3 rounded-full text-sm text-gold-400 border border-gold-500/40">Relancer ce devis s\'il n\'est pas signé (copier la ligne)</button>') +
-                    '<div class="pt-3 mt-2 border-t border-white/10 space-y-2"><p class="text-slate-300 text-xs font-semibold uppercase tracking-wider">Après le chantier</p>' +
-                    '<button type="button" onclick="ouvrirFacture()" class="w-full px-6 py-4 rounded-full text-base font-bold text-black bg-gradient-to-r from-gold-400 to-gold-600">🧾 ' + (APP.facture ? 'Facture n° ' + esc(APP.facture.numero) + ' : renvoyer' : 'Créer la facture') + '</button>' +
-                    '<button type="button" onclick="ouvrirBon()" class="w-full px-6 py-3 rounded-full text-sm font-semibold text-slate-100 border border-white/20">📋 Bon d\'intervention signé' + (APP.bon && APP.bon.signature ? ' ✓' : '') + '</button>' +
-                    '<button type="button" onclick="partagerMateriel()" class="w-full px-6 py-3 rounded-full text-sm font-semibold text-slate-100 border border-white/20">🛒 Liste du matériel à acheter</button></div>' +
+                    '<p class="text-emerald-700 text-sm">' + (APP.signature ? 'Devis signé par le client ✓' : 'Devis prêt en PDF. Relisez-le avant de l\'envoyer.') + '</p>' +
+                    '<button type="button" onclick="ouvrirSignature()" class="w-full px-6 py-4 rounded-lg text-base font-semibold text-[#FFFFFF] bg-[#0B0B0B]">' + (APP.signature ? 'Refaire la signature' : 'Faire signer le client au doigt') + '</button>' +
+                    '<button type="button" onclick="partagerPdf()" class="w-full px-6 py-4 rounded-lg text-base font-semibold text-[#0B0B0B] bg-white border border-[#0B0B0B]/25">Envoyer au client (Mail, WhatsApp, SMS…)</button>' +
+                    '<button type="button" onclick="telechargerPdf()" class="w-full px-6 py-3 rounded-lg text-sm font-semibold text-[#222222] border border-black/[0.12]">Enregistrer le PDF</button>' +
+                    '<button type="button" onclick="ouvrirPdf()" class="w-full px-6 py-3 rounded-lg text-sm text-[#4A4A4A] border border-black/[0.12]">Voir le PDF</button>' +
+                    (APP.demo ? '' : '<button type="button" onclick="enregistrerType()" class="w-full px-6 py-3 rounded-lg text-sm text-gold-400 border border-gold-500/40">Garder comme devis type (pour le refaire en 1 mot)</button>' +
+                        '<button type="button" onclick="copierLigneDevis()" class="w-full px-6 py-3 rounded-lg text-sm text-gold-400 border border-gold-500/40">Relancer ce devis s\'il n\'est pas signé (copier la ligne)</button>' +
+                        rappelRdvHtml()) +
+                    '<div class="pt-3 mt-2 border-t border-black/10 space-y-2"><p class="text-[#4A4A4A] text-xs font-semibold uppercase tracking-wider">Après le chantier</p>' +
+                    '<button type="button" onclick="ouvrirFacture()" class="w-full px-6 py-4 rounded-lg text-base font-semibold text-[#FFFFFF] bg-[#0B0B0B]">' + (APP.facture ? 'Facture n° ' + esc(APP.facture.numero) + ' : renvoyer' : 'Créer la facture') + '</button>' +
+                    '<button type="button" onclick="ouvrirBon()" class="w-full px-6 py-3 rounded-lg text-sm font-semibold text-[#0B0B0B] border border-black/15">Bon d\'intervention signé' + (APP.bon && APP.bon.signature ? ' ✓' : '') + '</button>' +
+                    '<button type="button" onclick="partagerMateriel()" class="w-full px-6 py-3 rounded-lg text-sm font-semibold text-[#0B0B0B] border border-black/15">Liste du matériel à acheter</button></div>' +
                  '</div>' +
-                 (APP.facture ? '' : '<button type="button" onclick="revenirAuDevis()" class="mt-4 w-full text-sm text-gold-400 underline">← Revenir au devis pour le compléter</button>') +
-                 '<button type="button" onclick="nouveauDevis()" class="mt-4 w-full text-sm text-slate-400 underline">Commencer un nouveau devis</button></div>';
+                 (APP.facture ? '' : '<button type="button" onclick="revenirAuDevis()" class="mt-4 w-full text-sm text-gold-400 underline underline-offset-4 decoration-[#C6F432] decoration-2">← Revenir au devis pour le compléter</button>') +
+                 '<button type="button" onclick="nouveauDevis()" class="mt-4 w-full text-sm text-[#555555] underline">Commencer un nouveau devis</button></div>';
             z.innerHTML = h;
         }
 
         function totauxHtml(c) {
-            return (c.majoration > 0 ? '<div class="flex justify-between text-slate-300 mb-1"><span>Majoration ' + String(c.majPct).replace('.', ',') + ' % main-d\'œuvre</span><span>' + euros(c.majoration) + '</span></div>' : '') +
-                   (c.remise > 0 ? '<div class="flex justify-between text-slate-300"><span>Total HT avant remise</span><span>' + euros(c.htBrut) + '</span></div>' +
-                                   '<div class="flex justify-between text-slate-300 mt-1"><span>Remise ' + String(c.remisePct).replace('.', ',') + ' %</span><span>' + euros(-c.remise) + '</span></div>' : '') +
-                   '<div class="flex justify-between text-slate-300' + (c.remise > 0 ? ' mt-1' : '') + '"><span>Total HT</span><span>' + euros(c.ht) + '</span></div>' +
-                   (c.franchise ? '<div class="text-slate-400 text-xs mt-1">TVA non applicable (art. 293 B du CGI)</div>'
-                                : '<div class="flex justify-between text-slate-300 mt-1"><span>TVA ' + String(c.taux).replace('.', ',') + ' %</span><span>' + euros(c.tva) + '</span></div>') +
-                   '<div class="flex justify-between text-white font-bold mt-2 pt-2 border-t border-white/10"><span>Total TTC</span><span>' + euros(c.ttc) + '</span></div>';
+            return (c.majoration > 0 ? '<div class="flex justify-between text-[#4A4A4A] mb-1"><span>Majoration ' + String(c.majPct).replace('.', ',') + ' % main-d\'œuvre</span><span>' + euros(c.majoration) + '</span></div>' : '') +
+                   (c.remise > 0 ? '<div class="flex justify-between text-[#4A4A4A]"><span>Total HT avant remise</span><span>' + euros(c.htBrut) + '</span></div>' +
+                                   '<div class="flex justify-between text-[#4A4A4A] mt-1"><span>Remise ' + String(c.remisePct).replace('.', ',') + ' %</span><span>' + euros(-c.remise) + '</span></div>' : '') +
+                   '<div class="flex justify-between text-[#4A4A4A]' + (c.remise > 0 ? ' mt-1' : '') + '"><span>Total HT</span><span>' + euros(c.ht) + '</span></div>' +
+                   (c.franchise ? '<div class="text-[#555555] text-xs mt-1">TVA non applicable (art. 293 B du CGI)</div>'
+                                : '<div class="flex justify-between text-[#4A4A4A] mt-1"><span>TVA ' + String(c.taux).replace('.', ',') + ' %</span><span>' + euros(c.tva) + '</span></div>') +
+                   '<div class="flex justify-between text-[#0B0B0B] font-bold mt-2 pt-2 border-t border-black/10"><span>Total TTC</span><span>' + euros(c.ttc) + '</span></div>';
         }
 
         function majLigne(i, champ, v) {
@@ -2997,7 +3315,7 @@
             if (t.heures && !('heures' in r)) { r.heures = String(t.heures); APP.ordre.push('heures'); }
             if (!r.objet && t.objet) r.objet = t.objet;
             APP.lignes = null;
-            etat('Devis type « ' + t.nom + ' » ajouté.', 'text-emerald-300');
+            etat('Devis type « ' + t.nom + ' » ajouté.', 'text-emerald-700');
             avancer(true);
         }
         function appliquerTypeNumero(i) { var t = typesDevis()[i]; if (t && APP.courante && APP.courante.cle === 'f0_des') { arreterEcoute(); appliquerType(t); } }
@@ -3015,7 +3333,7 @@
             t.push({ nom: majuscule(nom), objet: APP.rep.objet || majuscule(nom), lignes: four, heures: heures });
             stock('va_types', t.slice(-30));
             var m = document.getElementById('manque');
-            if (m) { m.className = 'mt-3 text-xs text-emerald-300'; m.textContent = 'Devis type « ' + majuscule(nom) + ' » gardé : la prochaine fois, dites son nom à la première fourniture.'; }
+            if (m) { m.className = 'mt-3 text-xs text-emerald-700'; m.textContent = 'Devis type « ' + majuscule(nom) + ' » gardé : la prochaine fois, dites son nom à la première fourniture.'; }
         }
 
         var UNITES = ['u', 'h', 'm', 'ml', 'm²', 'forfait', 'lot', 'kg', 'l', 'jour'];
@@ -3062,9 +3380,9 @@
             lecteur.readAsDataURL(fichier);
         }
         function photosHtml() {
-            var ph = APP.photos || [], h = '<div class="mt-4 p-3 rounded-xl border border-white/15"><p class="text-sm text-slate-200">Photos du chantier (facultatif, ajoutées à la fin du PDF)</p><div class="flex flex-wrap gap-2 mt-2">';
-            for (var i = 0; i < ph.length; i++) h += '<div class="relative"><img src="' + ph[i] + '" alt="Photo ' + (i + 1) + '" class="w-20 h-20 object-cover rounded-lg"><button type="button" onclick="supprimerPhoto(' + i + ')" aria-label="Retirer la photo" class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white text-sm leading-none">×</button></div>';
-            h += '</div>' + (ph.length < 6 ? '<label class="mt-2 block w-full text-center px-4 py-2.5 rounded-lg border border-white/15 text-slate-200 text-sm cursor-pointer">📷 Ajouter des photos<input type="file" accept="image/*" multiple class="hidden" onchange="ajouterPhotos(this)"></label>' : '') + '</div>';
+            var ph = APP.photos || [], h = '<div class="mt-4 p-3 rounded-xl border border-black/[0.12]"><p class="text-sm text-[#222222]">Photos du chantier (facultatif, ajoutées à la fin du PDF)</p><div class="flex flex-wrap gap-2 mt-2">';
+            for (var i = 0; i < ph.length; i++) h += '<div class="relative"><img src="' + ph[i] + '" alt="Photo ' + (i + 1) + '" class="w-20 h-20 object-cover rounded-lg"><button type="button" onclick="supprimerPhoto(' + i + ')" aria-label="Retirer la photo" class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-[#0B0B0B] text-sm leading-none">×</button></div>';
+            h += '</div>' + (ph.length < 6 ? '<label class="mt-2 block w-full text-center px-4 py-2.5 rounded-lg border border-black/[0.12] text-[#222222] text-sm cursor-pointer">Ajouter des photos<input type="file" accept="image/*" multiple class="hidden" onchange="ajouterPhotos(this)"></label>' : '') + '</div>';
             return h;
         }
         function ajouterPhotos(input) {
@@ -3075,11 +3393,11 @@
         function supprimerPhoto(i) { APP.photos.splice(i, 1); rafraichirRecap(); }
         function logoHtml() {
             var lg = stock('va_logo');
-            return '<div class="p-3 rounded-xl border border-white/15 text-sm text-slate-200"><p>Votre logo sur les devis (facultatif, gardé sur ce téléphone)</p>' +
+            return '<div class="p-3 rounded-xl border border-black/[0.12] text-sm text-[#222222]"><p>Votre logo sur les devis (facultatif, gardé sur ce téléphone)</p>' +
                 (lg ? '<img src="' + lg + '" alt="Logo" class="mt-2 max-h-16 bg-white rounded p-1">' : '') +
-                '<div class="flex gap-2 mt-2"><label class="flex-1 text-center px-4 py-2.5 rounded-lg border border-white/15 cursor-pointer">' + (lg ? 'Changer' : 'Ajouter mon logo') +
+                '<div class="flex gap-2 mt-2"><label class="flex-1 text-center px-4 py-2.5 rounded-lg border border-black/[0.12] cursor-pointer">' + (lg ? 'Changer' : 'Ajouter mon logo') +
                 '<input type="file" accept="image/*" class="hidden" onchange="choisirLogo(this)"></label>' +
-                (lg ? '<button type="button" onclick="stock(\'va_logo\', null); dessiner()" class="px-4 py-2.5 rounded-lg border border-white/15">Retirer</button>' : '') + '</div></div>';
+                (lg ? '<button type="button" onclick="stock(\'va_logo\', null); dessiner()" class="px-4 py-2.5 rounded-lg border border-black/[0.12]">Retirer</button>' : '') + '</div></div>';
         }
         function choisirLogo(input) {
             var f = input.files && input.files[0];
@@ -3110,16 +3428,17 @@
         function fermerHistorique() { APP.mode = APP.modeAvant && APP.modeAvant !== 'historique' ? APP.modeAvant : 'devis'; avancer(false); window.scrollTo(0, 0); }
         function historiqueHtml() {
             var h = historique();
-            var t = '<div id="fin" class="space-y-3"><button type="button" onclick="fermerHistorique()" class="text-sm text-gold-400 underline">← Retour</button>';
-            if (!h.length) t += '<p class="text-slate-300 text-sm">Aucun devis pour l\'instant. Chaque devis PDF créé apparaîtra ici.</p>';
+            var t = '<div id="fin" class="space-y-3"><button type="button" onclick="fermerHistorique()" class="text-sm text-gold-400 underline underline-offset-4 decoration-[#C6F432] decoration-2">← Retour</button>';
+            if (!h.length) t += '<p class="text-[#4A4A4A] text-sm">Aucun devis pour l\'instant. Chaque devis PDF créé apparaîtra ici.</p>';
             for (var i = 0; i < h.length; i++) {
                 var x = h[i];
-                t += '<div class="p-4 rounded-xl bg-obsidian/60 border border-white/10">' +
-                    '<div class="flex justify-between gap-2"><p class="text-white font-semibold">' + esc(x.client || 'Client') + '</p><p class="text-white">' + euros(x.ttc || 0) + '</p></div>' +
-                    '<p class="text-slate-300 text-xs mt-1">' + esc(x.numero) + ' · ' + (x.date ? dateFr(new Date(x.date)) : '') + (x.signe ? ' · <span class="text-emerald-300">signé ✓</span>' : ' · pas signé') +
-                    (x.facture ? ' · <span class="text-emerald-300">facturé ✓</span>' : '') + '</p>' +
-                    '<div class="flex gap-2 mt-3"><button type="button" onclick="ouvrirDevis(\'' + x.id + '\')" class="flex-1 px-3 py-2.5 rounded-full text-sm font-semibold text-black bg-gradient-to-r from-gold-400 to-gold-600">Ouvrir</button>' +
-                    '<button type="button" onclick="dupliquerDevis(\'' + x.id + '\')" class="flex-1 px-3 py-2.5 rounded-full text-sm text-slate-200 border border-white/20">Dupliquer</button></div></div>';
+                t += '<div class="p-4 rounded-xl bg-obsidian/60 border border-black/10">' +
+                    '<div class="flex justify-between gap-2"><p class="text-[#0B0B0B] font-semibold">' + esc(x.client || 'Client') + '</p><p class="text-[#0B0B0B]">' + euros(x.ttc || 0) + '</p></div>' +
+                    '<p class="text-[#4A4A4A] text-xs mt-1">' + esc(x.numero) + ' · ' + (x.date ? dateFr(new Date(x.date)) : '') + (x.signe ? ' · <span class="text-emerald-700">signé ✓</span>' : ' · pas signé') +
+                    (x.facture ? ' · <span class="text-emerald-700">facturé ✓</span>' : '') + '</p>' +
+                    '<div class="flex gap-2 mt-3"><button type="button" onclick="ouvrirDevis(\'' + x.id + '\')" class="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#FFFFFF] bg-[#0B0B0B]">Ouvrir</button>' +
+                    '<button type="button" onclick="facturerDevis(\'' + x.id + '\')" class="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold text-gold-400 border border-gold-500/60">' + (x.facture ? 'Facture ✓' : 'Facturer') + '</button>' +
+                    '<button type="button" onclick="dupliquerDevis(\'' + x.id + '\')" class="flex-1 px-3 py-2.5 rounded-lg text-sm text-[#222222] border border-black/15">Dupliquer</button></div></div>';
             }
             return t + '</div>';
         }
@@ -3132,6 +3451,7 @@
             if (!APP.facture && !APP.signature) corrigerLignesAuto(APP.lignes);
             dessiner(); creerPdf(); window.scrollTo(0, 0);
         }
+        function facturerDevis(id) { ouvrirDevis(id); if (APP.mode === 'recap') ouvrirFacture(); }
         function dupliquerDevis(id) {
             var x = trouverHistorique(id);
             if (!x) return;
@@ -3219,32 +3539,82 @@
             var ligne = [APP.numero || '', APP.rep.clientNom || '', emailClient(), String(c.ttc.toFixed(2)).replace('.', ','), dateFr(new Date())].join('\t');
             copierTexte(ligne, function (ok) {
                 var m = document.getElementById('manque');
-                if (m) { m.className = 'mt-3 text-xs text-emerald-300'; m.textContent = ok ? 'Ligne copiée. Dans la feuille « Relance des impayés », onglet Devis : touchez la première case vide de la colonne A, puis Coller. Le client sera relancé à 3 et 7 jours tant que « Signé ? » n\'est pas coché.' + (emailClient() ? '' : ' Ajoutez son e-mail dans la colonne C.') : 'Copie impossible : recopiez le numéro, le client et le montant dans l\'onglet Devis.'; }
+                if (m) { m.className = 'mt-3 text-xs text-emerald-700'; m.textContent = ok ? 'Ligne copiée. Dans la feuille « Relance des impayés », onglet Devis : touchez la première case vide de la colonne A, puis Coller. Le client sera relancé à 3 et 7 jours tant que « Signé ? » n\'est pas coché.' + (emailClient() ? '' : ' Ajoutez son e-mail dans la colonne C.') : 'Copie impossible : recopiez le numéro, le client et le montant dans l\'onglet Devis.'; }
             });
         }
+        /* --- Rappels clients (feuille, onglets Rendez-vous et Entretiens) : la ligne est prête, il n'y a qu'à la coller --- */
+        function isoJour(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+        function dateDuDebut() {
+            var t = bas(propre(String(APP.rep.debut || ''))), m = /(\d{1,2}|1er) (janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre) (\d{4})/.exec(t);
+            if (!m) return '';
+            var d = new Date(parseInt(m[3], 10), MOIS.map(bas).indexOf(m[2]), m[1] === '1er' ? 1 : parseInt(m[1], 10));
+            return isNaN(d.getTime()) ? '' : isoJour(d);
+        }
+        function jourFr(iso) { var p = String(iso || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : ''; }
+        var APPAREILS = [[/pompe a chaleur|\bpac\b/, 'pompe à chaleur'], [/chaudiere/, 'chaudière'], [/chauffe.?eau|cumulus|ballon/, 'chauffe-eau'], [/climatis|\bclim\b/, 'climatisation'],
+            [/adoucisseur/, 'adoucisseur'], [/poele/, 'poêle'], [/\bvmc\b/, 'VMC'], [/radiateur/, 'chauffage']];
+        function appareilDuDevis() {
+            var t = bas(sansAccents((APP.lignes || []).map(function (l) { return l.designation || ''; }).join(' ') + ' ' + (APP.rep.objet || '')));
+            for (var i = 0; i < APPAREILS.length; i++) if (APPAREILS[i][0].test(t)) return APPAREILS[i][1];
+            return '';
+        }
+        function adresseChantier() { return APP.rep.chantier || APP.rep.clientAdresse || ''; }
+        function rappelRdvHtml() {
+            return '<div class="p-3 rounded-lg border border-black/10 space-y-2"><p class="text-sm font-semibold text-[#0B0B0B]">Rappel au client la veille du rendez-vous</p>' +
+                '<div class="grid grid-cols-2 gap-2"><label class="block text-xs text-[#4A4A4A]">Date<input id="rdv-date" type="date" value="' + dateDuDebut() + '" class="' + CHAMP + ' mt-1"></label>' +
+                '<label class="block text-xs text-[#4A4A4A]">Heure<input id="rdv-heure" type="time" class="' + CHAMP + ' mt-1"></label></div>' +
+                '<button type="button" onclick="copierLigneRendezVous()" class="w-full px-6 py-3 rounded-lg text-sm text-gold-400 border border-gold-500/40">Copier la ligne pour la feuille</button>' +
+                '<p id="rdv-msg" class="text-xs text-[#4A4A4A]"></p></div>';
+        }
+        function copierLigneRendezVous() {
+            var d = document.getElementById('rdv-date').value, h = document.getElementById('rdv-heure').value, m = document.getElementById('rdv-msg');
+            if (!d) { m.className = 'text-xs text-red-700'; m.textContent = 'Choisissez la date du rendez-vous.'; return; }
+            var ligne = [APP.rep.clientNom || '', emailClient(), jourFr(d), h || '', adresseChantier()].join('\t');
+            copierTexte(ligne, function (ok) {
+                m.className = 'text-xs ' + (ok ? 'text-emerald-700' : 'text-red-700');
+                m.textContent = ok ? 'Ligne copiée. Dans la feuille « Relance des impayés », onglet Rendez-vous : touchez la première case vide de la colonne A, puis Coller. Le client recevra un e-mail la veille.' + (emailClient() ? '' : ' Ajoutez l\'e-mail du client dans la colonne B, sinon le rappel ne part pas.') : 'Copie impossible sur ce téléphone : recopiez le client, son e-mail, la date et l\'adresse dans l\'onglet Rendez-vous.';
+            });
+        }
+        function rappelEntretienHtml() {
+            return '<div class="p-3 rounded-lg border border-black/10 space-y-2"><p class="text-sm font-semibold text-[#0B0B0B]">Rappel d\'entretien dans un an</p>' +
+                '<label class="block text-xs text-[#4A4A4A]">Appareil<input id="ent-appareil" value="' + esc(appareilDuDevis()) + '" placeholder="Ex. : chaudière, chauffe-eau" class="' + CHAMP + ' mt-1"></label>' +
+                '<button type="button" onclick="copierLigneEntretien()" class="w-full px-6 py-3 rounded-lg text-sm text-gold-400 border border-gold-500/40">Copier la ligne pour la feuille</button>' +
+                '<p id="ent-msg" class="text-xs text-[#4A4A4A]"></p></div>';
+        }
+        function copierLigneEntretien() {
+            var f = APP.facture, a = document.getElementById('ent-appareil').value.trim(), m = document.getElementById('ent-msg');
+            if (!a) { m.className = 'text-xs text-red-700'; m.textContent = 'Dites quel appareil est à entretenir (ex. : chaudière).'; return; }
+            var ligne = [APP.rep.clientNom || '', emailClient(), a, dateFr(new Date(f.dateTravaux))].join('\t');
+            copierTexte(ligne, function (ok) {
+                m.className = 'text-xs ' + (ok ? 'text-emerald-700' : 'text-red-700');
+                m.textContent = ok ? 'Ligne copiée. Dans la feuille « Relance des impayés », onglet Entretiens : touchez la première case vide de la colonne A, puis Coller. Le client sera prévenu un mois avant la date anniversaire.' + (emailClient() ? '' : ' Ajoutez l\'e-mail du client dans la colonne B, sinon le rappel ne part pas.') : 'Copie impossible sur ce téléphone : recopiez le client, son e-mail, l\'appareil et la date dans l\'onglet Entretiens.';
+            });
+        }
+
         function factureHtml() {
-            var c = calculerDevis(APP.fiche, devisPourPdf()), B = 'w-full px-6 py-4 rounded-full text-base font-bold ', b = 'w-full px-6 py-3 rounded-full text-sm ';
-            var h = '<div id="fin" class="p-4 rounded-2xl border-2 border-gold-500/60 bg-gold-500/5 space-y-3">';
+            var c = calculerDevis(APP.fiche, devisPourPdf()), B = 'w-full px-6 py-4 rounded-lg text-base font-bold ', b = 'w-full px-6 py-3 rounded-lg text-sm ';
+            var h = '<div id="fin" class="p-4 rounded-xl border border-black/10 bg-white space-y-3">';
             if (APP.facture) {
                 var f = APP.facture;
-                h += '<p class="text-emerald-300 font-semibold">Facture n° ' + esc(f.numero) + ' créée ✓</p><p class="text-slate-200 text-sm">Net à payer : <strong>' + euros(f.net) + '</strong>, ' + esc(f.echeanceTexte) + '.</p>' +
-                     '<button type="button" onclick="envoyerFacture()" class="' + B + 'text-black bg-emerald-400">Envoyer la facture au client</button>' +
-                     '<button type="button" onclick="APP.pdfFacture.doc.save(nomFacture() + \'.pdf\')" class="' + b + 'font-semibold text-emerald-300 border border-emerald-400/50">Enregistrer le PDF</button>' +
-                     '<button type="button" onclick="window.open(APP.pdfFacture.doc.output(\'bloburl\'), \'_blank\')" class="' + b + 'text-slate-200 border border-white/20">Voir la facture</button>' +
+                h += '<p class="text-emerald-700 font-semibold">Facture n° ' + esc(f.numero) + ' créée ✓</p><p class="text-[#222222] text-sm">Net à payer : <strong>' + euros(f.net) + '</strong>, ' + esc(f.echeanceTexte) + '.</p>' +
+                     '<button type="button" onclick="envoyerFacture()" class="' + B + 'text-[#0B0B0B] bg-white border border-[#0B0B0B]/25">Envoyer la facture au client</button>' +
+                     '<button type="button" onclick="APP.pdfFacture.doc.save(nomFacture() + \'.pdf\')" class="' + b + 'font-semibold text-[#222222] border border-black/[0.12]">Enregistrer le PDF</button>' +
+                     '<button type="button" onclick="window.open(APP.pdfFacture.doc.output(\'bloburl\'), \'_blank\')" class="' + b + 'text-[#222222] border border-black/15">Voir la facture</button>' +
                      (APP.demo ? '' : '<button type="button" onclick="copierLigneRelance()" class="' + b + 'font-semibold text-gold-400 border border-gold-500/50">Ajouter à la relance des impayés (copier la ligne)</button>') +
-                     '<p id="fac-msg" class="text-xs text-slate-300"></p>' +
-                     '<p class="text-xs text-slate-400">Une facture ne se modifie plus. En cas d\'erreur, appelez-moi pour faire un avoir.</p>';
+                     '<p id="fac-msg" class="text-xs text-[#4A4A4A]"></p>' +
+                     (APP.demo ? '' : rappelEntretienHtml()) +
+                     '<p class="text-xs text-[#555555]">Une facture ne se modifie plus. En cas d\'erreur, appelez-moi pour faire un avoir.</p>';
             } else {
                 var auj = new Date(), iso = auj.getFullYear() + '-' + ('0' + (auj.getMonth() + 1)).slice(-2) + '-' + ('0' + auj.getDate()).slice(-2);
-                h += '<p class="text-white text-lg font-semibold">Créer la facture</p><p class="text-slate-300 text-sm">À partir du devis ' + esc(APP.numero || '') + ' : ' + euros(c.ttc) + ' TTC.</p>' +
-                     '<label class="block text-sm text-slate-200">Date de fin des travaux<input id="fac-date" type="date" value="' + iso + '" class="' + CHAMP + ' mt-1"></label>' +
-                     '<label class="block text-sm text-slate-200">Acompte déjà reçu (€)<input id="fac-acompte" inputmode="decimal" placeholder="0" class="' + CHAMP + ' mt-1"></label>' +
-                     (nombre(APP.fiche.acompte) > 0 ? '<button type="button" onclick="document.getElementById(\'fac-acompte\').value=\'' + String(c.acompte).replace('.', ',') + '\'" class="text-xs text-gold-400 underline">L\'acompte prévu (' + euros(c.acompte) + ') a été payé</button>' : '') +
-                     '<label class="block text-sm text-slate-200">Paiement<select id="fac-delai" class="' + CHAMP + ' mt-1"><option value="0">À réception de la facture</option><option value="30">Sous 30 jours</option></select></label>' +
-                     '<p class="text-xs text-slate-300">Vérifiez le devis avant : une facture reçoit un numéro définitif et ne se modifie plus.</p>' +
-                     '<button type="button" onclick="creerFacture()" class="' + B + 'text-black bg-gradient-to-r from-gold-400 to-gold-600">Créer la facture</button>';
+                h += '<p class="text-[#0B0B0B] text-lg font-semibold">Créer la facture</p><p class="text-[#4A4A4A] text-sm">À partir du devis ' + esc(APP.numero || '') + ' : ' + euros(c.ttc) + ' TTC.</p>' +
+                     '<label class="block text-sm text-[#222222]">Date de fin des travaux<input id="fac-date" type="date" value="' + iso + '" class="' + CHAMP + ' mt-1"></label>' +
+                     '<label class="block text-sm text-[#222222]">Acompte déjà reçu (€)<input id="fac-acompte" inputmode="decimal" placeholder="0" class="' + CHAMP + ' mt-1"></label>' +
+                     (nombre(APP.fiche.acompte) > 0 ? '<button type="button" onclick="document.getElementById(\'fac-acompte\').value=\'' + String(c.acompte).replace('.', ',') + '\'" class="text-xs text-gold-400 underline underline-offset-4 decoration-[#C6F432] decoration-2">L\'acompte prévu (' + euros(c.acompte) + ') a été payé</button>' : '') +
+                     '<label class="block text-sm text-[#222222]">Paiement<select id="fac-delai" class="' + CHAMP + ' mt-1"><option value="0">À réception de la facture</option><option value="30">Sous 30 jours</option></select></label>' +
+                     '<p class="text-xs text-[#4A4A4A]">Vérifiez le devis avant : une facture reçoit un numéro définitif et ne se modifie plus.</p>' +
+                     '<button type="button" onclick="creerFacture()" class="' + B + 'text-[#FFFFFF] bg-[#0B0B0B]">Créer la facture</button>';
             }
-            return h + '<button type="button" onclick="retourRecap()" class="w-full text-sm text-slate-300 underline">← Retour au devis</button></div>';
+            return h + '<button type="button" onclick="retourRecap()" class="w-full text-sm text-[#4A4A4A] underline">← Retour au devis</button></div>';
         }
 
         /* --- Bon d'intervention : le client signe que les travaux sont faits --- */
@@ -3267,19 +3637,19 @@
         function envoyerBon() { partagerFichier(APP.pdfBon, nomBon(), 'Bonjour' + (APP.rep.clientNom ? ' ' + APP.rep.clientNom : '') + ",\n\nVoici le bon d'intervention signé.\n\n" + signatureFin(APP.fiche)); }
         function nomBon() { return (APP.demo ? 'EXEMPLE_' : '') + 'Bon_intervention_' + APP.bon.numero; }
         function bonHtml() {
-            var b = APP.bon, B = 'w-full px-6 py-4 rounded-full text-base font-bold ', s = 'w-full px-6 py-3 rounded-full text-sm ';
-            var h = '<div id="fin" class="p-4 rounded-2xl border-2 border-gold-500/60 bg-gold-500/5 space-y-3">' +
-                '<label class="block text-sm text-slate-200">Heure d\'arrivée<input type="time" value="' + esc(b.arrivee) + '" onchange="majBon(\'arrivee\', this.value)" class="' + CHAMP + ' mt-1"></label>' +
-                '<label class="block text-sm text-slate-200">Heure de départ<input type="time" value="' + esc(b.depart) + '" onchange="majBon(\'depart\', this.value)" class="' + CHAMP + ' mt-1"></label>' +
-                '<label class="block text-sm text-slate-200">Observations (facultatif : touchez la case puis le micro du clavier)<textarea rows="3" onchange="majBon(\'observations\', this.value)" class="' + CHAMP + ' mt-1">' + esc(b.observations) + '</textarea></label>' +
-                '<p class="text-xs text-slate-300">Les travaux du devis et ' + ((APP.photos || []).length ? 'les ' + APP.photos.length + ' photo(s)' : 'les photos (ajoutez-les dans le devis)') + ' sont repris.</p>';
+            var b = APP.bon, B = 'w-full px-6 py-4 rounded-lg text-base font-bold ', s = 'w-full px-6 py-3 rounded-lg text-sm ';
+            var h = '<div id="fin" class="p-4 rounded-xl border border-black/10 bg-white space-y-3">' +
+                '<label class="block text-sm text-[#222222]">Heure d\'arrivée<input type="time" value="' + esc(b.arrivee) + '" onchange="majBon(\'arrivee\', this.value)" class="' + CHAMP + ' mt-1"></label>' +
+                '<label class="block text-sm text-[#222222]">Heure de départ<input type="time" value="' + esc(b.depart) + '" onchange="majBon(\'depart\', this.value)" class="' + CHAMP + ' mt-1"></label>' +
+                '<label class="block text-sm text-[#222222]">Observations (facultatif : touchez la case puis le micro du clavier)<textarea rows="3" onchange="majBon(\'observations\', this.value)" class="' + CHAMP + ' mt-1">' + esc(b.observations) + '</textarea></label>' +
+                '<p class="text-xs text-[#4A4A4A]">Les travaux du devis et ' + ((APP.photos || []).length ? 'les ' + APP.photos.length + ' photo(s)' : 'les photos (ajoutez-les dans le devis)') + ' sont repris.</p>';
             if (b.signature && APP.pdfBon) {
-                h += '<p class="text-emerald-300 font-semibold">Bon signé par le client ✓</p>' +
-                     '<button type="button" onclick="envoyerBon()" class="' + B + 'text-black bg-emerald-400">Envoyer le bon signé</button>' +
-                     '<button type="button" onclick="APP.pdfBon.doc.save(nomBon() + \'.pdf\')" class="' + s + 'font-semibold text-emerald-300 border border-emerald-400/50">Enregistrer le PDF</button>' +
-                     '<button type="button" onclick="ouvrirSignature(\'bon\')" class="' + s + 'text-slate-200 border border-white/20">Refaire la signature</button>';
-            } else h += '<button type="button" onclick="ouvrirSignature(\'bon\')" class="' + B + 'text-black bg-gradient-to-r from-gold-400 to-gold-600">✍️ Faire signer le client</button>';
-            return h + '<button type="button" onclick="retourRecap()" class="w-full text-sm text-slate-300 underline">← Retour au devis</button></div>';
+                h += '<p class="text-emerald-700 font-semibold">Bon signé par le client ✓</p>' +
+                     '<button type="button" onclick="envoyerBon()" class="' + B + 'text-[#0B0B0B] bg-white border border-[#0B0B0B]/25">Envoyer le bon signé</button>' +
+                     '<button type="button" onclick="APP.pdfBon.doc.save(nomBon() + \'.pdf\')" class="' + s + 'font-semibold text-[#222222] border border-black/[0.12]">Enregistrer le PDF</button>' +
+                     '<button type="button" onclick="ouvrirSignature(\'bon\')" class="' + s + 'text-[#222222] border border-black/15">Refaire la signature</button>';
+            } else h += '<button type="button" onclick="ouvrirSignature(\'bon\')" class="' + B + 'text-[#FFFFFF] bg-[#0B0B0B]">Faire signer le client</button>';
+            return h + '<button type="button" onclick="retourRecap()" class="w-full text-sm text-[#4A4A4A] underline">← Retour au devis</button></div>';
         }
 
         /* --- Liste du matériel à acheter --- */
@@ -3289,7 +3659,7 @@
             var t = 'Matériel – ' + (APP.rep.clientNom || 'chantier') + (lieu ? ' (' + lieu + ')' : '') + ' :\n' +
                     l.map(function (x) { return '- ' + String(x.qte).replace('.', ',') + (x.unite === 'u' ? ' × ' : ' ' + x.unite + ' ') + x.designation; }).join('\n');
             try { if (navigator.share) { navigator.share({ title: 'Liste du matériel', text: t }).catch(function () {}); return; } } catch (e) {}
-            copierTexte(t, function (ok) { var m = document.getElementById('manque'); if (m) { m.className = 'mt-3 text-xs text-emerald-300'; m.textContent = ok ? 'Liste du matériel copiée.' : t; } });
+            copierTexte(t, function (ok) { var m = document.getElementById('manque'); if (m) { m.className = 'mt-3 text-xs text-emerald-700'; m.textContent = ok ? 'Liste du matériel copiée.' : t; } });
         }
 
         /* ===================== SIGNATURE AU DOIGT ===================== */
