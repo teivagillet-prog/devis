@@ -4,6 +4,11 @@
     <base target="_top">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Devis">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#FFFFFF">
     <title>Devis à la voix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -62,10 +67,12 @@
 
         <div id="bandeau-demo" class="mt-4"></div>
         <div id="aide-navigateur" class="mt-4"></div>
+        <div id="liaison" class="mt-4"></div>
         <div id="cartes" class="mt-4 space-y-3"></div>
         <div id="fin-zone" class="mt-4"></div>
 
-        <p class="mt-10 text-center text-xs text-[#555555]">Vos informations restent sur votre téléphone. · v26</p>
+        <p id="pied-feuille" class="mt-10 text-center text-xs text-[#555555]"></p>
+        <p class="mt-2 text-center text-xs text-[#555555]">Vos informations restent sur votre téléphone. · v27</p>
     </main>
     <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-black/[0.08] px-4 pt-3 pb-5">
         <div class="max-w-xl mx-auto">
@@ -1389,7 +1396,13 @@
         }
         function lienPersonnel(f) {
             var base = config('url') || (location.href.split('#')[0].split('?')[0]);
-            return base + '?f=' + encoderFiche(f);
+            var l = liaison();
+            return base + '?f=' + encoderFiche(f) + (l ? '&feuille=' + encodeURIComponent(l.url) + '&cle=' + encodeURIComponent(l.cle) : '');
+        }
+        /* l'adresse de la page devient le lien personnel : un favori ou l'icône de l'écran d'accueil garde tout */
+        function adresseAJour() {
+            if (APP.demo || !ficheValide(APP.fiche) || APP.fiche.demo || config('url')) return;
+            try { history.replaceState(null, '', lienPersonnel(APP.fiche).replace(/^[^?]*/, location.pathname)); } catch (e) {}
         }
 
         /* ===================== ESSAI AVEC UN EXEMPLE (rien à remplir) ===================== */
@@ -1429,7 +1442,7 @@
             var deLien = decoderFiche(config('fiche') || (new URLSearchParams(location.search)).get('f') || '');
             var stocke = stock('va_fiche');
             /* ancien lien en favori mais fiche déjà complétée sur ce téléphone : on garde la fiche complète */
-            if (deLien && ficheValide(stocke) && stocke.siret === deLien.siret && clesManquantes(deLien).length && !clesManquantes(stocke).length) deLien = stocke;
+            if (deLien && ficheValide(stocke) && stocke.siret === deLien.siret && !(clesManquantes(stocke).length && !clesManquantes(deLien).length)) deLien = stocke;
             APP.fiche = deLien || stocke;
             /* « Plomberie Martin. », « Chèque. » : le point ajouté par la dictée est retiré */
             if (APP.fiche && typeof APP.fiche === 'object') { APP.fiche = sansPointFinal(APP.fiche); if (stocke) stock('va_fiche', APP.fiche); }
@@ -1449,8 +1462,12 @@
                 APP.fiche = ficheProvisoire(); APP.sansFiche = true;
                 if (!chargerBrouillon(stock('va_devis'))) nouveauDevis(true);
             }
+            lireLiaisonDuLien();
             avancer(false);
             afficherAideNavigateur();
+            adresseAJour();
+            conseilEcranAccueil();
+            dessinerPied();
         }
         function ficheProvisoire() {
             return { provisoire: true, nom: '', forme: '', adresse: '', tel: '', email: '', siret: '', regime: 'assujetti', tauxDefaut: '10', tauxHoraire: '0',
@@ -3022,13 +3039,14 @@
                     '<button type="button" onclick="enregistrerFicheModifiee()" class="w-full px-6 py-4 rounded-lg font-semibold text-[#FFFFFF] bg-[#0B0B0B]">Enregistrer ma fiche</button></div>';
             } else if (APP.mode === 'fiche-ok') {
                 var lien = lienPersonnel(APP.fiche);
+                adresseAJour();
                 fin.innerHTML = '<div id="fin" class="p-5 rounded-2xl border border-emerald-600/40 bg-emerald-500/10 space-y-3">' +
                     '<p class="text-emerald-700 font-semibold">C\'est enregistré sur ce téléphone.</p>' +
                     '<p class="text-[#4A4A4A] text-sm">Gardez aussi votre <strong>lien personnel</strong> : il contient votre fiche. Ouvrez-le puis ajoutez-le à vos favoris, vous n\'aurez jamais à refaire la fiche.' + (APP.miseAJour ? ' <strong>Remplacez l\'ancien lien de vos favoris par celui-ci.</strong>' : '') + '</p>' +
                     '<input id="lien-perso" readonly value="' + esc(lien) + '" class="' + CHAMP + ' text-xs">' +
                     '<div class="flex gap-2"><button type="button" onclick="copierLien()" class="flex-1 px-4 py-3 rounded-lg text-sm font-semibold text-emerald-800 border border-emerald-600/40">Copier le lien</button>' +
                     '<a href="' + esc(lien) + '" target="_top" class="flex-1 text-center px-4 py-3 rounded-lg text-sm font-semibold text-emerald-800 border border-emerald-600/40">Ouvrir le lien</a></div>' +
-                    '<p id="lien-msg" class="text-xs text-[#555555]"></p>' + logoHtml() +
+                    '<p id="lien-msg" class="text-xs text-[#555555]"></p>' + (estMobile() && !estEcranAccueil() ? '<div class="p-3 rounded-xl bg-white border border-black/10 text-sm text-[#222222]">' + texteEcranAccueil() + '</div>' : '') + logoHtml() +
                     (brouillonValable(stock('va_devis')) && stock('va_devis').rep.clientNom ? '<button type="button" onclick="reprendreDevis()" class="w-full px-6 py-4 rounded-lg font-semibold text-[#FFFFFF] bg-[#0B0B0B]">Reprendre mon devis en cours (' + esc(stock('va_devis').rep.clientNom) + ')</button>' +
                         '<button type="button" onclick="nouveauDevis()" class="w-full px-6 py-3 rounded-lg font-semibold text-gold-400 border border-gold-500/60">Faire un nouveau devis</button></div>'
                     : '<button type="button" onclick="nouveauDevis()" class="w-full px-6 py-4 rounded-lg font-semibold text-[#FFFFFF] bg-[#0B0B0B]">Faire mon premier devis</button></div>');
@@ -3184,7 +3202,7 @@
                     '<button type="button" onclick="telechargerPdf()" class="w-full px-6 py-3 rounded-lg text-sm font-semibold text-[#222222] border border-black/[0.12]">Enregistrer le PDF</button>' +
                     '<button type="button" onclick="ouvrirPdf()" class="w-full px-6 py-3 rounded-lg text-sm text-[#4A4A4A] border border-black/[0.12]">Voir le PDF</button>' +
                     (APP.demo ? '' : '<button type="button" onclick="enregistrerType()" class="w-full px-6 py-3 rounded-lg text-sm text-gold-400 border border-gold-500/40">Garder comme devis type (pour le refaire en 1 mot)</button>' +
-                        '<button type="button" onclick="copierLigneDevis()" class="w-full px-6 py-3 rounded-lg text-sm text-gold-400 border border-gold-500/40">Relancer ce devis s\'il n\'est pas signé (copier la ligne)</button>' +
+                        '<button type="button" onclick="copierLigneDevis()" class="w-full px-6 py-3 rounded-lg text-sm text-gold-400 border border-gold-500/40">' + texteBoutonFeuille('Relancer ce devis s\'il n\'est pas signé', 'Relancer ce devis s\'il n\'est pas signé (copier la ligne)') + '</button>' +
                         rappelRdvHtml()) +
                     '<div class="pt-3 mt-2 border-t border-black/10 space-y-2"><p class="text-[#4A4A4A] text-xs font-semibold uppercase tracking-wider">Après le chantier</p>' +
                     '<button type="button" onclick="ouvrirFacture()" class="w-full px-6 py-4 rounded-lg text-base font-semibold text-[#FFFFFF] bg-[#0B0B0B]">' + (APP.facture ? 'Facture n° ' + esc(APP.facture.numero) + ' : renvoyer' : 'Créer la facture') + '</button>' +
@@ -3465,6 +3483,78 @@
             avancer(true); window.scrollTo(0, 0);
         }
 
+        /* ===================== ÉCRAN D'ACCUEIL DU TÉLÉPHONE ===================== */
+        function estMobile() { return estIOS() || /Android/i.test(navigator.userAgent); }
+        function estEcranAccueil() { return !!(window.navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)); }
+        function texteEcranAccueil() {
+            return '<strong>Mettez l\'outil sur l\'écran d\'accueil</strong>, comme une application : ' + (estIOS()
+                ? 'dans Safari, touchez le bouton Partager (le carré avec une flèche), puis « Sur l\'écran d\'accueil », puis « Ajouter ».'
+                : 'dans Chrome, touchez le menu ⋮ en haut à droite, puis « Ajouter à l\'écran d\'accueil », puis « Ajouter ».');
+        }
+        function conseilEcranAccueil() {
+            var z = document.getElementById('liaison');
+            if (!z || z.innerHTML || APP.demo || !estMobile() || estEcranAccueil() || stock('va_ecran_ok') || !ficheValide(APP.fiche) || APP.fiche.demo) return;
+            z.innerHTML = '<div class="p-3 rounded-xl border border-black/10 bg-black/[0.03] text-sm text-[#222222] flex items-start gap-3"><p class="flex-1">' + texteEcranAccueil() + '</p>' +
+                '<button type="button" onclick="stock(\'va_ecran_ok\', true); document.getElementById(\'liaison\').innerHTML = \'\';" class="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-semibold text-[#FFFFFF] bg-[#0B0B0B]">OK</button></div>';
+        }
+
+        /* ===================== LIAISON AVEC LA FEUILLE « RELANCE DES IMPAYÉS » (sans copier-coller) ===================== */
+        function liaison() { var l = stock('va_feuille'); return l && l.url && l.cle ? l : null; }
+        function lireLiaisonDuLien() {
+            var p = new URLSearchParams(location.search), u = p.get('feuille'), c = p.get('cle');
+            if (!u || !c || !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u)) return;
+            var avant = liaison();
+            if (avant && avant.url === u && avant.cle === c) return;
+            stock('va_feuille', { url: u, cle: c });
+            messageLiaison('Vérification de la liaison avec votre feuille…', 'text-[#4A4A4A]');
+            fetch(u + '?cle=' + encodeURIComponent(c)).then(function (r) { return r.json(); }).then(function (d) {
+                if (d && d.ok) {
+                    stock('va_feuille', { url: u, cle: c, entreprise: d.entreprise || '' });
+                    messageLiaison('Outil relié à votre feuille' + (d.entreprise ? ' (' + esc(d.entreprise) + ')' : '') + ' ✓ Les devis, factures et rappels y arrivent tout seuls, sans copier-coller.', 'text-emerald-700');
+                } else {
+                    stock('va_feuille', null);
+                    messageLiaison('Ce lien de feuille ne marche pas. Dans la feuille : menu « Relance des impayés » > « Relier l\'outil de devis », puis rouvrez le nouveau lien.', 'text-red-700');
+                }
+                dessinerPied(); adresseAJour();
+            }, function () {
+                messageLiaison('Feuille enregistrée ✓ (vérification impossible pour l\'instant : pas de réseau ?).', 'text-emerald-700');
+            });
+        }
+        function messageLiaison(t, couleur) {
+            var z = document.getElementById('liaison');
+            if (z) z.innerHTML = '<div class="p-3 rounded-xl border border-black/10 bg-white text-sm ' + couleur + ' flex items-start gap-3"><p class="flex-1">' + t + '</p>' +
+                '<button type="button" onclick="document.getElementById(\'liaison\').innerHTML = \'\'" aria-label="Fermer" class="flex-shrink-0 px-2 text-[#555555]">✕</button></div>';
+        }
+        function dessinerPied() {
+            var z = document.getElementById('pied-feuille'), l = liaison();
+            if (!z) return;
+            z.innerHTML = l ? 'Relié à la feuille de relance' + (l.entreprise ? ' de ' + esc(l.entreprise) : '') + ' ✓ · <button type="button" onclick="delierFeuille()" class="underline">Délier</button>' : '';
+        }
+        function delierFeuille() {
+            if (!window.confirm('Délier la feuille ? Les lignes seront à nouveau copiées à la main.')) return;
+            stock('va_feuille', null); dessinerPied(); adresseAJour(); dessiner();
+        }
+        /* envoie la ligne dans la feuille si elle est reliée, sinon copie la ligne à coller */
+        function versFeuille(type, vals, afficher, t) {
+            var finEmail = t.email ? '' : ' ' + t.manqueEmail;
+            var l = liaison();
+            if (!l || !window.fetch) {
+                copierTexte(vals.join('\t'), function (ok) {
+                    afficher(ok, ok ? 'Ligne copiée. Dans la feuille « Relance des impayés », onglet ' + t.onglet + ' : touchez la première case vide de la colonne A, puis Coller.' + t.suite + finEmail : t.copieImpossible);
+                });
+                return;
+            }
+            afficher(true, 'Envoi dans la feuille…');
+            fetch(l.url, { method: 'POST', body: JSON.stringify({ cle: l.cle, type: type, ligne: vals }) })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (d && d.ok) { afficher(true, 'Ajouté dans la feuille, onglet ' + t.onglet + ' (ligne ' + d.ligne + ') ✓' + t.suite + finEmail); return; }
+                    if (d && d.erreur === 'cle') { stock('va_feuille', null); dessinerPied(); afficher(false, 'La liaison avec la feuille ne marche plus. Touchez à nouveau le bouton pour copier la ligne, ou redemandez le lien dans la feuille.'); return; }
+                    afficher(false, 'La feuille n\'a pas pu ajouter la ligne. Réessayez dans un moment.');
+                }, function () { afficher(false, 'Pas de réseau : réessayez dans un moment.'); });
+        }
+        function texteBoutonFeuille(avecLiaison, sansLiaison) { return liaison() ? avecLiaison : sansLiaison; }
+
         /* ===================== APRÈS LE CHANTIER : FACTURE, BON D'INTERVENTION, MATÉRIEL ===================== */
         function copierTexte(t, rappel) {
             var ok = false, zone = document.createElement('textarea');
@@ -3528,19 +3618,21 @@
         }
         function copierLigneRelance() {
             var f = APP.facture;
-            var ligne = [f.numero, APP.rep.clientNom || '', emailClient(), String(f.net.toFixed(2)).replace('.', ','), dateFr(new Date(f.date))].join('\t');
-            copierTexte(ligne, function (ok) {
+            var vals = [f.numero, APP.rep.clientNom || '', emailClient(), String(f.net.toFixed(2)).replace('.', ','), dateFr(new Date(f.date))];
+            versFeuille('facture', vals, function (ok, t) {
                 var m = document.getElementById('fac-msg');
-                if (m) m.textContent = ok ? 'Ligne copiée. Dans la feuille « Relance des impayés », onglet Factures : touchez la première case vide de la colonne A, puis Coller.' + (emailClient() ? '' : ' Ajoutez l\'e-mail du client dans la colonne C.') : 'Copie impossible sur ce téléphone : recopiez le numéro, le client et le montant dans la feuille.';
-            });
+                if (m) { m.className = 'text-xs ' + (ok ? 'text-emerald-700' : 'text-red-700'); m.textContent = t; }
+            }, { onglet: 'Factures', suite: ' Le client sera relancé s\'il ne paie pas à temps.', email: emailClient(), manqueEmail: 'Ajoutez l\'e-mail du client dans la colonne C.',
+                copieImpossible: 'Copie impossible sur ce téléphone : recopiez le numéro, le client et le montant dans la feuille.' });
         }
         function copierLigneDevis() {
             var c = APP.pdf ? APP.pdf.calcul : calculerDevis(APP.fiche, devisPourPdf());
-            var ligne = [APP.numero || '', APP.rep.clientNom || '', emailClient(), String(c.ttc.toFixed(2)).replace('.', ','), dateFr(new Date())].join('\t');
-            copierTexte(ligne, function (ok) {
+            var vals = [APP.numero || '', APP.rep.clientNom || '', emailClient(), String(c.ttc.toFixed(2)).replace('.', ','), dateFr(new Date())];
+            versFeuille('devis', vals, function (ok, t) {
                 var m = document.getElementById('manque');
-                if (m) { m.className = 'mt-3 text-xs text-emerald-700'; m.textContent = ok ? 'Ligne copiée. Dans la feuille « Relance des impayés », onglet Devis : touchez la première case vide de la colonne A, puis Coller. Le client sera relancé à 3 et 7 jours tant que « Signé ? » n\'est pas coché.' + (emailClient() ? '' : ' Ajoutez son e-mail dans la colonne C.') : 'Copie impossible : recopiez le numéro, le client et le montant dans l\'onglet Devis.'; }
-            });
+                if (m) { m.className = 'mt-3 text-xs ' + (ok ? 'text-emerald-700' : 'text-red-700'); m.textContent = t; }
+            }, { onglet: 'Devis', suite: ' Le client sera relancé à 3 et 7 jours tant que « Signé ? » n\'est pas coché.', email: emailClient(), manqueEmail: 'Ajoutez son e-mail dans la colonne C.',
+                copieImpossible: 'Copie impossible : recopiez le numéro, le client et le montant dans l\'onglet Devis.' });
         }
         /* --- Rappels clients (feuille, onglets Rendez-vous et Entretiens) : la ligne est prête, il n'y a qu'à la coller --- */
         function isoJour(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
@@ -3563,32 +3655,30 @@
             return '<div class="p-3 rounded-lg border border-black/10 space-y-2"><p class="text-sm font-semibold text-[#0B0B0B]">Rappel au client la veille du rendez-vous</p>' +
                 '<div class="grid grid-cols-2 gap-2"><label class="block text-xs text-[#4A4A4A]">Date<input id="rdv-date" type="date" value="' + dateDuDebut() + '" class="' + CHAMP + ' mt-1"></label>' +
                 '<label class="block text-xs text-[#4A4A4A]">Heure<input id="rdv-heure" type="time" class="' + CHAMP + ' mt-1"></label></div>' +
-                '<button type="button" onclick="copierLigneRendezVous()" class="w-full px-6 py-3 rounded-lg text-sm text-gold-400 border border-gold-500/40">Copier la ligne pour la feuille</button>' +
+                '<button type="button" onclick="copierLigneRendezVous()" class="w-full px-6 py-3 rounded-lg text-sm text-gold-400 border border-gold-500/40">' + texteBoutonFeuille('Programmer le rappel', 'Copier la ligne pour la feuille') + '</button>' +
                 '<p id="rdv-msg" class="text-xs text-[#4A4A4A]"></p></div>';
         }
         function copierLigneRendezVous() {
             var d = document.getElementById('rdv-date').value, h = document.getElementById('rdv-heure').value, m = document.getElementById('rdv-msg');
             if (!d) { m.className = 'text-xs text-red-700'; m.textContent = 'Choisissez la date du rendez-vous.'; return; }
-            var ligne = [APP.rep.clientNom || '', emailClient(), jourFr(d), h || '', adresseChantier()].join('\t');
-            copierTexte(ligne, function (ok) {
-                m.className = 'text-xs ' + (ok ? 'text-emerald-700' : 'text-red-700');
-                m.textContent = ok ? 'Ligne copiée. Dans la feuille « Relance des impayés », onglet Rendez-vous : touchez la première case vide de la colonne A, puis Coller. Le client recevra un e-mail la veille.' + (emailClient() ? '' : ' Ajoutez l\'e-mail du client dans la colonne B, sinon le rappel ne part pas.') : 'Copie impossible sur ce téléphone : recopiez le client, son e-mail, la date et l\'adresse dans l\'onglet Rendez-vous.';
-            });
+            var vals = [APP.rep.clientNom || '', emailClient(), jourFr(d), h || '', adresseChantier()];
+            versFeuille('rdv', vals, function (ok, t) { m.className = 'text-xs ' + (ok ? 'text-emerald-700' : 'text-red-700'); m.textContent = t; },
+                { onglet: 'Rendez-vous', suite: ' Le client recevra un e-mail la veille.', email: emailClient(), manqueEmail: 'Ajoutez l\'e-mail du client dans la colonne B, sinon le rappel ne part pas.',
+                  copieImpossible: 'Copie impossible sur ce téléphone : recopiez le client, son e-mail, la date et l\'adresse dans l\'onglet Rendez-vous.' });
         }
         function rappelEntretienHtml() {
             return '<div class="p-3 rounded-lg border border-black/10 space-y-2"><p class="text-sm font-semibold text-[#0B0B0B]">Rappel d\'entretien dans un an</p>' +
                 '<label class="block text-xs text-[#4A4A4A]">Appareil<input id="ent-appareil" value="' + esc(appareilDuDevis()) + '" placeholder="Ex. : chaudière, chauffe-eau" class="' + CHAMP + ' mt-1"></label>' +
-                '<button type="button" onclick="copierLigneEntretien()" class="w-full px-6 py-3 rounded-lg text-sm text-gold-400 border border-gold-500/40">Copier la ligne pour la feuille</button>' +
+                '<button type="button" onclick="copierLigneEntretien()" class="w-full px-6 py-3 rounded-lg text-sm text-gold-400 border border-gold-500/40">' + texteBoutonFeuille('Programmer le rappel', 'Copier la ligne pour la feuille') + '</button>' +
                 '<p id="ent-msg" class="text-xs text-[#4A4A4A]"></p></div>';
         }
         function copierLigneEntretien() {
             var f = APP.facture, a = document.getElementById('ent-appareil').value.trim(), m = document.getElementById('ent-msg');
             if (!a) { m.className = 'text-xs text-red-700'; m.textContent = 'Dites quel appareil est à entretenir (ex. : chaudière).'; return; }
-            var ligne = [APP.rep.clientNom || '', emailClient(), a, dateFr(new Date(f.dateTravaux))].join('\t');
-            copierTexte(ligne, function (ok) {
-                m.className = 'text-xs ' + (ok ? 'text-emerald-700' : 'text-red-700');
-                m.textContent = ok ? 'Ligne copiée. Dans la feuille « Relance des impayés », onglet Entretiens : touchez la première case vide de la colonne A, puis Coller. Le client sera prévenu un mois avant la date anniversaire.' + (emailClient() ? '' : ' Ajoutez l\'e-mail du client dans la colonne B, sinon le rappel ne part pas.') : 'Copie impossible sur ce téléphone : recopiez le client, son e-mail, l\'appareil et la date dans l\'onglet Entretiens.';
-            });
+            var vals = [APP.rep.clientNom || '', emailClient(), a, dateFr(new Date(f.dateTravaux))];
+            versFeuille('entretien', vals, function (ok, t) { m.className = 'text-xs ' + (ok ? 'text-emerald-700' : 'text-red-700'); m.textContent = t; },
+                { onglet: 'Entretiens', suite: ' Le client sera prévenu un mois avant la date anniversaire.', email: emailClient(), manqueEmail: 'Ajoutez l\'e-mail du client dans la colonne B, sinon le rappel ne part pas.',
+                  copieImpossible: 'Copie impossible sur ce téléphone : recopiez le client, son e-mail, l\'appareil et la date dans l\'onglet Entretiens.' });
         }
 
         function factureHtml() {
@@ -3600,7 +3690,7 @@
                      '<button type="button" onclick="envoyerFacture()" class="' + B + 'text-[#0B0B0B] bg-white border border-[#0B0B0B]/25">Envoyer la facture au client</button>' +
                      '<button type="button" onclick="APP.pdfFacture.doc.save(nomFacture() + \'.pdf\')" class="' + b + 'font-semibold text-[#222222] border border-black/[0.12]">Enregistrer le PDF</button>' +
                      '<button type="button" onclick="window.open(APP.pdfFacture.doc.output(\'bloburl\'), \'_blank\')" class="' + b + 'text-[#222222] border border-black/15">Voir la facture</button>' +
-                     (APP.demo ? '' : '<button type="button" onclick="copierLigneRelance()" class="' + b + 'font-semibold text-gold-400 border border-gold-500/50">Ajouter à la relance des impayés (copier la ligne)</button>') +
+                     (APP.demo ? '' : '<button type="button" onclick="copierLigneRelance()" class="' + b + 'font-semibold text-gold-400 border border-gold-500/50">' + texteBoutonFeuille('Ajouter à la relance des impayés', 'Ajouter à la relance des impayés (copier la ligne)') + '</button>') +
                      '<p id="fac-msg" class="text-xs text-[#4A4A4A]"></p>' +
                      (APP.demo ? '' : rappelEntretienHtml()) +
                      '<p class="text-xs text-[#555555]">Une facture ne se modifie plus. En cas d\'erreur, appelez-moi pour faire un avoir.</p>';
