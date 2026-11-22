@@ -72,7 +72,7 @@
         <div id="fin-zone" class="mt-4"></div>
 
         <p id="pied-feuille" class="mt-10 text-center text-xs text-[#555555]"></p>
-        <p class="mt-2 text-center text-xs text-[#555555]">Vos informations restent sur votre téléphone. · v27</p>
+        <p class="mt-2 text-center text-xs text-[#555555]">Vos informations restent sur votre téléphone. · v28</p>
     </main>
     <div id="barre-pdf" class="hidden fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-black/[0.08] px-4 pt-3 pb-5">
         <div class="max-w-xl mx-auto">
@@ -3488,7 +3488,7 @@
         function estEcranAccueil() { return !!(window.navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)); }
         function texteEcranAccueil() {
             return '<strong>Mettez l\'outil sur l\'écran d\'accueil</strong>, comme une application : ' + (estIOS()
-                ? 'dans Safari, touchez le bouton Partager (le carré avec une flèche), puis « Sur l\'écran d\'accueil », puis « Ajouter ».'
+                ? 'dans Safari, touchez les 3 points « ⋯ » en bas à droite, puis « Partager » (sur un iPhone plus ancien : directement le bouton Partager, le carré avec une flèche), puis « Sur l\'écran d\'accueil », puis « Ajouter ».'
                 : 'dans Chrome, touchez le menu ⋮ en haut à droite, puis « Ajouter à l\'écran d\'accueil », puis « Ajouter ».');
         }
         function conseilEcranAccueil() {
@@ -3517,7 +3517,9 @@
                 }
                 dessinerPied(); adresseAJour();
             }, function () {
-                messageLiaison('Feuille enregistrée ✓ (vérification impossible pour l\'instant : pas de réseau ?).', 'text-emerald-700');
+                if (navigator.onLine === false) { messageLiaison('Pas de réseau : la feuille sera vérifiée au premier envoi.', 'text-[#4A4A4A]'); return; }
+                stock('va_feuille', null); dessinerPied(); adresseAJour();
+                messageLiaison('Ce lien de feuille ne marche pas. Dans la feuille : menu « Relance des impayés » > « Relier l\'outil de devis », puis ouvrez le nouveau lien reçu par e-mail.', 'text-red-700');
             });
         }
         function messageLiaison(t, couleur) {
@@ -3551,7 +3553,7 @@
                     if (d && d.ok) { afficher(true, 'Ajouté dans la feuille, onglet ' + t.onglet + ' (ligne ' + d.ligne + ') ✓' + t.suite + finEmail); return; }
                     if (d && d.erreur === 'cle') { stock('va_feuille', null); dessinerPied(); afficher(false, 'La liaison avec la feuille ne marche plus. Touchez à nouveau le bouton pour copier la ligne, ou redemandez le lien dans la feuille.'); return; }
                     afficher(false, 'La feuille n\'a pas pu ajouter la ligne. Réessayez dans un moment.');
-                }, function () { afficher(false, 'Pas de réseau : réessayez dans un moment.'); });
+                }, function () { afficher(false, navigator.onLine === false ? 'Pas de réseau : réessayez dans un moment.' : 'La feuille ne répond pas. Réessayez dans un moment ; si ça recommence, redemandez le lien dans la feuille (menu « Relance des impayés » > « Relier l\'outil de devis »).'); });
         }
         function texteBoutonFeuille(avecLiaison, sansLiaison) { return liaison() ? avecLiaison : sansLiaison; }
 
