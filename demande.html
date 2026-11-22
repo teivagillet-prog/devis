@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <meta name="theme-color" content="#FFFFFF">
+    <title>Demande d'intervention</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #FFFFFF; color: #0B0B0B; font-family: 'Inter', system-ui, -apple-system, sans-serif; -webkit-text-size-adjust: 100%; }
+        main { max-width: 520px; margin: 0 auto; padding: 28px 20px 40px; }
+        .marque { display: flex; align-items: center; gap: 10px; }
+        .pastille { width: 38px; height: 38px; border-radius: 10px; background: #0B0B0B; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .pastille svg { width: 20px; height: 20px; color: #C6F432; }
+        .entreprise { font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 600; line-height: 1.15; }
+        h1 { font-family: 'Playfair Display', Georgia, serif; font-weight: 500; font-size: 30px; line-height: 1.15; margin: 26px 0 8px; }
+        .intro { color: #4A4A4A; font-size: 15px; line-height: 1.5; margin: 0 0 22px; }
+        label { display: block; font-size: 14px; font-weight: 600; margin: 16px 0 6px; }
+        label span { font-weight: 400; color: #6B6B6B; }
+        input, textarea { width: 100%; font: inherit; font-size: 16px; color: #0B0B0B; background: #FFFFFF; border: 1px solid rgba(11,11,11,0.18); border-radius: 12px; padding: 13px 14px; outline: none; -webkit-appearance: none; }
+        input:focus, textarea:focus { border-color: #0B0B0B; box-shadow: 0 0 0 3px rgba(198,244,50,0.55); }
+        textarea { min-height: 110px; resize: vertical; }
+        .choix { display: flex; gap: 10px; }
+        .choix button { flex: 1; font: inherit; font-size: 15px; font-weight: 600; padding: 13px 10px; border-radius: 12px; border: 1px solid rgba(11,11,11,0.18); background: #FFFFFF; color: #0B0B0B; cursor: pointer; }
+        .choix button[aria-pressed="true"] { background: #0B0B0B; color: #FFFFFF; border-color: #0B0B0B; }
+        .choix button.urgent[aria-pressed="true"] { background: #C62828; border-color: #C62828; }
+        .envoyer { width: 100%; margin-top: 24px; font: inherit; font-size: 17px; font-weight: 700; padding: 16px; border: 0; border-radius: 12px; background: #0B0B0B; color: #C6F432; cursor: pointer; touch-action: manipulation; }
+        .envoyer:disabled { opacity: 0.6; }
+        .erreur { color: #B42318; font-size: 14px; margin: 12px 0 0; min-height: 1em; }
+        .carte { margin-top: 26px; padding: 22px 20px; border-radius: 16px; background: rgba(198,244,50,0.30); }
+        .carte h2 { font-family: 'Playfair Display', Georgia, serif; font-weight: 500; font-size: 26px; margin: 0 0 8px; }
+        .carte p { margin: 0; font-size: 15px; line-height: 1.5; }
+        .appeler { display: inline-block; white-space: nowrap; margin-top: 14px; padding: 12px 18px; border-radius: 12px; background: #0B0B0B; color: #FFFFFF; font-weight: 700; text-decoration: none; }
+        .pied { margin-top: 34px; font-size: 12px; color: #6B6B6B; line-height: 1.5; text-align: center; }
+        .cache { display: none; }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="marque">
+            <span class="pastille" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+            <span id="entreprise" class="entreprise">Votre artisan</span>
+        </div>
+
+        <div id="formulaire">
+            <h1>Demande d'intervention</h1>
+            <p class="intro">Je suis sur un chantier et je n'ai pas pu répondre. Décrivez votre besoin en 1 minute : je vous rappelle au plus vite.</p>
+
+            <form id="form" novalidate>
+                <label for="telephone">Votre téléphone</label>
+                <input id="telephone" type="tel" inputmode="tel" autocomplete="tel" placeholder="06 12 34 56 78" required>
+
+                <label for="nom">Votre nom <span>(facultatif)</span></label>
+                <input id="nom" type="text" autocomplete="name" placeholder="Mme Durand">
+
+                <label for="adresse">Adresse de l'intervention <span>(facultatif)</span></label>
+                <input id="adresse" type="text" autocomplete="street-address" placeholder="8 rue des Lilas, Bordeaux">
+
+                <label for="probleme">Votre problème</label>
+                <textarea id="probleme" placeholder="Ex. : fuite sous l'évier, plus d'eau chaude, WC bouché…"></textarea>
+
+                <label>Est-ce urgent ?</label>
+                <div class="choix">
+                    <button type="button" id="urgent-oui" class="urgent" aria-pressed="false" onclick="choisirUrgence(true)">Oui, urgent</button>
+                    <button type="button" id="urgent-non" aria-pressed="true" onclick="choisirUrgence(false)">Non</button>
+                </div>
+
+                <button type="submit" id="envoyer" class="envoyer">Envoyer ma demande</button>
+                <p id="erreur" class="erreur" role="alert"></p>
+            </form>
+        </div>
+
+        <div id="merci" class="carte cache" role="status">
+            <h2>C'est envoyé ✓</h2>
+            <p id="merci-texte">Votre demande est bien arrivée. Je vous rappelle au plus vite.</p>
+            <a id="merci-appel" class="appeler cache" href="#">Appeler</a>
+        </div>
+
+        <div id="lien-invalide" class="carte cache">
+            <h2>Lien incomplet</h2>
+            <p>Ce lien ne fonctionne pas. Rappelez simplement l'artisan qui vous l'a envoyé.</p>
+        </div>
+
+        <p class="pied">Vos informations sont transmises uniquement à <span id="pied-entreprise">l'artisan</span>, pour vous rappeler.</p>
+    </main>
+
+    <script>
+        var PARAMS = new URLSearchParams(location.search);
+        var ID = PARAMS.get('d') || '';
+        var ID_OK = /^[\w-]{20,120}$/.test(ID);
+        var APPLI = 'https://script.google.com/macros/s/' + ID + '/exec';
+        var INFO = { entreprise: '', telephone: '' };
+        var URGENT = false;
+
+        function el(id) { return document.getElementById(id); }
+        function choisirUrgence(oui) {
+            URGENT = !!oui;
+            el('urgent-oui').setAttribute('aria-pressed', URGENT ? 'true' : 'false');
+            el('urgent-non').setAttribute('aria-pressed', URGENT ? 'false' : 'true');
+        }
+        function chiffres(t) { return (String(t).match(/\d/g) || []).length; }
+        function afficherErreur(t) { el('erreur').textContent = t; }
+
+        function chargerInfo() {
+            if (!ID_OK) { el('formulaire').classList.add('cache'); el('lien-invalide').classList.remove('cache'); return; }
+            if (!window.fetch) return;
+            fetch(APPLI + '?info=demande').then(function (r) { return r.json(); }).then(function (d) {
+                if (!d || !d.ok) return;
+                INFO.entreprise = d.entreprise || '';
+                INFO.telephone = d.telephone || '';
+                if (INFO.entreprise) {
+                    el('entreprise').textContent = INFO.entreprise;
+                    el('pied-entreprise').textContent = INFO.entreprise;
+                    document.title = 'Demande d\'intervention – ' + INFO.entreprise;
+                }
+            }, function () {});
+        }
+
+        el('form').addEventListener('submit', function (ev) {
+            ev.preventDefault();
+            afficherErreur('');
+            var tel = el('telephone').value.trim();
+            if (chiffres(tel) < 9) { afficherErreur('Indiquez votre numéro de téléphone pour être rappelé.'); el('telephone').focus(); return; }
+            if (!el('probleme').value.trim()) { afficherErreur('Décrivez votre problème en quelques mots.'); el('probleme').focus(); return; }
+            var bouton = el('envoyer');
+            bouton.disabled = true; bouton.textContent = 'Envoi…';
+            var demande = { type: 'demande', telephone: tel, nom: el('nom').value.trim(), adresse: el('adresse').value.trim(), probleme: el('probleme').value.trim(), urgent: URGENT };
+            fetch(APPLI, { method: 'POST', body: JSON.stringify(demande) })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (d && d.ok) { merci(); return; }
+                    var e = d && d.erreur;
+                    afficherErreur(e === 'telephone' ? 'Ce numéro de téléphone semble incomplet.' : (e === 'limite' ? 'Trop de demandes aujourd\'hui : appelez directement, merci.' : 'L\'envoi n\'a pas marché. Réessayez dans un instant.'));
+                    bouton.disabled = false; bouton.textContent = 'Envoyer ma demande';
+                }, function () {
+                    afficherErreur('Envoi impossible : vérifiez votre connexion, puis réessayez.');
+                    bouton.disabled = false; bouton.textContent = 'Envoyer ma demande';
+                });
+        });
+
+        function merci() {
+            el('formulaire').classList.add('cache');
+            el('merci').classList.remove('cache');
+            var nom = INFO.entreprise || 'L\'artisan';
+            el('merci-texte').textContent = URGENT
+                ? nom + ' a reçu votre demande urgente et vous rappelle dès que possible.'
+                : nom + ' a bien reçu votre demande et vous rappelle au plus vite.';
+            if (URGENT && chiffres(INFO.telephone) >= 9) {
+                var a = el('merci-appel');
+                a.href = 'tel:' + INFO.telephone.replace(/[^\d+]/g, '');
+                a.textContent = 'Appeler le ' + INFO.telephone;
+                a.classList.remove('cache');
+            }
+            window.scrollTo(0, 0);
+        }
+
+        chargerInfo();
+    </script>
+</body>
+</html>
